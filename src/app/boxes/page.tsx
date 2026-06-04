@@ -21,7 +21,7 @@ export default async function BoxesPage({
       <main className="mx-auto max-w-[1280px] px-7 py-12">
         <section className="mx-auto max-w-4xl text-center">
           <div className="font-serif text-[4.6rem] leading-[0.95] tracking-[-0.06em] text-[#2f2b25] md:text-[5.6rem]">
-            Gentle essentials
+            LUMIA's Boxes
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-[#6f6b63]">
             Chọn chiếc hộp phù hợp để bắt đầu ritual của riêng bạn, hoặc vào workspace miễn phí trước nếu bạn muốn cảm nhận nhẹ hơn.
@@ -64,7 +64,7 @@ export default async function BoxesPage({
           </section>
         )}
 
-        <section className="mt-14 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-14 grid gap-6 lg:grid-cols-1 xl:grid-cols-3">
           {lumiaProducts.map((product, index) => (
             <ProductCard key={product.slug} product={product} featured={index === 2} />
           ))}

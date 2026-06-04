@@ -14,7 +14,6 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 const tierMap: Record<string, string> = {
   free: "Dùng thử miễn phí",
   "1m": "Hộp LUMIA Khởi đầu",
-  "3m": "Hộp LUMIA Mỗi ngày",
   "5m": "Hộp LUMIA Dịu sâu",
   gift: "Hộp LUMIA Quà tặng",
 };
@@ -22,7 +21,6 @@ const tierMap: Record<string, string> = {
 const tierSlugMap: Record<string, string | null> = {
   free: null,
   "1m": "lumia-soft-box-1m",
-  "3m": "lumia-daily-box-3m",
   "5m": "lumia-deep-box-5m",
   gift: "lumia-gift-box",
 };

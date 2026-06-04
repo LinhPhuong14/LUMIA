@@ -41,7 +41,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 <div className="text-xs uppercase tracking-[0.24em] text-white/82">Hình ảnh sản phẩm sẽ được cập nhật</div>
                 <div className="mt-4 font-serif text-5xl leading-tight text-white">{product.name}</div>
                 <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-white/82">
-                  Mình đã gỡ ảnh SVG placeholder khỏi trang chi tiết này để bạn thay bằng ảnh thật của từng box sau.
+                  Sẽ thay bằng ảnh thật của từng box sau.
                 </p>
               </div>
             </div>
