@@ -10,7 +10,7 @@ export function LumiaLogo({ className }: { className?: string }) {
       </div>
       <div>
         <div className="font-serif text-[1.35rem] tracking-[0.18em] text-matcha-deep">LUMIA</div>
-        <div className="text-[0.72rem] uppercase tracking-[0.28em] text-muted">Nghi thức dịu dàng</div>
+        
       </div>
     </Link>
   );

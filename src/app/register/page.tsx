@@ -28,28 +28,7 @@ export default async function RegisterPage({
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-[28px] border border-white/70 bg-white/58 p-5">
-              <div className="font-serif text-3xl text-matcha-deep">Chọn nhịp bắt đầu</div>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                Bạn có thể đi vào trải nghiệm premium bằng hộp LUMIA hoặc vào workspace nhẹ hơn trước để thử.
-              </p>
-            </div>
-            <div className="rounded-[28px] border border-white/70 bg-white/58 p-5">
-              <div className="font-serif text-3xl text-matcha-deep">Không gian riêng tư</div>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                Mọi ghi nhận cảm xúc, journal và trò chuyện đều ở trong một không gian dịu dàng và kín đáo.
-              </p>
-            </div>
-          </div>
-
-          <div className="relative rounded-[32px] border border-white/70 bg-white/56 p-6">
-            <div className="text-xs uppercase tracking-[0.24em] text-muted">Hình ảnh sẽ được cập nhật</div>
-            <div className="mt-4 font-serif text-3xl leading-tight text-matcha-deep">Khu vực visual này đang chờ ảnh thật từ bạn.</div>
-            <p className="mt-3 max-w-md text-sm leading-7 text-muted">
-              Mình đã bỏ ảnh SVG tự vẽ để khi bạn gửi ảnh mới, layout này có thể thay ngay mà không phải làm lại.
-            </p>
-          </div>
+          
 
           <p className="relative text-sm text-muted">
             Đã có tài khoản?{" "}

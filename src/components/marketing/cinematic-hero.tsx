@@ -316,7 +316,7 @@ export function CinematicHero() {
 
         <div className="pointer-events-none absolute inset-x-0 -bottom-44 z-30 h-[34rem] bg-gradient-to-b from-transparent via-[#F8F6EF]/95 to-[#F8F6EF]" />
 
-        <nav className="absolute inset-x-0 top-0 z-40">
+        <nav className="absolute inset-x-0 top-0 z-60">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 md:px-8">
             <Link
               href="/"

@@ -74,12 +74,7 @@ export function DashboardShell({
             })}
           </nav>
 
-          <div className="dashboard-glass rounded-[24px] p-4 text-sm leading-6 text-muted">
-            <div className="font-medium text-matcha-deep">Nhẹ đi một chút cũng đã là bắt đầu.</div>
-            <p className="mt-2">
-              Không gian này ưu tiên những bước thật nhỏ, đủ để bạn quay lại với mình mà không bị áp lực.
-            </p>
-          </div>
+          
         </aside>
 
         <main className="min-w-0 flex-1 lg:flex lg:min-h-0 lg:flex-col">

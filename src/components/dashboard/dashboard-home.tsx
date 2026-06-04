@@ -48,17 +48,19 @@ export function DashboardHome({ planLabel, tier }: { planLabel: string; tier: st
   const isFree = tier === "free";
 
   return (
-    <div className="grid gap-3 lg:h-full lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.82fr)] lg:overflow-hidden">
-      <div className="grid gap-3 lg:min-h-0 lg:grid-rows-[auto_1fr] lg:overflow-hidden">
+    // grid gap-3 lg:h-full lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.82fr)] 
+    <div className="lg:overflow-hidden">
+      {/* grid gap-3 lg:min-h-0 lg:grid-rows-[auto_1fr] */}
+      <div className=" lg:overflow-hidden">
         <motion.section {...fadeMotion()} className="dashboard-glass rounded-[28px] px-4 py-4 lg:px-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
               <span className="eyebrow">{isFree ? "Dùng thử miễn phí" : "Không gian premium"}</span>
-              <h2 className="mt-3 font-serif text-[2rem] leading-[0.96] tracking-[-0.04em] text-matcha-deep lg:text-[2.3rem]">
+              {/* <h2 className="mt-3 font-serif text-[2rem] leading-[0.96] tracking-[-0.04em] text-matcha-deep lg:text-[2.3rem]">
                 {isFree
                   ? "Bạn có thể bắt đầu rất nhẹ, rồi nâng cấp khi đã sẵn sàng."
                   : "Không gian của bạn đã mở thêm nhiều lớp dịu và sâu hơn."}
-              </h2>
+              </h2> */}
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
                 {isFree
                   ? "Vẫn có thể ghi nhận cảm xúc, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, chỉ cần chọn một chiếc hộp."
@@ -84,7 +86,7 @@ export function DashboardHome({ planLabel, tier }: { planLabel: string; tier: st
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="eyebrow">Check-in nhanh</span>
+                <span className="eyebrow">Tâm trạng hôm nay</span>
                 <h3 className="mt-3 font-serif text-[1.95rem] leading-[0.98] tracking-[-0.04em] text-matcha-deep">
                   Bạn đang cảm thấy thế nào?
                 </h3>
@@ -217,7 +219,7 @@ export function DashboardHome({ planLabel, tier }: { planLabel: string; tier: st
         </div>
       </div>
 
-      <aside className="grid gap-3 lg:h-full lg:grid-rows-[auto_1fr] lg:overflow-hidden">
+      {/* <aside className="grid gap-3 lg:h-full lg:grid-rows-[auto_1fr] lg:overflow-hidden">
         <motion.section {...fadeMotion(0.12)} className="dashboard-glass rounded-[28px] px-4 py-4 lg:px-5">
           <span className="eyebrow">Lộ trình tối nay</span>
           <div className="mt-3 grid gap-2.5">
@@ -273,7 +275,7 @@ export function DashboardHome({ planLabel, tier }: { planLabel: string; tier: st
             })}
           </div>
         </motion.section>
-      </aside>
+      </aside> */}
     </div>
   );
 }

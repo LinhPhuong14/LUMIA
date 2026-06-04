@@ -120,27 +120,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
         ) : null}
       </div>
 
-      {mode === "register" ? (
-        <div className="rounded-[24px] border border-white/70 bg-white/70 p-4">
-          <p className="text-sm font-medium text-matcha-deep">Bạn muốn LUMIA hỗ trợ điều gì trước tiên?</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {supportGoals.map((goal) => (
-              <button
-                key={goal}
-                type="button"
-                onClick={() => setSelectedGoal(goal)}
-                className={`rounded-full px-4 py-2 text-sm transition ${
-                  selectedGoal === goal
-                    ? "bg-matcha text-white shadow-[0_16px_36px_rgba(143,168,120,0.24)]"
-                    : "border border-matcha-soft bg-white text-matcha-deep"
-                }`}
-              >
-                {goal}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      
 
       <div className="mt-auto space-y-3">
         <button type="submit" disabled={loading} className="button-primary w-full justify-center disabled:opacity-60">
