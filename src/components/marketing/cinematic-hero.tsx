@@ -187,42 +187,6 @@ function SectionHeading({
   );
 }
 
-function PlaceholderPanel({
-  title,
-  copy,
-  compact = false,
-}: {
-  title: string;
-  copy: string;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={`liquid-panel relative overflow-hidden ${
-        compact ? "min-h-[17rem]" : "min-h-[24rem]"
-      } p-5`}
-    >
-      <div className="absolute inset-x-10 top-4 h-16 rounded-full bg-white/55 blur-3xl" />
-      <div className="absolute left-6 top-8 h-24 w-24 rounded-full bg-champagne/50 blur-2xl" />
-      <div className="absolute bottom-6 right-6 h-28 w-28 rounded-full bg-matcha-soft/80 blur-3xl" />
-
-      <div className="relative flex h-full flex-col justify-between rounded-[28px] border border-white/70 bg-white/38 p-6">
-        <div>
-          <div className="text-xs uppercase tracking-[0.24em] text-muted">
-            Chờ hình ảnh thật
-          </div>
-
-          <div className="mt-3 font-serif text-3xl leading-tight text-matcha-deep">
-            {title}
-          </div>
-        </div>
-
-        <p className="max-w-sm text-sm leading-6 text-muted">{copy}</p>
-      </div>
-    </div>
-  );
-}
-
 function HeroVideoBackground() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -391,14 +355,14 @@ export function CinematicHero() {
           </div>
         </nav>
 
-        <div className="relative z-20 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6  text-center">
-          <motion.div {...fadeUp()} className="mx-auto max-w-6xl">
-            <h1 className="font-serif text-[4.2rem] leading-[0.88] tracking-[-0.07em] text-matcha-deep md:text-[6rem]  xl:text-[7rem]">
+        <div className="relative z-50 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6  text-center">
+          <motion.div {...fadeUp()} className="mx-auto max-w-5xl">
+            <h1 className="font-serif text-[3.2rem] leading-[0.88] tracking-[-0.07em] text-matcha-deep md:text-[4.5rem]  xl:text-[5rem]">
               Một ritual dịu dàng cho những ngày bạn cần{" "}
               <span className="text-[#a7bf8c]">nhẹ lại.</span>
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 pb-[18vh] text-[#66725e]">
+            <p className="mx-auto mt-6 max-w-2xl text-md leading-8 pb-[12vh] text-[#66725e]">
               LUMIA kết hợp healing box vật lý và không gian digital để bạn ghi
               nhận cảm xúc, viết ra và được lắng nghe theo cách thật nhẹ.
             </p>
