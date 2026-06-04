@@ -1,220 +1,539 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, MessageCircleHeart, NotebookPen, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  MessageCircleHeart,
+  NotebookPen,
+  Sparkles,
+} from "lucide-react";
 
-const heroVideoUrl =
-  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4";
-
-const dashboardVideoUrl =
-  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4";
+const heroVideoSources = [
+  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4",
+  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4",
+] as const;
 
 const ritualCards = [
   {
     title: "Mở hộp",
-    copy: "Bắt đầu bằng những vật phẩm nhỏ: ánh nến, hương thơm, thẻ nghi thức và cảm giác được chăm sóc.",
+    copy: "Bắt đầu bằng ánh nến, thẻ ritual và cảm giác được chăm sóc vừa đủ.",
+    icon: Sparkles,
   },
   {
-    title: "Ghi nhận cảm xúc",
-    copy: "Chọn cảm xúc, mức độ cảm xúc và lý do khiến bạn thấy như vậy hôm nay.",
+    title: "Check-in cảm xúc",
+    copy: "Chọn mood, mức độ và lý do theo cách nhẹ nhàng, không áp lực.",
+    icon: CheckCircle2,
   },
   {
     title: "Đặt xuống một chút",
-    copy: "Viết nhật ký, xả cảm xúc hoặc để LUMIA lắng nghe bạn vài phút.",
+    copy: "Viết ra hoặc để LUMIA lắng nghe bạn thêm vài phút trước khi nghỉ ngơi.",
+    icon: MessageCircleHeart,
   },
 ] as const;
 
 const boxCards = [
   {
     title: "Hộp LUMIA Khởi đầu",
-    price: "390.000đ",
-    copy: "Dành cho những ai muốn bắt đầu thật nhẹ.",
-    access: "Ghi nhận cảm xúc cơ bản, nhật ký mở đầu và không gian lắng nghe dịu nhẹ.",
+    price: "x.000đ",
+    copy: "Bắt đầu thật nhẹ với ritual cơ bản và không gian riêng đầu tiên.",
   },
+
   {
-    title: "Hộp LUMIA Mỗi ngày",
-    price: "890.000đ",
-    copy: "Dành cho người muốn duy trì một nghi thức cảm xúc mỗi ngày.",
-    access: "Nhật ký không giới hạn, lịch sử cảm xúc 30 ngày và gợi ý dịu nhẹ hơn theo thói quen.",
+    title: "Hộp LUMIA Dịu sâu",
+    price: "x.000đ",
+    copy: "Mở thêm nhiều lớp trải nghiệm riêng tư và cá nhân hóa hơn.",
   },
   {
     title: "Hộp LUMIA Dịu sâu",
-    price: "2.390.000đ",
-    copy: "Dành cho trải nghiệm đầy đủ hơn với AI lắng nghe và nhật ký cá nhân hóa.",
-    access: "LUMIA lắng nghe sâu hơn, lịch sử cảm xúc dài hơn và gợi ý chiêm nghiệm cá nhân hóa.",
+    price: "x.000đ",
+    copy: "Mở thêm nhiều lớp trải nghiệm riêng tư và cá nhân hóa hơn.",
+  },
+] as const;
+
+const testimonials = [
+  {
+    quote:
+      "Lần đầu tiên trong nhiều tháng mình ngủ được thật sự. Cái nghi thức nhỏ đó đã thay đổi cả buổi tối của mình.",
+    tag: "Hộp Khởi đầu",
   },
   {
-    title: "Hộp LUMIA Quà tặng",
-    price: "1.290.000đ",
-    copy: "Một món quà dịu dàng cho người bạn thương.",
-    access: "Mở khóa bằng mã quà tặng và tạo một không gian riêng tư cho người nhận.",
+    quote:
+      "Mình không ngờ là chỉ cần viết ra vài dòng mà lòng nhẹ đến vậy. LUMIA như người bạn không phán xét.",
+    tag: "Workspace",
+  },
+  {
+    quote:
+      "Cái hộp đến tay mình vào đúng một tuần rất khó. Mình đã khóc và cảm ơn vì điều đó.",
+    tag: "Hộp Dịu sâu",
+  },
+  {
+    quote:
+      "AI của LUMIA lắng nghe theo cách mình chưa từng thấy ở bất kỳ app nào. Nó không cố sửa mình.",
+    tag: "LUMIA lắng nghe",
+  },
+  {
+    quote:
+      "Từ khi có LUMIA, buổi tối của mình có một cái neo. Mình biết mình sẽ dừng lại ở đâu đó trong ngày.",
+    tag: "Hộp Mỗi ngày",
+  },
+  {
+    quote:
+      "Mình mua tặng bạn thân và nó nhắn lại rằng đó là món quà ý nghĩa nhất năm nay.",
+    tag: "Hộp Quà tặng",
+  },
+  {
+    quote:
+      "Nhật ký LUMIA giúp mình nhìn lại cảm xúc theo tuần. Mình thấy rõ mình hơn rất nhiều.",
+    tag: "Workspace",
+  },
+  {
+    quote:
+      "Hương thơm trong hộp, ánh nến nhỏ — những thứ tưởng vô nghĩa lại tạo ra sự khác biệt thật sự.",
+    tag: "Hộp Dịu sâu",
+  },
+  {
+    quote:
+      "Mình đã từng nghĩ mình không cần được lắng nghe. Bây giờ mình biết mình đã sai.",
+    tag: "LUMIA lắng nghe",
   },
 ] as const;
 
-const promptCards = [
-  "Hôm nay điều gì khiến bạn mệt?",
-  "Bạn đang cần điều gì ngay lúc này?",
-  "Nếu cảm xúc này có màu sắc, nó là màu gì?",
-  "Có điều gì bạn muốn đặt xuống không?",
-] as const;
+const col1 = testimonials.slice(0, 3);
+const col2 = testimonials.slice(3, 6);
+const col3 = testimonials.slice(6, 9);
 
+const cardShadow =
+  "0px 0px 0px 1px rgba(14,63,126,0.04), 0px 1px 1px -0.5px rgba(42,51,69,0.04), 0px 3px 3px -1.5px rgba(42,51,70,0.04), 0px 6px 6px -3px rgba(42,51,70,0.04), 0px 12px 12px -6px rgba(14,63,126,0.04), 0px 24px 24px -12px rgba(14,63,126,0.04)";
+
+function TestimonialCard({ quote, tag }: { quote: string; tag: string }) {
+  return (
+    <div
+      className="rounded-3xl bg-white p-6 mb-4 flex-shrink-0"
+      style={{ boxShadow: cardShadow }}
+    >
+      <p className="font-serif text-xl font-medium leading-relaxed tracking-wide text-foreground/80 mb-4 text-pretty">
+        "{quote}"
+      </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold text-foreground">Khách hàng LUMIA</p>
+          <p className="text-xs text-muted-foreground">Việt Nam</p>
+        </div>
+        <span className="text-xs tracking-wide text-primary/70 bg-primary/5 px-2 py-1 rounded-full whitespace-nowrap">
+          {tag}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ScrollColumn({
+  items,
+  direction,
+}: {
+  items: typeof col1;
+  direction: "up" | "down";
+}) {
+  const animClass =
+    direction === "up"
+      ? "animate-scroll-up hover:animate-scroll-up-slow"
+      : "animate-scroll-down hover:animate-scroll-down-slow";
+
+  return (
+    <div className="relative overflow-hidden">
+      <div className={animClass}>
+        {[...items, ...items].map((t, i) => (
+          <TestimonialCard key={i} quote={t.quote} tag={t.tag} />
+        ))}
+      </div>
+    </div>
+  );
+}
 function fadeUp(delay = 0) {
   return {
-    initial: { opacity: 0, y: 26 },
+    initial: { opacity: 0, y: 24 },
     whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.2 },
+    viewport: { once: true, amount: 0.22 },
     transition: { duration: 0.78, ease: [0.22, 1, 0.36, 1], delay },
   } as const;
 }
 
+function SectionHeading({
+  eyebrow,
+  title,
+  body,
+}: {
+  eyebrow: string;
+  title: string;
+  body?: string;
+}) {
+  return (
+    <motion.div {...fadeUp()} className="relative z-[1] max-w-2xl">
+      <span className="eyebrow">{eyebrow}</span>
+
+      <h2 className="mt-5 font-serif text-[3.1rem] leading-[0.96] tracking-[-0.05em] text-matcha-deep md:text-[4.3rem] lg:text-[4.8rem]">
+        {title}
+      </h2>
+
+      {body ? (
+        <p className="mt-5 max-w-xl text-base leading-7 text-muted md:text-lg">
+          {body}
+        </p>
+      ) : null}
+    </motion.div>
+  );
+}
+
+function PlaceholderPanel({
+  title,
+  copy,
+  compact = false,
+}: {
+  title: string;
+  copy: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`liquid-panel relative overflow-hidden ${
+        compact ? "min-h-[17rem]" : "min-h-[24rem]"
+      } p-5`}
+    >
+      <div className="absolute inset-x-10 top-4 h-16 rounded-full bg-white/55 blur-3xl" />
+      <div className="absolute left-6 top-8 h-24 w-24 rounded-full bg-champagne/50 blur-2xl" />
+      <div className="absolute bottom-6 right-6 h-28 w-28 rounded-full bg-matcha-soft/80 blur-3xl" />
+
+      <div className="relative flex h-full flex-col justify-between rounded-[28px] border border-white/70 bg-white/38 p-6">
+        <div>
+          <div className="text-xs uppercase tracking-[0.24em] text-muted">
+            Chờ hình ảnh thật
+          </div>
+
+          <div className="mt-3 font-serif text-3xl leading-tight text-matcha-deep">
+            {title}
+          </div>
+        </div>
+
+        <p className="max-w-sm text-sm leading-6 text-muted">{copy}</p>
+      </div>
+    </div>
+  );
+}
+
+function HeroVideoBackground() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const restartTimeoutRef = useRef<number | null>(null);
+
+  const [videoSourceIndex, setVideoSourceIndex] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const fadeDuration = 0.5;
+    let active = true;
+
+    const startPlayback = async () => {
+      try {
+        await video.play();
+      } catch {
+        // Keep fallback visible if autoplay is blocked.
+      }
+    };
+
+    const tick = () => {
+      if (!active) return;
+
+      const current = video.currentTime;
+      const duration = video.duration;
+
+      if (!duration) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (current < fadeDuration) {
+        video.style.opacity = String(current / fadeDuration);
+      } else if (current > duration - fadeDuration) {
+        video.style.opacity = String((duration - current) / fadeDuration);
+      } else {
+        video.style.opacity = "1";
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    const handleEnded = () => {
+      video.style.opacity = "0";
+
+      restartTimeoutRef.current = window.setTimeout(() => {
+        if (!active) return;
+
+        video.currentTime = 0;
+        startPlayback();
+      }, 100);
+    };
+
+    const handleLoadedData = () => {
+      setVideoReady(true);
+      setVideoFailed(false);
+      startPlayback();
+    };
+
+    const handleError = () => {
+      if (videoSourceIndex < heroVideoSources.length - 1) {
+        setVideoReady(false);
+        setVideoSourceIndex((current) => current + 1);
+        return;
+      }
+
+      setVideoReady(false);
+      setVideoFailed(true);
+    };
+
+    video.style.opacity = "0";
+
+    rafRef.current = requestAnimationFrame(tick);
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("ended", handleEnded);
+    video.addEventListener("error", handleError);
+
+    return () => {
+      active = false;
+
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (restartTimeoutRef.current) {
+        window.clearTimeout(restartTimeoutRef.current);
+      }
+
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("error", handleError);
+    };
+  }, [videoSourceIndex]);
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden bg-white">
+      {!videoFailed ? (
+        <video
+          ref={videoRef}
+          key={heroVideoSources[videoSourceIndex]}
+          muted
+          playsInline
+          autoPlay
+          preload="metadata"
+          crossOrigin="anonymous"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{
+            opacity: videoReady ? 1 : 0,
+            transition: "opacity 600ms ease",
+          }}
+        >
+          <source src={heroVideoSources[videoSourceIndex]} type="video/mp4" />
+        </video>
+      ) : null}
+
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.72)_24%,rgba(255,255,255,0.16)_56%,rgba(248,246,239,0.7)_100%)]" />
+    </div>
+  );
+}
+
 export function CinematicHero() {
   return (
-    <div className="overflow-hidden bg-[linear-gradient(180deg,#FFFEFA_0%,#FFFDF5_38%,#FFFEFA_100%)]">
-      <section className="relative min-h-screen overflow-hidden px-6 py-12 md:px-12 lg:px-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(248,231,161,0.26),transparent_22%),radial-gradient(circle_at_84%_16%,rgba(184,207,166,0.22),transparent_24%)]" />
-        <div className="shell relative grid min-h-[calc(100vh-4rem)] items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
-          <motion.div {...fadeUp()} className="max-w-2xl">
-            <span className="eyebrow">Nghi thức chăm sóc dịu dàng</span>
-            <h1 className="mt-8 font-serif text-6xl leading-[0.94] tracking-[-0.05em] text-foreground md:text-7xl xl:text-[6.4rem]">
-              Một nghi thức dịu dàng cho những ngày bạn cần nhẹ lại.
+    <div className="overflow-hidden bg-[#F8F6EF]">
+      <section className="relative isolate min-h-screen overflow-visible bg-[#F8F6EF]">
+        <HeroVideoBackground />
+
+        <div className="pointer-events-none absolute inset-x-0 -bottom-44 z-30 h-[34rem] bg-gradient-to-b from-transparent via-[#F8F6EF]/95 to-[#F8F6EF]" />
+
+        <nav className="absolute inset-x-0 top-0 z-40">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 md:px-8">
+            <Link
+              href="/"
+              className="font-serif text-[2rem] tracking-[-0.05em] text-matcha-deep"
+            >
+              LUMIA
+            </Link>
+
+            <div className="hidden items-center gap-8 rounded-full border border-white/80 bg-white/72 px-5 py-3 text-sm text-muted backdrop-blur-xl md:flex">
+              <a
+                href="#ve-lumia"
+                className="transition-colors hover:text-matcha-deep"
+              >
+                Về LUMIA
+              </a>
+              <a
+                href="#hop-lumia"
+                className="transition-colors hover:text-matcha-deep"
+              >
+                Hộp LUMIA
+              </a>
+              <a
+                href="#testimonials"
+                className="transition-colors hover:text-matcha-deep"
+              >
+                Feedback
+              </a>
+            </div>
+
+            <Link
+              href="/register?next=/boxes?onboarding=1"
+              className="button-primary px-6"
+            >
+              Bắt đầu
+            </Link>
+          </div>
+        </nav>
+
+        <div className="relative z-20 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6  text-center">
+          <motion.div {...fadeUp()} className="mx-auto max-w-6xl">
+            <h1 className="font-serif text-[4.2rem] leading-[0.88] tracking-[-0.07em] text-matcha-deep md:text-[6rem]  xl:text-[7rem]">
+              Một ritual dịu dàng cho những ngày bạn cần{" "}
+              <span className="text-[#a7bf8c]">nhẹ lại.</span>
             </h1>
-            <p className="mt-8 max-w-xl text-lg leading-8 text-muted md:text-xl">
-              LUMIA kết hợp hộp nghi thức vật lý và không gian số giúp bạn ghi nhận cảm xúc, xả tâm trạng và trò chuyện cùng một AI biết lắng nghe.
+
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 pb-[18vh] text-[#66725e]">
+              LUMIA kết hợp healing box vật lý và không gian digital để bạn ghi
+              nhận cảm xúc, viết ra và được lắng nghe theo cách thật nhẹ.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link href="/boxes" className="button-primary magnetic-hover px-8 py-4">
-                Khám phá hộp LUMIA
+
+            <div className="mt-9 flex flex-wrap justify-center gap-4">
+              <Link href="/boxes" className="button-primary px-8 py-4">
+                Khám phá LUMIA Box
               </Link>
-              <Link href="/dashboard" className="button-secondary magnetic-hover px-8 py-4">
-                Xem không gian của bạn
+
+              <Link
+                href="/register?next=/dashboard"
+                className="button-secondary px-8 py-4"
+              >
+                Xem dashboard của bạn
               </Link>
             </div>
-          </motion.div>
-
-          <motion.div {...fadeUp(0.08)} className="relative mx-auto w-full max-w-[720px]">
-            <div className="absolute left-1/2 top-12 h-56 w-56 -translate-x-1/2 rounded-full bg-[#F4D878]/35 blur-3xl animate-breathe-glow" />
-            <motion.div
-              animate={{ y: [0, -14, 0] }}
-              transition={{ duration: 7.2, repeat: Infinity, ease: "easeInOut" }}
-              className="relative overflow-hidden rounded-[42px] border border-white/70 bg-white/76 p-5 shadow-[0_24px_80px_rgba(244,216,120,0.22)] backdrop-blur-xl"
-            >
-              <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover opacity-30" src={heroVideoUrl} />
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,254,250,0.86),rgba(255,253,245,0.64),rgba(221,232,210,0.28))]" />
-              <div className="relative">
-                <Image
-                  src="/assets/boxes-editorial.svg"
-                  alt="Hộp LUMIA trên nền lụa trắng"
-                  width={1400}
-                  height={960}
-                  className="h-[34rem] w-full rounded-[34px] object-cover"
-                  priority
-                />
-              </div>
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 8.4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -left-2 top-16 rounded-[28px] border border-white/70 bg-white/86 px-5 py-4 shadow-[0_16px_44px_rgba(143,168,120,0.12)]"
-            >
-              <div className="text-xs uppercase tracking-[0.24em] text-muted">Thẻ nghi thức</div>
-              <div className="mt-2 font-serif text-2xl text-matcha-deep">Đi chậm lại một chút thôi.</div>
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 6.8, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -right-1 bottom-16 rounded-full border border-white/70 bg-white/86 px-5 py-3 shadow-[0_18px_44px_rgba(244,216,120,0.18)]"
-            >
-              <span className="text-sm text-matcha-deep">Ánh nến • lụa trắng • lá matcha</span>
-            </motion.div>
           </motion.div>
         </div>
       </section>
 
-      <section className="px-6 py-28 md:px-12 lg:px-20">
-        <div className="shell grid gap-12 lg:grid-cols-[0.96fr_1.04fr] lg:items-center">
-          <motion.div {...fadeUp()} className="max-w-2xl">
-            <span className="eyebrow">LUMIA là gì</span>
-            <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-              Không phải một ứng dụng phải dùng mỗi ngày. LUMIA là một nơi để bạn quay về khi cần dịu lại.
-            </h2>
-            <p className="mt-6 text-lg leading-8 text-muted">
-              Một chiếc hộp nhỏ cho buổi tối. Một không gian riêng để ghi nhận cảm xúc. Một nơi để viết ra điều đang nặng trong lòng. Và một AI chỉ lắng nghe, không phán xét.
-            </p>
-          </motion.div>
+      {/* <section
+        id="ve-lumia"
+        className="relative z-10 -mt-10 bg-[#F8F6EF] px-6 pb-28 pt-36 md:px-10 md:pb-36 lg:px-16"
+      >
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <SectionHeading
+            eyebrow="LUMIA là gì"
+            title="Không phải một app phải dùng mỗi ngày."
+            body="LUMIA là một nơi để bạn quay về khi cần dịu lại. Một chiếc hộp nhỏ cho buổi tối, một dashboard riêng để ghi nhận cảm xúc, viết ra và được lắng nghe."
+          />
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { title: "Hộp LUMIA", src: "/assets/boxes-editorial.svg" },
-              { title: "Trang nhật ký", src: "/assets/auth-ritual-portrait.svg" },
-              { title: "Màn hình không gian riêng", src: "/assets/hero-dashboard.svg" },
-            ].map((item, index) => (
-              <motion.article key={item.title} {...fadeUp(index * 0.08)} className="soft-card overflow-hidden p-3">
-                <Image src={item.src} alt={item.title} width={900} height={1200} className="h-72 w-full rounded-[24px] object-cover" />
-                <div className="px-2 pb-2 pt-4 font-serif text-2xl text-matcha-deep">{item.title}</div>
-              </motion.article>
-            ))}
+          <div className="relative z-[1] grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+            <PlaceholderPanel
+              title="Hộp LUMIA"
+              copy="Không gian cho ảnh hero box, lụa trắng hoặc ánh sáng vàng mềm."
+            />
+
+            <div className="grid gap-4">
+              <PlaceholderPanel
+                title="Journal"
+                copy="Khung nhỏ cho journal, ritual card hoặc bàn tay cầm thẻ."
+                compact
+              />
+
+              <PlaceholderPanel
+                title="Dashboard"
+                copy="Khung nhỏ cho mockup dashboard thật sau này."
+                compact
+              />
+            </div>
+          </div>
+        </div>
+      </section> */}
+
+      <section className="relative bg-[#F8F6EF] px-6 py-28 md:px-10 md:py-36 lg:px-16">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeading
+            eyebrow="Cách LUMIA đồng hành"
+            title="Ba bước rất nhỏ, đủ để buổi tối nhẹ hơn."
+          />
+
+          <div className="relative z-[1] mt-12 grid gap-5 md:grid-cols-3">
+            {ritualCards.map((card, index) => {
+              const Icon = card.icon;
+
+              return (
+                <motion.article
+                  key={card.title}
+                  {...fadeUp(index * 0.07)}
+                  whileHover={{ y: -6 }}
+                  className="liquid-panel p-6"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#FFFDF5,#DDE8D2)] text-matcha-deep shadow-[0_16px_36px_rgba(143,168,120,0.14)]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+
+                  <h3 className="mt-5 font-serif text-4xl leading-none text-matcha-deep">
+                    {card.title}
+                  </h3>
+
+                  <p className="mt-4 max-w-sm text-sm leading-7 text-muted">
+                    {card.copy}
+                  </p>
+                </motion.article>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-28 md:px-12 lg:px-20">
-        <div className="shell">
-          <motion.div {...fadeUp()} className="max-w-2xl">
-            <span className="eyebrow">Cách LUMIA đồng hành</span>
-            <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-              Mọi thứ đều bắt đầu từ những việc rất nhỏ.
-            </h2>
-          </motion.div>
+      <section
+        id="hop-lumia"
+        className="relative bg-[#F8F6EF] px-6 py-28 md:px-10 md:py-36 lg:px-16"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="relative z-[1] flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <SectionHeading
+              eyebrow="Hộp LUMIA"
+              title="Chọn chiếc hộp phù hợp với nhịp chăm sóc của bạn."
+              body="Mỗi hộp mở một mức trải nghiệm digital khác nhau, từ check-in cảm xúc cơ bản đến không gian lắng nghe sâu hơn."
+            />
 
-          <div className="mt-12 grid gap-6 xl:grid-cols-3">
-            {ritualCards.map((card, index) => (
-              <motion.article key={card.title} {...fadeUp(index * 0.08)} whileHover={{ y: -6 }} className="soft-card p-7">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#FFFDF5,#DDE8D2)] text-matcha-deep shadow-[0_14px_34px_rgba(143,168,120,0.12)]">
-                  {index === 0 ? <Sparkles className="h-5 w-5" /> : index === 1 ? <CheckCircle2 className="h-5 w-5" /> : <MessageCircleHeart className="h-5 w-5" />}
-                </div>
-                <h3 className="mt-6 font-serif text-4xl text-matcha-deep">{card.title}</h3>
-                <p className="mt-4 text-base leading-7 text-muted">{card.copy}</p>
-              </motion.article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 py-28 md:px-12 lg:px-20">
-        <div className="shell">
-          <motion.div {...fadeUp()} className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="eyebrow">Hộp LUMIA</span>
-              <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-                Chọn chiếc hộp phù hợp với nhịp chăm sóc của bạn.
-              </h2>
-            </div>
-            <Link href="/boxes" className="button-secondary magnetic-hover px-7 py-4">
+            <Link href="/boxes" className="button-secondary px-7 py-4">
               Xem tất cả hộp
             </Link>
-          </motion.div>
+          </div>
 
-          <div className="mt-12 -mx-6 flex snap-x gap-5 overflow-x-auto px-6 pb-4">
+          <div className="relative z-[1] mt-12 grid gap-5 lg:grid-cols-3">
             {boxCards.map((box, index) => (
               <motion.article
                 key={box.title}
-                whileHover={{ y: -6, rotate: index % 2 === 0 ? -1 : 1 }}
-                className={`min-w-[310px] max-w-[310px] snap-center rounded-[34px] border bg-white/84 p-5 shadow-[0_20px_60px_rgba(244,216,120,0.14)] ${
-                  index === 1 ? "border-champagne/80" : "border-white/70"
+                {...fadeUp(index * 0.07)}
+                whileHover={{ y: -6 }}
+                className={`liquid-panel p-5 ${
+                  index === 1 ? "ring-1 ring-[#F4D878]/70" : ""
                 }`}
               >
-                <div className="rounded-[28px] bg-[linear-gradient(145deg,rgba(255,254,250,0.96),rgba(255,253,245,0.9),rgba(255,243,199,0.45))] p-4">
-                  <Image src="/assets/boxes-editorial.svg" alt={box.title} width={1200} height={900} className="h-52 w-full rounded-[22px] object-cover" />
+                <div className="rounded-[28px] border border-white/75 bg-white/40 p-5 text-sm leading-6 text-muted">
+                  Ảnh box sẽ được cập nhật sau.
                 </div>
-                <h3 className="mt-5 font-serif text-3xl text-matcha-deep">{box.title}</h3>
-                <p className="mt-2 text-sm font-medium text-matcha-deep">{box.price}</p>
+
+                <h3 className="mt-5 font-serif text-3xl leading-none text-matcha-deep">
+                  {box.title}
+                </h3>
+
+                <p className="mt-2 text-sm font-medium text-matcha-deep">
+                  {box.price}
+                </p>
+
                 <p className="mt-3 text-sm leading-6 text-muted">{box.copy}</p>
-                <p className="mt-4 text-sm leading-6 text-muted">{box.access}</p>
-                <Link href="/boxes" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-matcha-deep">
+
+                <Link
+                  href="/boxes"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-matcha-deep"
+                >
                   Xem chi tiết <ArrowRight className="h-4 w-4" />
                 </Link>
               </motion.article>
@@ -223,148 +542,139 @@ export function CinematicHero() {
         </div>
       </section>
 
-      <section className="px-6 py-28 md:px-12 lg:px-20" id="khong-gian-rieng">
-        <div className="shell grid gap-10 lg:grid-cols-[0.96fr_1.04fr] lg:items-center">
-          <motion.div {...fadeUp()} className="max-w-xl">
-            <span className="eyebrow">Không gian riêng</span>
-            <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-              Không gian của bạn, nhưng không giống một bảng số liệu.
-            </h2>
-            <p className="mt-6 text-lg leading-8 text-muted">
-              LUMIA không bắt bạn phải phân tích bản thân. Giao diện chỉ hỏi nhẹ: hôm nay bạn đang cảm thấy thế nào, bạn muốn viết ra điều gì, hay bạn cần được lắng nghe một chút?
-            </p>
-            <Link href="/dashboard" className="button-primary magnetic-hover mt-8 px-8 py-4">
-              Xem không gian của bạn
-            </Link>
-          </motion.div>
-
-          <motion.div {...fadeUp(0.08)} className="soft-card overflow-hidden p-4">
-            <div className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/72">
-              <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover opacity-20" src={dashboardVideoUrl} />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,254,250,0.92),rgba(255,253,245,0.86),rgba(221,232,210,0.48))]" />
-              <div className="relative p-6">
-                <div className="rounded-[24px] border border-white/70 bg-white/88 p-5 shadow-[0_16px_44px_rgba(143,168,120,0.08)]">
-                  <div className="text-sm text-muted">Chào buổi tối, Linh.</div>
-                  <h3 className="mt-3 font-serif text-3xl text-matcha-deep">Hôm nay bạn muốn bắt đầu từ đâu?</h3>
-
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    {["Bình yên", "Mệt", "Lo", "Buồn", "Căng", "Trống rỗng"].map((item) => (
-                      <span key={item} className="rounded-full border border-matcha-soft bg-white px-4 py-2 text-sm text-matcha-deep">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[22px] bg-[#FFFDF5] p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-muted">Gợi ý hôm nay</div>
-                      <p className="mt-3 text-sm leading-6 text-matcha-deep">Xả cảm xúc trong 3 phút rồi viết một dòng cho mình.</p>
-                    </div>
-                    <div className="rounded-[22px] bg-[#FFFEFA] p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-muted">Viết nhanh</div>
-                      <p className="mt-3 text-sm leading-6 text-matcha-deep">Điều gì khiến bạn thấy nặng nhất lúc này?</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-[22px] bg-[#DDE8D2] px-4 py-4 text-sm leading-6 text-matcha-deep">
-                    “Hôm nay bạn muốn LUMIA lắng nghe điều gì?”
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="px-6 py-28 md:px-12 lg:px-20">
-        <div className="shell">
-          <motion.div {...fadeUp()} className="soft-card p-8 md:p-10">
+      <section className="relative bg-[#F8F6EF] px-6 py-28 md:px-10 md:py-36 lg:px-16">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <motion.div {...fadeUp()} className="liquid-panel p-7 md:p-8">
             <span className="eyebrow">LUMIA lắng nghe</span>
-            <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-              LUMIA lắng nghe, không phán xét.
+
+            <h2 className="mt-5 font-serif text-[3.4rem] leading-[0.96] tracking-[-0.05em] text-matcha-deep md:text-[4.4rem]">
+              Lắng nghe, không phán xét.
             </h2>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-                <motion.div {...fadeUp(0.05)} className="max-w-[78%] rounded-[28px] bg-[#FFFDF5] px-5 py-4 text-sm leading-7 text-matcha-deep">
-                  Hôm nay bạn muốn LUMIA lắng nghe điều gì?
-                </motion.div>
-                <motion.div {...fadeUp(0.12)} className="ml-auto max-w-[80%] rounded-[28px] bg-[#DDE8D2] px-5 py-4 text-sm leading-7 text-matcha-deep">
-                  Mình thấy hơi quá tải nhưng không biết nên bắt đầu từ đâu.
-                </motion.div>
-                <motion.div {...fadeUp(0.18)} className="max-w-[86%] rounded-[28px] bg-white px-5 py-4 text-sm leading-7 text-matcha-deep shadow-[0_14px_34px_rgba(143,168,120,0.08)]">
-                  Mình nghe thấy hôm nay bạn đang phải giữ khá nhiều thứ trong lòng. Bạn muốn kể thêm một chút về điều nặng nhất không?
-                </motion.div>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-[28px] bg-white/72 px-5 py-4 text-sm leading-7 text-matcha-deep">
+                Hôm nay bạn muốn LUMIA lắng nghe điều gì?
               </div>
 
-              <div className="rounded-[28px] border border-white/70 bg-white/82 p-6">
-                <p className="text-sm leading-6 text-muted">LUMIA không thay thế chuyên gia y tế hoặc chuyên gia tâm lý.</p>
-                <div className="mt-6 flex items-center gap-3 rounded-[24px] bg-[#FFFDF5] px-4 py-4 text-sm text-matcha-deep">
-                  <MessageCircleHeart className="h-4 w-4" />
-                  Một không gian hỗ trợ cảm xúc nhẹ nhàng và riêng tư.
-                </div>
+              <div className="ml-auto max-w-[84%] rounded-[28px] bg-matcha-soft/92 px-5 py-4 text-sm leading-7 text-matcha-deep">
+                Mình thấy hơi quá tải nhưng không biết nên bắt đầu từ đâu.
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
 
-      <section className="px-6 py-28 md:px-12 lg:px-20">
-        <div className="shell grid gap-8 lg:grid-cols-[1.04fr_0.96fr]">
-          <motion.div {...fadeUp()} className="hero-card p-8 md:p-10">
-            <span className="eyebrow">Nhật ký / Xả cảm xúc</span>
-            <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
-              Cứ viết ra. Không cần đúng. Không cần hay.
-            </h2>
-            <div className="mt-8 rounded-[34px] border border-white/70 bg-white/86 p-6">
-              <div className="text-sm text-muted">Hôm nay có điều gì bạn muốn đặt xuống không?</div>
-              <div className="mt-10 min-h-56 text-base leading-8 text-muted">Mình mệt vì đã phải cố ổn suốt cả ngày...</div>
-            </div>
-            <div className="mt-6 flex items-center justify-between gap-4">
-              <p className="text-sm text-muted">Bạn đã đặt cảm xúc này xuống một chút rồi.</p>
-              <button type="button" className="button-primary magnetic-hover">
-                Xả đi
-              </button>
+              <div className="max-w-[88%] rounded-[28px] bg-white/84 px-5 py-4 text-sm leading-7 text-matcha-deep shadow-[0_18px_40px_rgba(143,168,120,0.1)]">
+                Mình nghe thấy hôm nay bạn đang phải giữ khá nhiều thứ trong
+                lòng. Bạn muốn kể thêm một chút về điều nặng nhất không?
+              </div>
             </div>
           </motion.div>
 
           <div className="grid gap-4">
-            {promptCards.map((prompt, index) => (
-              <motion.article key={prompt} {...fadeUp(index * 0.06)} whileHover={{ y: -4 }} className="soft-card p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#FFFDF5,#DDE8D2)] text-matcha-deep">
-                    <NotebookPen className="h-4 w-4" />
-                  </div>
-                  <p className="text-base leading-7 text-matcha-deep">{prompt}</p>
+            <motion.article {...fadeUp(0.05)} className="liquid-panel p-6">
+              <div className="text-sm leading-7 text-muted">
+                LUMIA không thay thế chuyên gia y tế hoặc chuyên gia tâm lý.
+              </div>
+            </motion.article>
+
+            <motion.article {...fadeUp(0.1)} className="liquid-panel p-6">
+              <div className="font-serif text-3xl leading-none text-matcha-deep">
+                Cứ viết ra.
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-muted">
+                Không cần đúng. Không cần hay. Chỉ cần đủ thật để bạn thấy mình
+                nhẹ đi một chút.
+              </p>
+            </motion.article>
+
+            <motion.article {...fadeUp(0.15)} className="liquid-panel p-6">
+              <div className="flex items-start gap-3">
+                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#FFFDF5,#DDE8D2)] text-matcha-deep">
+                  <NotebookPen className="h-4 w-4" />
                 </div>
-              </motion.article>
-            ))}
+
+                <p className="text-sm leading-6 text-matcha-deep">
+                  Bạn đã đặt cảm xúc này xuống một chút rồi.
+                </p>
+              </div>
+            </motion.article>
           </div>
         </div>
       </section>
 
-      <section className="relative flex min-h-screen items-center px-6 py-24 md:px-12 lg:px-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(248,231,161,0.24),transparent_20%),radial-gradient(circle_at_80%_70%,rgba(184,207,166,0.18),transparent_22%)]" />
-        <div className="shell relative">
-          <div className="hero-card relative overflow-hidden px-8 py-20 text-center md:px-16">
-            <div className="absolute left-1/2 top-16 h-40 w-40 -translate-x-1/2 rounded-full bg-[#F4D878]/26 blur-3xl animate-breathe-glow" />
-            <div className="absolute left-1/2 top-24 h-52 w-64 -translate-x-1/2 rounded-[42px] bg-[linear-gradient(145deg,#DDE8D2,#FFF3C7)] shadow-[0_36px_100px_rgba(244,216,120,0.22)]" />
+      <section
+        id="testimonials"
+        className="relative section-screen section-bridge px-6 md:px-10 lg:px-16"
+      >
+        <div className="max-w-7xl mx-auto w-full">
+          {/* Heading */}
+          <div className="text-center mb-16 flex flex-col items-center">
+            <SectionHeading
+              eyebrow="Những lời dịu dàng"
+              title="Được yêu mến bởi những LUMIERs."
+            />
+          </div>
+
+          {/* Scroll wall */}
+          <div className="relative">
+            {/* top/bottom fade */}
+            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
+
+            {/* mobile: 1 column */}
+            <div className="md:hidden h-[600px]">
+              <div className="relative overflow-hidden h-full">
+                <div className="animate-scroll-down hover:animate-scroll-down-slow">
+                  {[...testimonials, ...testimonials].map((t, i) => (
+                    <TestimonialCard key={i} quote={t.quote} tag={t.tag} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* desktop: 3 columns */}
+            <div className="hidden md:grid md:grid-cols-3 gap-4 h-[600px]">
+              <ScrollColumn items={col1} direction="down" />
+              <ScrollColumn items={col2} direction="up" />
+              <ScrollColumn items={col3} direction="down" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative bg-[#F8F6EF] px-6 py-28 md:px-10 md:py-36 lg:px-16">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(244,216,120,0.22),transparent_18%),radial-gradient(circle_at_78%_66%,rgba(159,195,133,0.14),transparent_22%)]" />
+
+        <div className="relative mx-auto max-w-7xl">
+          <div className="liquid-panel relative overflow-hidden px-8 py-16 text-center md:px-16">
+            <div className="absolute left-1/2 top-14 h-44 w-44 -translate-x-1/2 rounded-full bg-[#F4D878]/28 blur-3xl animate-breathe-glow" />
+
+            <div className="absolute left-1/2 top-24 h-56 w-72 -translate-x-1/2 rounded-[42px] bg-[linear-gradient(145deg,#DDE8D2,#FFF3C7)] shadow-[0_36px_100px_rgba(244,216,120,0.22)]" />
+
             <div className="relative pt-64">
               <motion.div {...fadeUp()} className="mx-auto max-w-3xl">
                 <span className="eyebrow">Bắt đầu tối nay</span>
-                <h2 className="mt-6 font-serif text-5xl leading-[1.02] tracking-[-0.05em] text-matcha-deep md:text-6xl">
+
+                <h2 className="mt-5 font-serif text-[3.8rem] leading-[0.94] tracking-[-0.05em] text-matcha-deep md:text-[5rem]">
                   Tối nay, mình bắt đầu nhẹ hơn một chút.
                 </h2>
-                <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted">
-                  Chọn hộp LUMIA phù hợp và mở không gian chăm sóc cảm xúc của riêng bạn.
+
+                <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-muted">
+                  Chọn LUMIA Box phù hợp và mở không gian chăm sóc cảm xúc của
+                  riêng bạn.
                 </p>
               </motion.div>
 
-              <motion.div {...fadeUp(0.08)} className="mt-10 flex flex-wrap items-center justify-center gap-4">
-                <Link href="/boxes" className="button-primary magnetic-hover px-8 py-4">
-                  Khám phá hộp LUMIA
+              <motion.div
+                {...fadeUp(0.08)}
+                className="mt-9 flex flex-wrap items-center justify-center gap-4"
+              >
+                <Link href="/boxes" className="button-primary px-8 py-4">
+                  Khám phá LUMIA Box
                 </Link>
-                <Link href="/register" className="button-secondary magnetic-hover px-8 py-4">
+
+                <Link
+                  href="/register?next=/dashboard"
+                  className="button-secondary px-8 py-4"
+                >
                   Bắt đầu miễn phí
                 </Link>
               </motion.div>

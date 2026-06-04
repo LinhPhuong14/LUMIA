@@ -1,7 +1,5 @@
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 import type { ProductDefinition } from "@/types/domain";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -10,51 +8,44 @@ export function ProductCard({ product, featured = false }: { product: ProductDef
   return (
     <article
       className={cn(
-        "soft-card group flex h-full flex-col overflow-hidden p-5 transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_80px_rgba(244,216,120,0.22)]",
-        featured && "border-champagne/80",
+        "group flex h-full flex-col overflow-hidden rounded-[30px] border border-[#e9e3d6] bg-white/88 shadow-[0_18px_48px_rgba(106,134,88,0.08)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_70px_rgba(180,154,67,0.16)]",
+        featured && "border-[#d8c786]",
       )}
     >
-      <div className="rounded-[28px] bg-[linear-gradient(145deg,rgba(255,254,250,0.96),rgba(255,253,245,0.9),rgba(255,243,199,0.45))] p-4">
-        <Image
-          src="/assets/boxes-editorial.svg"
-          alt={product.name}
-          width={1200}
-          height={900}
-          className="h-56 w-full rounded-[22px] object-cover transition duration-500 group-hover:scale-[1.03] group-hover:rotate-[0.8deg]"
-        />
-      </div>
-
-      <div className="mt-5 flex items-start justify-between gap-4">
-        <div>
-          <span className="eyebrow border-white/70 bg-white/82 text-matcha-deep">{product.tierLabel}</span>
-          <h3 className="mt-4 font-serif text-4xl leading-tight text-matcha-deep">{product.name}</h3>
-          <p className="mt-3 text-sm leading-6 text-muted">{product.tagline}</p>
+      <div className="relative rounded-t-[30px] bg-[linear-gradient(145deg,#d9ccb7,#efe7d9,#ddd5c8)] px-6 py-6">
+        <div className="rounded-[24px] border border-white/45 bg-white/18 px-4 py-20 text-center text-sm text-white/88 backdrop-blur-sm">
+          Ảnh box sẽ được cập nhật sau
         </div>
         {product.badge ? (
-          <div className="rounded-full bg-[#FFF3C7] px-3 py-2 text-xs font-semibold text-matcha-deep">{product.badge}</div>
+          <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-medium text-[#8f6a67] shadow-sm">
+            {product.badge}
+          </div>
         ) : null}
       </div>
 
-      <div className="mt-5 rounded-[24px] border border-white/70 bg-white/76 p-5">
-        <div className="text-xs uppercase tracking-[0.24em] text-muted">Mức đầu tư</div>
-        <div className="mt-2 text-3xl font-semibold text-foreground">{formatCurrency(product.price)}</div>
-        <p className="mt-2 text-sm leading-6 text-muted">{product.digitalAccess}</p>
-      </div>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="text-xs uppercase tracking-[0.24em] text-[#8b847a]">{product.tierLabel}</div>
+        <h3 className="mt-3 font-serif text-[2rem] leading-[1.05] tracking-[-0.04em] text-[#3e3a33]">{product.name}</h3>
+        <p className="mt-3 text-sm leading-6 text-[#6f6b63]">{product.tagline}</p>
+        <div className="mt-5 text-[1.6rem] font-semibold text-[#2f2b25]">{formatCurrency(product.price)}</div>
+        <p className="mt-3 text-sm leading-6 text-[#6f6b63]">{product.digitalAccess}</p>
 
-      <ul className="mt-5 flex flex-1 flex-col gap-3 text-sm leading-6 text-foreground">
-        {product.features.slice(0, 4).map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
-            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-matcha" />
-            <span>{feature}</span>
-          </li>
-        ))}
-      </ul>
+        <div className="mt-6 space-y-2">
+          {product.features.slice(0, 3).map((feature) => (
+            <div key={feature} className="text-sm leading-6 text-[#5f7253]">
+              · {feature}
+            </div>
+          ))}
+        </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <span className="text-xs uppercase tracking-[0.24em] text-muted">{product.durationMonths} tháng đồng hành</span>
-        <Link href={`/boxes/${product.slug}` as Route} className="inline-flex items-center gap-2 text-sm font-semibold text-matcha-deep">
-          {product.ctaLabel} <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="mt-auto pt-6">
+          <Link
+            href={`/boxes/${product.slug}` as Route}
+            className="inline-flex w-full items-center justify-center rounded-full border border-[#dcd3c1] bg-white px-5 py-3 text-sm font-medium text-[#2f2b25] transition hover:bg-[#faf7ef]"
+          >
+            Xem chi tiết
+          </Link>
+        </div>
       </div>
     </article>
   );

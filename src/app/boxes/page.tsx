@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { ProductCard } from "@/components/marketing/product-card";
@@ -17,100 +16,75 @@ export default async function BoxesPage({
   const onboarding = params.onboarding === "1";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f8f4eb]">
       <SiteHeader />
-      <main className="shell py-14">
-        <section className="grid gap-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center">
-          <div className="max-w-2xl">
-            <span className="eyebrow">{onboarding ? "Bước tiếp theo của bạn" : "Hộp LUMIA"}</span>
-            <h1 className="mt-4 font-serif text-6xl leading-[1.02] tracking-[-0.05em] text-matcha-deep">
-              {onboarding ? "Chọn chiếc hộp để mở premium, hoặc dùng thử miễn phí trước." : "Chọn chiếc hộp phù hợp với hành trình của bạn."}
-            </h1>
-            <p className="mt-5 text-lg leading-8 text-muted">
-              Mỗi hộp LUMIA đi kèm một mức trải nghiệm không gian số khác nhau: từ ghi nhận cảm xúc cơ bản đến LUMIA lắng nghe cá nhân hóa hơn.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              {session ? (
-                <>
-                  <Link href="/dashboard" className="button-secondary">
-                    Bỏ qua và dùng thử miễn phí
-                  </Link>
-                  <span className="rounded-full border border-white/70 bg-white/82 px-4 py-3 text-sm text-muted">
-                    Bạn luôn có thể nâng cấp sau khi đã vào workspace.
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Link href="/register?next=/boxes?onboarding=1" className="button-primary">
-                    Tạo tài khoản để bắt đầu
-                  </Link>
-                  <Link href="/login?next=/boxes?onboarding=1" className="button-secondary">
-                    Tôi đã có tài khoản
-                  </Link>
-                </>
-              )}
-            </div>
+      <main className="mx-auto max-w-[1280px] px-7 py-12">
+        <section className="mx-auto max-w-4xl text-center">
+          <div className="font-serif text-[4.6rem] leading-[0.95] tracking-[-0.06em] text-[#2f2b25] md:text-[5.6rem]">
+            Gentle essentials
           </div>
-
-          <div className="soft-card overflow-hidden p-4">
-            <Image src="/assets/boxes-editorial.svg" alt="Bộ sưu tập hộp LUMIA" width={1400} height={900} className="h-full w-full rounded-[30px] object-cover" priority />
-          </div>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-[#6f6b63]">
+            Chọn chiếc hộp phù hợp để bắt đầu ritual của riêng bạn, hoặc vào workspace miễn phí trước nếu bạn muốn cảm nhận nhẹ hơn.
+          </p>
         </section>
 
-        <section className="mt-10 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="soft-card p-6">
-            <div className="text-xs uppercase tracking-[0.22em] text-muted">Cách bắt đầu</div>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              <div className="rounded-[26px] bg-white/82 p-4">
-                <div className="font-serif text-2xl text-matcha-deep">1. Tạo tài khoản</div>
-                <p className="mt-2 text-sm leading-6 text-muted">Giữ chỗ cho không gian riêng tư của bạn trước khi bắt đầu hành trình.</p>
-              </div>
-              <div className="rounded-[26px] bg-white/82 p-4">
-                <div className="font-serif text-2xl text-matcha-deep">2. Chọn hộp</div>
-                <p className="mt-2 text-sm leading-6 text-muted">Mua hộp để mở premium theo mức đồng hành phù hợp với bạn.</p>
-              </div>
-              <div className="rounded-[26px] bg-white/82 p-4">
-                <div className="font-serif text-2xl text-matcha-deep">3. Hoặc dùng thử</div>
-                <p className="mt-2 text-sm leading-6 text-muted">Nếu chưa sẵn sàng, bạn vẫn có thể vào workspace miễn phí để cảm nhận trước.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="soft-card p-6 shadow-[0_24px_80px_rgba(244,216,120,0.18)]">
-            <div className="text-xs uppercase tracking-[0.22em] text-muted">Nâng cấp mở thêm gì</div>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-foreground">
-              <li>- Lịch sử cảm xúc dài hơn</li>
-              <li>- LUMIA lắng nghe nhiều hơn và sâu hơn</li>
-              <li>- Nhật ký không giới hạn</li>
-              <li>- Gợi ý chiêm nghiệm cá nhân hóa hơn</li>
-            </ul>
-            {session ? (
-              <Link href="/dashboard" className="button-secondary mt-6">
-                Vào workspace hiện tại
+        {onboarding ? (
+          <section className="mx-auto mt-10 max-w-3xl rounded-[32px] border border-white/70 bg-white/82 p-5 shadow-[0_20px_50px_rgba(106,134,88,0.08)] backdrop-blur">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Link
+                href="/boxes"
+                className="rounded-[24px] bg-[#2f2f2f] px-6 py-5 text-left text-white transition hover:bg-[#242424]"
+              >
+                <div className="text-sm font-medium">Mở premium bằng một box</div>
+                <div className="mt-2 text-sm text-white/70">Chọn hộp phù hợp để mở đầy đủ trải nghiệm LUMIA.</div>
               </Link>
-            ) : null}
-          </div>
-        </section>
 
-        <section className="mt-12 -mx-6 overflow-x-auto px-6 pb-4">
-          <div className="flex gap-5">
-            {lumiaProducts.map((product) => (
-              <div key={`${product.slug}-hero`} className="min-w-[280px] rounded-[32px] border border-white/75 bg-white/82 p-5 shadow-[0_18px_54px_rgba(244,216,120,0.14)]">
-                <div className="rounded-[24px] bg-[linear-gradient(145deg,rgba(255,254,250,0.96),rgba(255,253,245,0.9),rgba(255,243,199,0.45))] p-3">
-                  <Image src="/assets/boxes-editorial.svg" alt={product.name} width={900} height={700} className="h-40 w-full rounded-[20px] object-cover" />
-                </div>
-                <div className="mt-4 font-serif text-3xl text-matcha-deep">{product.name}</div>
-                <div className="mt-2 text-sm text-muted">{product.tagline}</div>
-                <div className="mt-4 text-sm font-medium text-matcha-deep">{product.ctaLabel}</div>
+              <Link
+                href={session ? "/dashboard" : "/register?next=/dashboard"}
+                className="rounded-[24px] border border-[#ebe3d2] bg-[#fbf7ef] px-6 py-5 text-left text-[#2f2b25] transition hover:bg-white"
+              >
+                <div className="text-sm font-medium">Dùng thử miễn phí trước</div>
+                <div className="mt-2 text-sm text-[#6f6b63]">Vào workspace ngay, rồi nâng cấp sau khi bạn đã sẵn sàng.</div>
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto mt-10 max-w-xl rounded-full border border-white/70 bg-white/82 p-2 shadow-[0_18px_50px_rgba(106,134,88,0.06)]">
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href={session ? "/dashboard" : "/register?next=/dashboard"}
+                className="rounded-full px-6 py-3 text-center text-sm font-medium text-[#6f6b63] transition hover:bg-[#faf7ef]"
+              >
+                Dùng thử miễn phí
+              </Link>
+              <div className="rounded-full bg-[#2f2f2f] px-6 py-3 text-center text-sm font-medium text-white">
+                Chọn một box
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-2 2xl:grid-cols-4">
+        <section className="mt-14 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
           {lumiaProducts.map((product, index) => (
             <ProductCard key={product.slug} product={product} featured={index === 2} />
           ))}
+        </section>
+
+        <section className="mx-auto mt-12 max-w-5xl rounded-[36px] border border-white/70 bg-white/78 p-8 shadow-[0_20px_60px_rgba(180,154,67,0.08)]">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div>
+              <div className="font-serif text-3xl text-[#2f2b25]">Tạo tài khoản</div>
+              <p className="mt-3 text-sm leading-7 text-[#6f6b63]">Giữ chỗ cho không gian riêng của bạn trước khi bắt đầu hành trình.</p>
+            </div>
+            <div>
+              <div className="font-serif text-3xl text-[#2f2b25]">Chọn box</div>
+              <p className="mt-3 text-sm leading-7 text-[#6f6b63]">Mỗi hộp mở một mức trải nghiệm digital khác nhau, từ nhẹ đến sâu hơn.</p>
+            </div>
+            <div>
+              <div className="font-serif text-3xl text-[#2f2b25]">Hoặc dùng thử</div>
+              <p className="mt-3 text-sm leading-7 text-[#6f6b63]">Nếu chưa sẵn sàng mua ngay, bạn vẫn có thể vào workspace miễn phí trước.</p>
+            </div>
+          </div>
         </section>
       </main>
       <SiteFooter />

@@ -4,8 +4,9 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requireSession } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { hasMongoConfig } from "@/lib/env";
+import { getLatestOrderForUser, getOrderPrimaryProduct, getOrderStatusLabel } from "@/lib/orders";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 const tierLabels: Record<string, string> = {
   free: "Hộp LUMIA Khởi đầu",
@@ -44,19 +45,27 @@ export default async function SubscriptionPage() {
     status: "Đang hoạt động",
     endsAt: null as string | null,
   };
+  let latestOrder: Awaited<ReturnType<typeof getLatestOrderForUser>> = null;
 
   if (hasMongoConfig()) {
     await connectToDatabase();
-    const snapshot = await getSubscriptionSnapshot(session.userId);
+
+    const [snapshot, order] = await Promise.all([
+      getSubscriptionSnapshot(session.userId),
+      getLatestOrderForUser(session.userId),
+    ]);
+
     subscription = {
       tier: snapshot.tier,
       status: snapshot.status,
       endsAt: snapshot.endsAt,
     };
+    latestOrder = order;
   }
 
   const planName = tierLabels[subscription.tier] ?? "Hộp LUMIA Khởi đầu";
   const features = tierFeatures[subscription.tier] ?? tierFeatures.free;
+  const primaryProduct = latestOrder ? getOrderPrimaryProduct(latestOrder) : null;
 
   return (
     <DashboardShell
@@ -91,37 +100,44 @@ export default async function SubscriptionPage() {
         </section>
 
         <section className="soft-card p-6 shadow-[0_24px_80px_rgba(244,216,120,0.22)]">
-          <span className="eyebrow">Mở khóa sâu hơn</span>
-          <h2 className="mt-4 font-serif text-4xl text-matcha-deep">Hộp LUMIA Dịu sâu</h2>
+          <span className="eyebrow">Mua thêm hoặc nâng cấp</span>
+          <h2 className="mt-4 font-serif text-4xl text-matcha-deep">Hộp dành cho bạn</h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Mở thêm AI lắng nghe cá nhân hóa hơn, lịch sử cảm xúc dài hơn và gợi ý chiêm nghiệm sâu hơn.
+            Nếu bạn muốn mua lại hộp đang dùng, chọn thêm hộp mới hoặc xem những sản phẩm khác, hãy đi tiếp vào khu vực mua sắm bên trong workspace.
           </p>
 
           <div className="mt-6 rounded-[24px] bg-[linear-gradient(145deg,rgba(255,254,250,0.96),rgba(255,253,245,0.9),rgba(255,243,199,0.45))] p-5">
-            <div className="text-sm text-muted">Thông tin thanh toán gần nhất</div>
-            <div className="mt-4 space-y-3 text-sm text-foreground">
-              <div className="flex items-center justify-between">
-                <span>Ngày mua</span>
-                <span>04/06/2026</span>
+            <div className="text-sm text-muted">Thông tin đơn gần nhất</div>
+
+            {latestOrder ? (
+              <div className="mt-4 space-y-3 text-sm text-foreground">
+                <div className="flex items-center justify-between gap-4">
+                  <span>Ngày mua</span>
+                  <span>{formatDate(latestOrder.createdAt)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Sản phẩm</span>
+                  <span className="text-right">{primaryProduct?.productName ?? planName}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Số tiền</span>
+                  <span>{formatCurrency(latestOrder.totalAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Trạng thái</span>
+                  <span>{getOrderStatusLabel(latestOrder.status)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Gói</span>
-                <span>{planName}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Số tiền</span>
-                <span>890.000đ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Trạng thái</span>
-                <span>Đã thanh toán</span>
-              </div>
-            </div>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-muted">
+                Bạn chưa có đơn hàng nào trong lịch sử. Khi mua hộp đầu tiên, thông tin đơn sẽ xuất hiện ở đây để bạn dễ theo dõi và quay lại mua tiếp.
+              </p>
+            )}
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
-            <Link href="/boxes" className="button-primary justify-center">
-              Nâng cấp lên hộp dịu sâu
+            <Link href="/dashboard/boxes" className="button-primary justify-center">
+              Xem hộp để mua thêm
             </Link>
             <Link href="/activate" className="button-secondary justify-center">
               Nhập mã kích hoạt
