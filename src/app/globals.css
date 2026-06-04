@@ -1,0 +1,108 @@
+@import "../styles/fonts.css";
+@import "../styles/theme.css";
+@import "tailwindcss";
+
+:root {
+  --background: #fffdf9;
+  --surface: #fffaf3;
+  --surface-strong: #ffffff;
+  --foreground: #3b3328;
+  --muted: #746d63;
+  --border: rgba(95, 111, 82, 0.12);
+  --matcha-soft: #eef4e8;
+  --matcha: #9caf88;
+  --matcha-deep: #5f6f52;
+  --champagne: #f7e7b7;
+  --honey: #e8c872;
+  --clay: #d8c7a3;
+  --shadow: 0 28px 90px rgba(76, 62, 46, 0.12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-matcha-soft: var(--matcha-soft);
+  --color-matcha: var(--matcha);
+  --color-matcha-deep: var(--matcha-deep);
+  --color-champagne: var(--champagne);
+  --color-honey: var(--honey);
+  --color-clay: var(--clay);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+  --font-mono: var(--font-body);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(232, 200, 114, 0.18), transparent 26%),
+      radial-gradient(circle at top right, rgba(156, 175, 136, 0.12), transparent 28%),
+      radial-gradient(circle at 50% 12%, rgba(255, 248, 231, 0.78), transparent 34%),
+      linear-gradient(180deg, #fffefb 0%, #fffaf4 48%, #fffdf9 100%);
+    color: var(--foreground);
+    font-family: var(--font-body), sans-serif;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-7xl px-5 md:px-8 lg:px-10;
+  }
+
+  .eyebrow {
+    @apply inline-flex rounded-full border border-white/50 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.26em] text-matcha-deep shadow-sm backdrop-blur;
+  }
+
+  .hero-card {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 250, 243, 0.96) 42%, rgba(244, 248, 239, 0.92) 100%);
+    box-shadow: var(--shadow);
+    @apply rounded-[32px] border border-white/60 backdrop-blur;
+  }
+
+  .soft-card {
+    @apply rounded-[28px] border border-white/60 bg-white/82 shadow-[0_18px_70px_rgba(76,62,46,0.07)] backdrop-blur;
+  }
+
+  .section-screen {
+    @apply relative flex min-h-[100dvh] items-center overflow-hidden py-10;
+  }
+
+  .button-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-matcha-deep px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#516146];
+    box-shadow: 0 14px 34px rgba(95, 111, 82, 0.18);
+  }
+
+  .button-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-matcha-deep/15 bg-white/82 px-5 py-3 text-sm font-semibold text-matcha-deep transition hover:-translate-y-0.5 hover:bg-white;
+  }
+
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(95, 111, 82, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(95, 111, 82, 0.06) 1px, transparent 1px);
+    background-size: 34px 34px;
+  }
+}

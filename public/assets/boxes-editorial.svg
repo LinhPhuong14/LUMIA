@@ -1,0 +1,82 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="48" fill="#FFF8E7"/>
+  <rect width="1200" height="900" rx="48" fill="url(#bg)"/>
+  <ellipse cx="960" cy="156" rx="180" ry="132" fill="#F7E7B7" fill-opacity="0.52"/>
+  <ellipse cx="246" cy="740" rx="282" ry="150" fill="#EEF4E8"/>
+  <path d="M117.989 633.503C261.525 542.17 400.795 566.391 570.638 603.26C734.758 638.879 878.963 626.416 1096.37 458.84V900H0V719.408C35.989 691.972 72.9372 661.791 117.989 633.503Z" fill="url(#silk)"/>
+  <g filter="url(#shadow)">
+    <rect x="442" y="200" width="338" height="392" rx="44" fill="url(#box)"/>
+    <rect x="472" y="232" width="278" height="328" rx="34" stroke="white" stroke-opacity="0.28" stroke-width="2"/>
+    <path d="M488 152C488 126.49 508.677 105.813 534.187 105.813H762.048C787.558 105.813 808.235 126.49 808.235 152V280.505L488 198.451V152Z" fill="#9CAF88"/>
+    <path d="M510 460C510 418.026 544.026 384 586 384H694C735.974 384 770 418.026 770 460V560H510V460Z" fill="url(#innerGlow)"/>
+  </g>
+  <g filter="url(#blur)">
+    <circle cx="914" cy="298" r="78" fill="#FFF8E7"/>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="192" y="238" width="146" height="166" rx="34" fill="white" fill-opacity="0.78"/>
+    <rect x="226" y="272" width="78" height="98" rx="39" fill="url(#candle)"/>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="816" y="186" width="220" height="262" rx="38" fill="white" fill-opacity="0.82"/>
+    <text x="852" y="246" fill="#8E8478" font-family="Fraunces, serif" font-size="20" letter-spacing="0.28em">RITUAL NOTE</text>
+    <text x="852" y="320" fill="#3B3328" font-family="Fraunces, serif" font-size="48">Đi chậm</text>
+    <text x="852" y="380" fill="#3B3328" font-family="Fraunces, serif" font-size="48">để nghe</text>
+    <text x="852" y="440" fill="#3B3328" font-family="Fraunces, serif" font-size="48">mình.</text>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="812" y="556" width="190" height="116" rx="58" fill="#FFF8E7" fill-opacity="0.92"/>
+    <ellipse cx="907" cy="614" rx="58" ry="34" fill="#F7E7B7"/>
+  </g>
+  <g opacity="0.5">
+    <circle cx="108" cy="140" r="6" fill="#E8C872"/>
+    <circle cx="162" cy="104" r="4" fill="#E8C872"/>
+    <circle cx="920" cy="738" r="5" fill="#E8C872"/>
+    <circle cx="978" cy="780" r="7" fill="#E8C872"/>
+  </g>
+  <defs>
+    <linearGradient id="bg" x1="89.5" y1="74" x2="1122.5" y2="845.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="0.52" stop-color="#FFFBF3"/>
+      <stop offset="1" stop-color="#EEF4E8"/>
+    </linearGradient>
+    <linearGradient id="silk" x1="188" y1="561" x2="1018" y2="846" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="0.54" stop-color="#F7E7B7"/>
+      <stop offset="1" stop-color="#D8C7A3"/>
+    </linearGradient>
+    <linearGradient id="box" x1="470" y1="214" x2="780" y2="592" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A8B992"/>
+      <stop offset="1" stop-color="#5F6F52"/>
+    </linearGradient>
+    <linearGradient id="innerGlow" x1="548" y1="402" x2="734" y2="548" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="1" stop-color="#F7E7B7"/>
+    </linearGradient>
+    <linearGradient id="candle" x1="265" y1="272" x2="265" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="1" stop-color="#F7E7B7"/>
+    </linearGradient>
+    <filter id="shadow" x="376" y="63.8135" width="500.235" height="604.187" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dx="-6" dy="18"/>
+      <feGaussianBlur stdDeviation="24"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.231373 0 0 0 0 0.2 0 0 0 0 0.156863 0 0 0 0.22 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <filter id="shadowSoft" x="146" y="150" width="936" height="568" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="14"/>
+      <feGaussianBlur stdDeviation="23"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.231373 0 0 0 0 0.2 0 0 0 0 0.156863 0 0 0 0.12 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <filter id="blur" x="760" y="144" width="308" height="308" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="38"/>
+    </filter>
+  </defs>
+</svg>

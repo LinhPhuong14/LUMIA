@@ -1,0 +1,17 @@
+⚠ Port 3000 is in use by process 3336, using available port 3001 instead.
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Uncaught Error: Rendered fewer hooks than expected. This may be caused by an accidental early return statement.
+    at Set.forEach (<anonymous>)
+    at CinematicHero (src/components/marketing/cinematic-hero.tsx:323:11)
+    at HomePage (src\app\page.tsx:4:10)
+  321 |       <section className="relative z-10 min-h-screen px-8 py-24 md:px-28 md:py-32">
+  322 |         <div className="mx-auto flex max-w-3xl flex-col items-start gap-10">
+> 323 |           <Image
+      |           ^
+  324 |             src="/assets/quote-symbol.svg"
+  325 |             alt="Decorative quote"
+  326 |             width={56}
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior

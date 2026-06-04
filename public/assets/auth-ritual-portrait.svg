@@ -1,0 +1,66 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" rx="48" fill="url(#bg)"/>
+  <ellipse cx="694" cy="194" rx="170" ry="150" fill="#F7E7B7" fill-opacity="0.48"/>
+  <ellipse cx="254" cy="1012" rx="274" ry="178" fill="#EEF4E8"/>
+  <path d="M0 793C157.904 712.962 294.737 712.235 466.224 766.981C657.386 828.019 760.766 780.083 900 642V1200H0V793Z" fill="url(#fabric)"/>
+  <g filter="url(#shadow)">
+    <rect x="250" y="218" width="392" height="528" rx="52" fill="url(#box)"/>
+    <rect x="286" y="258" width="320" height="440" rx="40" stroke="white" stroke-opacity="0.26" stroke-width="2"/>
+    <path d="M274 180C274 147.967 299.967 122 332 122H592C624.033 122 650 147.967 650 180V332L274 226.5V180Z" fill="#9CAF88"/>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="596" y="258" width="180" height="230" rx="36" fill="white" fill-opacity="0.82"/>
+    <text x="628" y="324" fill="#8E8478" font-family="Fraunces, serif" font-size="18" letter-spacing="0.26em">JOURNAL</text>
+    <text x="626" y="390" fill="#3B3328" font-family="Fraunces, serif" font-size="44">Đi chậm</text>
+    <text x="626" y="444" fill="#3B3328" font-family="Fraunces, serif" font-size="44">với</text>
+    <text x="626" y="498" fill="#3B3328" font-family="Fraunces, serif" font-size="44">mình.</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="124" y="314" width="138" height="156" rx="32" fill="white" fill-opacity="0.8"/>
+    <rect x="156" y="346" width="74" height="90" rx="37" fill="url(#candle)"/>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="562" y="744" width="218" height="112" rx="56" fill="#FFF8E7" fill-opacity="0.9"/>
+    <ellipse cx="671" cy="800" rx="70" ry="34" fill="#F7E7B7"/>
+  </g>
+  <circle cx="162" cy="168" r="6" fill="#E8C872"/>
+  <circle cx="742" cy="982" r="8" fill="#E8C872"/>
+  <defs>
+    <linearGradient id="bg" x1="52" y1="68" x2="864" y2="1132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="0.56" stop-color="#FFFBF3"/>
+      <stop offset="1" stop-color="#EEF4E8"/>
+    </linearGradient>
+    <linearGradient id="fabric" x1="162" y1="726" x2="728" y2="1112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="0.58" stop-color="#F7E7B7"/>
+      <stop offset="1" stop-color="#D8C7A3"/>
+    </linearGradient>
+    <linearGradient id="box" x1="286" y1="228" x2="630" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ABC08E"/>
+      <stop offset="1" stop-color="#5F6F52"/>
+    </linearGradient>
+    <linearGradient id="candle" x1="193" y1="346" x2="193" y2="436" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="1" stop-color="#F7E7B7"/>
+    </linearGradient>
+    <filter id="shadow" x="188" y="80" width="522" height="746" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="31"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.231373 0 0 0 0 0.2 0 0 0 0 0.156863 0 0 0 0.22 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <filter id="soft" x="78" y="228" width="744" height="674" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="14"/>
+      <feGaussianBlur stdDeviation="23"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.231373 0 0 0 0 0.2 0 0 0 0 0.156863 0 0 0 0.13 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+</svg>
