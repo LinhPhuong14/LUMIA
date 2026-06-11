@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { env, hasSupabaseConfig } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validators/auth";
 
@@ -42,6 +43,22 @@ export async function POST(request: Request) {
 
   if (!data.user) {
     return NextResponse.json({ error: "Không thể tạo tài khoản." }, { status: 500 });
+  }
+
+  const admin = createAdminClient();
+  if (admin) {
+    await admin.from("profiles").upsert(
+      { id: data.user.id, email, full_name: parsed.data.name, role: "user" },
+      { onConflict: "id" },
+    );
+    const { data: sub } = await admin.from("subscriptions").select("id").eq("user_id", data.user.id).limit(1).maybeSingle();
+    if (!sub) {
+      await admin.from("subscriptions").insert({ user_id: data.user.id, status: "free" });
+    }
+    const { data: streak } = await admin.from("streaks").select("id").eq("user_id", data.user.id).maybeSingle();
+    if (!streak) {
+      await admin.from("streaks").insert({ user_id: data.user.id });
+    }
   }
 
   return NextResponse.json({ ok: true, id: data.user.id, redirect: "/onboarding" }, { status: 201 });

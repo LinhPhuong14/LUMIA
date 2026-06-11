@@ -10,7 +10,7 @@ export function RitualStepsSection() {
   return (
     <section
       id="dong-hanh"
-      className="relative bg-[#F8F6EF] px-8 py-32 md:px-10 md:py-40 lg:px-14"
+      className="relative bg-surface-warm px-8 py-32 md:px-10 md:py-40 lg:px-14"
     >
       <div className="landing-frame">
         <SectionHeading

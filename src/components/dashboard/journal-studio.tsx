@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+import { TabPills } from "@/components/ui/tab-pills";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 
 type JournalTab = "release" | "journal" | "mood";
@@ -114,34 +115,29 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm">
-        {tabs.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => switchTab(item.key)}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              tab === item.key ? "bg-matcha text-white" : "text-muted"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+    <div className="space-y-4 lg:space-y-6">
+      <div className="sticky top-0 z-30 -mx-4 bg-gradient-to-b from-background via-background/95 to-transparent px-4 pb-3 pt-1 lg:static lg:mx-0 lg:bg-transparent lg:p-0">
+        <TabPills
+          fullWidth
+          className="lg:!inline-flex lg:!w-auto"
+          tabs={tabs.map((t) => ({ id: t.key, label: t.label }))}
+          activeTab={tab}
+          onChange={(id) => switchTab(id as JournalTab)}
+        />
       </div>
 
       {tab === "release" ? (
-        <section className="hero-card p-8">
+        <section className="hero-card flex min-h-[calc(100dvh-14rem)] flex-col p-5 lg:min-h-0 lg:p-8">
           <span className="eyebrow">Viết ra</span>
           <textarea
             value={releaseText}
             onChange={(e) => setReleaseText(e.target.value)}
-            className="mt-6 min-h-56 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none"
+            className="mt-4 min-h-0 flex-1 w-full resize-none rounded-[24px] border border-white/70 bg-white/84 p-5 text-base leading-8 outline-none lg:mt-6 lg:min-h-56 lg:rounded-[30px] lg:p-6"
             placeholder="Hôm nay có điều gì bạn muốn đặt xuống không?"
           />
-          <div className="mt-6 flex justify-between gap-4">
+          <div className="mt-4 flex items-center justify-between gap-4 lg:mt-6">
             {savedMessage ? <span className="text-sm text-matcha-deep">{savedMessage}</span> : <span />}
-            <button type="button" onClick={saveRelease} disabled={loading} className="button-primary">
+            <button type="button" onClick={saveRelease} disabled={loading} className="button-primary min-h-[44px] px-6">
               Xả đi
             </button>
           </div>
@@ -163,7 +159,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                 Lưu nhật ký
               </button>
             </section>
-            <aside className="grid gap-3">
+            <aside className="mobile-h-scroll -mx-1 gap-3 px-1 lg:mx-0 lg:grid lg:overflow-visible lg:px-0">
               {prompts.map((prompt, index) => (
                 <motion.button
                   key={prompt}
@@ -172,7 +168,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.05 }}
                   onClick={() => setPromptUsed(prompt)}
-                  className={`soft-card p-5 text-left ${promptUsed === prompt ? "ring-2 ring-matcha" : ""}`}
+                  className={`soft-card w-[min(72vw,260px)] shrink-0 p-5 text-left lg:w-auto ${promptUsed === prompt ? "ring-2 ring-matcha" : ""}`}
                 >
                   <p className="text-sm text-matcha-deep">{prompt}</p>
                 </motion.button>

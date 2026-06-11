@@ -7,7 +7,7 @@ import { fadeUp } from "@/components/landing/shared/landing-motion";
 
 export function JoinSection() {
   return (
-    <section className="bg-[#65774A] px-8 py-24 text-white md:px-10 lg:px-14">
+    <section className="bg-join-band px-8 py-24 text-white md:px-10 lg:px-14">
       <div className="landing-frame max-w-[980px] text-center">
         <div className="font-serif text-[3.2rem] leading-[0.94] tracking-[-0.05em] md:text-[4.2rem]">
           Tham gia ritual của LUMIA
@@ -28,7 +28,7 @@ export function JoinSection() {
           />
           <button
             type="button"
-            className="inline-flex h-15 items-center justify-center gap-2 rounded-full bg-white px-8 text-[14px] font-medium text-[#4f5f3c]"
+            className="inline-flex h-15 items-center justify-center gap-2 rounded-full bg-white px-8 text-[14px] font-medium text-join-band-text"
           >
             Đăng ký nhận tin <ArrowRight className="h-4 w-4" />
           </button>

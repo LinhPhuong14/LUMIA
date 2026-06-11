@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import Link from "next/link";
-
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { formatCurrency } from "@/lib/utils";
 
 type Order = {
@@ -49,49 +49,53 @@ export default function AdminOrdersPage() {
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
+  const statusLabels: Record<string, string> = {
+    paid: "Đã thanh toán",
+    preparing: "Đang chuẩn bị",
+    shipping: "Đang giao",
+    delivered: "Đã giao",
+  };
+
   return (
-    <div className="min-h-screen">
-      <main className="shell py-14">
-        <Link href="/admin" className="text-sm text-muted hover:text-matcha-deep">
-          ← Quản trị
-        </Link>
-        <h1 className="font-serif text-4xl text-matcha-deep">Quản lý đơn hàng</h1>
+    <AdminPageShell title="Quản lý đơn hàng">
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="mt-6 rounded-xl border px-3 py-2"
+          className="rounded-[20px] border border-matcha-soft bg-surface-glass px-4 py-3 text-sm"
         >
           <option value="all">Tất cả</option>
           {statuses.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {statusLabels[s] ?? s}
             </option>
           ))}
         </select>
 
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead>
-              <tr className="text-muted">
-                <th className="pb-3 pr-4">Order ID</th>
-                <th className="pb-3 pr-4">Email</th>
-                <th className="pb-3 pr-4">Ngày đặt</th>
-                <th className="pb-3 pr-4">Số tiền</th>
-                <th className="pb-3">Status</th>
+        <div className="mt-8 overflow-x-auto rounded-[20px] border border-white/70">
+          <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <thead className="bg-surface-warm">
+              <tr className="text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 pr-4">Mã đơn</th>
+                <th className="px-4 py-3 pr-4">Email</th>
+                <th className="px-4 py-3 pr-4">Ngày đặt</th>
+                <th className="px-4 py-3 pr-4">Số tiền</th>
+                <th className="px-4 py-3">Trạng thái</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((order) => (
-                <tr key={order.id} className="border-t border-white/60">
-                  <td className="py-3 pr-4 font-mono text-[12px]">{order.id.slice(0, 8)}</td>
-                  <td className="py-3 pr-4">{order.profiles?.email ?? "—"}</td>
-                  <td className="py-3 pr-4">{new Date(order.created_at).toLocaleDateString("vi-VN")}</td>
-                  <td className="py-3 pr-4">{formatCurrency(order.amount)}</td>
-                  <td className="py-3">
+                <tr key={order.id} className="border-t border-white/60 transition hover:bg-matcha-soft/30">
+                  <td className="px-4 py-3 pr-4 font-mono text-[12px]">{order.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 pr-4">{order.profiles?.email ?? "—"}</td>
+                  <td className="px-4 py-3 pr-4">{new Date(order.created_at).toLocaleDateString("vi-VN")}</td>
+                  <td className="px-4 py-3 pr-4">{formatCurrency(order.amount)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <OrderStatusBadge status={order.status} />
                     <select
                       value={order.status}
                       onChange={(e) => updateStatus(order.id, e.target.value)}
-                      className="rounded-xl border px-2 py-1"
+                      className="rounded-[12px] border border-matcha-soft bg-white px-2 py-1 text-xs"
                     >
                       {statuses.map((s) => (
                         <option key={s} value={s}>
@@ -99,6 +103,7 @@ export default function AdminOrdersPage() {
                         </option>
                       ))}
                     </select>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -106,7 +111,6 @@ export default function AdminOrdersPage() {
           </table>
         </div>
         {toast ? <p className="mt-4 text-sm text-matcha-deep">{toast}</p> : null}
-      </main>
-    </div>
+    </AdminPageShell>
   );
 }

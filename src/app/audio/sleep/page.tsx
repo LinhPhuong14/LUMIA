@@ -10,7 +10,8 @@ export default async function AudioSleepPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel="Sleep"
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Giấc ngủ"
       subtitle="Âm thanh dịu nhẹ để bạn dễ vào giấc hơn."
       isAdmin={session.role === "admin"}

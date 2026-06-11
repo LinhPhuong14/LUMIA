@@ -1,9 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const durations = [5, 10, 15, 20, 30] as const;
 const ambients = ["Không có", "Mưa", "Sóng biển", "Rừng", "White noise"] as const;
+
+const ambientSlugMap: Record<(typeof ambients)[number], string | null> = {
+  "Không có": null,
+  Mưa: "rain",
+  "Sóng biển": "ocean",
+  Rừng: "forest",
+  "White noise": "white-noise",
+};
+
+type TimerTrack = { id: string; description: string | null };
+
+async function resolveTrackUrl(trackId: string): Promise<string | null> {
+  const res = await fetch(`/api/audio/${trackId}/url`);
+  const data = (await res.json()) as { url?: string | null };
+  return data.url ?? null;
+}
+
+function findTrackBySlug(tracks: TimerTrack[], slug: string) {
+  return tracks.find((t) => t.description?.includes(`slug:${slug}`));
+}
+
+function findTrackByTag(tracks: TimerTrack[], tag: string) {
+  return tracks.find((t) => t.description?.includes(`tag:${tag}`));
+}
 
 export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
   const [minutes, setMinutes] = useState<number>(10);
@@ -11,6 +35,10 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const [logged, setLogged] = useState(false);
+  const [timerTracks, setTimerTracks] = useState<TimerTrack[]>([]);
+
+  const ambientRef = useRef<HTMLAudioElement | null>(null);
+  const bellRef = useRef<HTMLAudioElement | null>(null);
 
   const totalSeconds = minutes * 60;
   const progress =
@@ -19,9 +47,71 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
       : 0;
 
   useEffect(() => {
+    if (!enabled) return;
+    fetch("/api/audio?category=timer_ambient")
+      .then((r) => r.json())
+      .then((data: TimerTrack[]) => setTimerTracks(Array.isArray(data) ? data : []))
+      .catch(() => setTimerTracks([]));
+  }, [enabled]);
+
+  const stopAmbient = useCallback(() => {
+    const el = ambientRef.current;
+    if (el) {
+      el.pause();
+      el.src = "";
+      el.loop = false;
+    }
+  }, []);
+
+  const stopBell = useCallback(() => {
+    const el = bellRef.current;
+    if (el) {
+      el.pause();
+      el.src = "";
+    }
+  }, []);
+
+  const playBell = useCallback(
+    async (tag: "bell-start" | "bell-end") => {
+      const track = findTrackByTag(timerTracks, tag);
+      if (!track) return;
+      const url = await resolveTrackUrl(track.id);
+      if (!url) return;
+      stopBell();
+      const audio = new Audio(url);
+      bellRef.current = audio;
+      audio.play().catch(() => null);
+    },
+    [timerTracks, stopBell],
+  );
+
+  const startAmbient = useCallback(async () => {
+    const slug = ambientSlugMap[ambient];
+    if (!slug) return;
+    const track = findTrackBySlug(timerTracks, slug);
+    if (!track) return;
+    const url = await resolveTrackUrl(track.id);
+    if (!url) return;
+    stopAmbient();
+    const audio = new Audio(url);
+    audio.loop = true;
+    ambientRef.current = audio;
+    audio.play().catch(() => null);
+  }, [ambient, timerTracks, stopAmbient]);
+
+  useEffect(() => {
+    return () => {
+      stopAmbient();
+      stopBell();
+    };
+  }, [stopAmbient, stopBell]);
+
+  useEffect(() => {
     if (!running || secondsLeft === null) return;
     if (secondsLeft <= 0) {
       setRunning(false);
+      stopAmbient();
+      void playBell("bell-end");
       if (enabled && !logged) {
         setLogged(true);
         fetch("/api/streak/log", {
@@ -34,7 +124,7 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
     }
     const t = window.setTimeout(() => setSecondsLeft(secondsLeft - 1), 1000);
     return () => window.clearTimeout(t);
-  }, [running, secondsLeft, enabled, logged]);
+  }, [running, secondsLeft, enabled, logged, stopAmbient, playBell]);
 
   useEffect(() => {
     if (running && secondsLeft === totalSeconds - 300 && enabled && !logged) {
@@ -46,6 +136,24 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
       }).catch(() => null);
     }
   }, [secondsLeft, running, totalSeconds, enabled, logged]);
+
+  function handleStop() {
+    setRunning(false);
+    setSecondsLeft(null);
+    setLogged(false);
+    stopAmbient();
+    stopBell();
+  }
+
+  async function handleStart() {
+    setSecondsLeft(minutes * 60);
+    setRunning(true);
+    setLogged(false);
+    await playBell("bell-start");
+    if (ambient !== "Không có") {
+      await startAmbient();
+    }
+  }
 
   if (!enabled) {
     return <div className="soft-card min-h-[300px] p-8" />;
@@ -77,20 +185,20 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
         <div className="mt-8 flex gap-3">
           <button
             type="button"
-            onClick={() => setRunning((r) => !r)}
+            onClick={() => {
+              const next = !running;
+              setRunning(next);
+              if (next) {
+                void startAmbient();
+              } else {
+                stopAmbient();
+              }
+            }}
             className="button-secondary"
           >
             {running ? "Tạm dừng" : "Tiếp tục"}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setRunning(false);
-              setSecondsLeft(null);
-              setLogged(false);
-            }}
-            className="button-secondary"
-          >
+          <button type="button" onClick={handleStop} className="button-secondary">
             Dừng
           </button>
         </div>
@@ -128,15 +236,7 @@ export function MeditationTimer({ enabled = true }: { enabled?: boolean }) {
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          setSecondsLeft(minutes * 60);
-          setRunning(true);
-          setLogged(false);
-        }}
-        className="button-primary mt-8"
-      >
+      <button type="button" onClick={() => void handleStart()} className="button-primary mt-8">
         Bắt đầu
       </button>
     </div>

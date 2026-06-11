@@ -1,19 +1,20 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { BoxProduct } from "@/data/catalog";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: BoxProduct }) {
   const highlighted = product.featured;
 
   return (
     <article
-      className={`relative flex h-full flex-col overflow-hidden rounded-[36px] border p-6 shadow-[0_20px_60px_rgba(180,154,67,0.08)] ${
+      className={cn(
+        "relative flex h-full flex-col overflow-hidden rounded-[36px] border p-6 shadow-[0_20px_60px_rgba(180,154,67,0.08)]",
         highlighted
-          ? "border-[#B8CFA8]/80 bg-[#E8F0E0]/90 ring-1 ring-[#B8CFA8]/60"
-          : "border-white/70 bg-white/78"
-      }`}
+          ? "border-matcha-highlight/80 bg-matcha-highlight-bg/90 ring-1 ring-matcha-highlight/60"
+          : "border-white/70 bg-white/78",
+      )}
       style={{ backgroundImage: product.gradient }}
     >
       <div className="flex items-start justify-between gap-4">
@@ -22,7 +23,10 @@ export function ProductCard({ product }: { product: BoxProduct }) {
           <h2 className="mt-4 font-serif text-2xl text-matcha-deep">{product.name}</h2>
           <p className="mt-2 text-sm leading-6 text-muted">{product.duration}</p>
         </div>
-        <Image src="/assets/boxes-editorial.svg" alt="" width={96} height={96} className="opacity-80" />
+        <div
+          className="h-24 w-24 shrink-0 rounded-[24px] bg-gradient-to-br from-matcha-soft to-matcha opacity-90"
+          aria-hidden
+        />
       </div>
 
       <ul className="mt-5 flex-1 space-y-2 text-sm text-muted">

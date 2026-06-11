@@ -11,17 +11,12 @@ export default async function AccountPage() {
     getRecentOrdersForUser(session.id, 20),
   ]);
 
-  const planName = subscription.isActive
-    ? "Hành trình 21 ngày"
-    : subscription.status === "expired"
-      ? "Đã hết hạn"
-      : "Dùng thử miễn phí";
-
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel={planName}
-      title="Account"
+      sessionEmail={session.email}
+      subscription={subscription}
+      title="Tài khoản"
       subtitle="Hộp của bạn, đơn hàng và quyền truy cập — tất cả ở một nơi."
       isAdmin={session.role === "admin"}
     >

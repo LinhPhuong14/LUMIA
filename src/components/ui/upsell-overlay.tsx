@@ -22,7 +22,7 @@ export function UpsellOverlay({
       <div className="pointer-events-none select-none blur-[2px] opacity-40">{children}</div>
       <div className="absolute inset-0 flex items-center justify-center rounded-[28px] bg-white/55 backdrop-blur-md">
         <div className="mx-auto max-w-sm px-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF3C7] shadow-[0_12px_28px_rgba(244,216,120,0.2)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-champagne shadow-[0_12px_28px_rgba(244,216,120,0.2)]">
             <Lock className="h-5 w-5 text-matcha-deep" />
           </div>
           <h3 className="mt-4 font-serif text-xl text-matcha-deep">

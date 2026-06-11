@@ -3,17 +3,37 @@ import OpenAI from "openai";
 import { env, hasLlmConfig } from "@/lib/env";
 
 let client: OpenAI | null = null;
+let cachedConfigKey: string | null = null;
+
+function readLlmEnv() {
+  const apiKey = process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY;
+  const baseURL = process.env.LLM_BASE_URL;
+  return { apiKey, baseURL };
+}
+
+function llmConfigKey() {
+  const { apiKey, baseURL } = readLlmEnv();
+  return `${apiKey ?? ""}|${baseURL ?? ""}`;
+}
 
 function getClient() {
   if (!hasLlmConfig()) {
     throw new Error("LLM not configured.");
   }
-  if (!client) {
+
+  const { apiKey, baseURL } = readLlmEnv();
+  const configKey = llmConfigKey();
+  if (!client || cachedConfigKey !== configKey) {
+    cachedConfigKey = configKey;
     client = new OpenAI({
-      apiKey: env.LLM_API_KEY,
-      baseURL: env.LLM_BASE_URL,
+      apiKey: apiKey!,
+      ...(baseURL ? { baseURL } : {}),
     });
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[LLM] client initialized (key changed or first use)");
+    }
   }
+
   return client;
 }
 

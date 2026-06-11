@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+
 const techniques = {
   "4-7-8": { inhale: 4, hold: 7, exhale: 8, label: "4-7-8", rounds: 4 },
   box: { inhale: 4, hold: 4, exhale: 4, holdAfter: 4, label: "Box Breathing", rounds: 4 },
@@ -108,19 +110,15 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
     return (
       <div className="flex flex-col items-center py-12 text-center">
         <h2 className="font-serif text-3xl text-matcha-deep">Bạn đã hoàn thành {config?.rounds} vòng</h2>
-        <button
-          type="button"
-          onClick={() => {
+        <Button type="button" onClick={() => {
             setTechnique(null);
             setCompleted(false);
             setRound(1);
             setPhase("inhale");
             setLogged(false);
-          }}
-          className="button-primary mt-6"
-        >
+          }} className="mt-6">
           Thử lại
-        </button>
+        </Button>
       </div>
     );
   }
@@ -134,29 +132,37 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
           : config.exhale;
 
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f8f4eb]/95 backdrop-blur-md">
-        <button
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-warm/95 backdrop-blur-md">
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setTechnique(null)}
-          className="absolute right-6 top-6 rounded-full p-2 hover:bg-white/80"
+          className="fixed right-6 top-6 z-10 min-h-[44px] min-w-[44px] rounded-full p-2"
           aria-label="Dừng"
         >
           <X className="h-5 w-5" />
-        </button>
-        <p className="text-sm text-muted">
+        </Button>
+        <div className="card-tertiary absolute bottom-8 px-4 py-2 text-sm font-medium text-matcha-deep">
           Vòng {round}/{config.rounds}
-        </p>
+        </div>
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "radial-gradient(circle at center, color-mix(in srgb, var(--matcha-soft) 20%, transparent) 0%, transparent 65%)",
+          }}
+        />
         <motion.div
           animate={{ scale: targetScale }}
           transition={{
             duration: phaseDuration || 1,
             ease: "easeInOut",
           }}
-          className="mt-8 flex h-56 w-56 items-center justify-center rounded-full bg-[linear-gradient(135deg,#DDE8D2,#FFF3C7)] shadow-lg"
+          className="relative mt-8 flex h-56 w-56 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,var(--matcha-soft),color-mix(in_srgb,var(--matcha)_60%,transparent))] shadow-[0_0_40px_color-mix(in_srgb,var(--matcha)_30%,transparent)]"
         >
           <div className="text-center">
-            <span className="font-serif text-2xl text-matcha-deep">{phaseLabel}</span>
-            <div className="mt-2 text-sm text-muted">{secondsInPhase}s</div>
+            <span className="font-serif text-2xl text-foreground">{phaseLabel}</span>
+            <div className="mt-2 font-mono text-sm text-muted">{secondsInPhase}s</div>
           </div>
         </motion.div>
       </div>

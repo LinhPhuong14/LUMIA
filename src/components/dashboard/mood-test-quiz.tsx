@@ -80,7 +80,7 @@ export function MoodTestQuiz({ isActive }: { isActive: boolean }) {
 
   if (blocked && !isActive) {
     return (
-      <UpsellOverlay featureName="Mood Test" description="Làm lại không giới hạn với hộp LUMIA." locked>
+      <UpsellOverlay featureName="Kiểm tra cảm xúc" description="Làm lại không giới hạn với hộp LUMIA." locked>
         {result ? (
           <div className="soft-card p-6">
             <p className="font-medium text-matcha-deep">Kết quả lần trước: {result.result_label}</p>

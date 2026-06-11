@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if ((usage?.count ?? 0) >= FREE_DAILY_LIMIT) {
-      return NextResponse.json({ error: "Đã hết lượt chat hôm nay. Mua hộp để tiếp tục." }, { status: 403 });
+      return NextResponse.json({ error: "Đã hết lượt chat hôm nay. Mua hộp để tiếp tục." }, { status: 429 });
     }
   }
 

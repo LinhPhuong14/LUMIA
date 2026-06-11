@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 
+import { MobileNavDrawer } from "@/components/marketing/mobile-nav-drawer";
 import { LumiaLogo } from "@/components/ui/logo";
 import { getSession } from "@/lib/supabase/auth";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,14 @@ export async function SiteHeader({ transparent = false }: { transparent?: boolea
     session?.role === "admin" ? [...baseLinks, { href: "/admin" as Route, label: "Quản trị" }] : baseLinks;
 
   return (
-    <header className={cn("sticky top-0 z-50 border-b border-white/70 backdrop-blur-xl", transparent ? "bg-white/42" : "bg-white/82")}>
-      <div className="shell flex min-h-20 items-center justify-between gap-4">
+    <header
+      className={cn(
+        "sticky top-0 z-50 border-b border-white/70 backdrop-blur-xl",
+        transparent ? "bg-white/42" : "bg-white/82",
+      )}
+      style={{ paddingTop: "var(--safe-top)" }}
+    >
+      <div className="shell flex min-h-16 items-center justify-between gap-3 md:min-h-20">
         <LumiaLogo />
         <nav className="hidden items-center gap-8 md:flex">
           {links.map((link) => (
@@ -26,21 +33,24 @@ export async function SiteHeader({ transparent = false }: { transparent?: boolea
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
-          {session ? (
-            <Link href="/dashboard" className="button-secondary">
-              {session.name}
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className="text-sm font-medium text-matcha-deep">
-                Đăng nhập
+        <div className="flex items-center gap-2 md:gap-3">
+          <MobileNavDrawer links={links} session={session ? { name: session.name } : null} />
+          <div className="hidden items-center gap-3 md:flex">
+            {session ? (
+              <Link href="/dashboard" className="button-secondary">
+                {session.name}
               </Link>
-              <Link href={"/register?next=/onboarding" as Route} className="button-primary">
-                Tạo tài khoản
-              </Link>
-            </>
-          )}
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium text-matcha-deep">
+                  Đăng nhập
+                </Link>
+                <Link href={"/register?next=/onboarding" as Route} className="button-primary">
+                  Tạo tài khoản
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

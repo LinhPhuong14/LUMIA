@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { TabPills } from "@/components/ui/tab-pills";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 
 type Tab = "history" | "reports";
@@ -68,32 +69,21 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
   function moodColor(date: string) {
     const entry = moods.find((m) => m.date === date);
     if (!entry) return "bg-white/60";
-    if (entry.score <= 2) return "bg-[#DDE8D2]";
-    if (entry.score === 3) return "bg-[#FFF3C7]";
-    return "bg-[#F8E7A1]";
+    if (entry.score <= 2) return "bg-matcha-soft";
+    if (entry.score === 3) return "bg-mood-mid";
+    return "bg-mood-high";
   }
 
   const content = (
     <div className="space-y-6">
-      <div className="inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm">
-        {(
-          [
-            { key: "history" as const, label: "Lịch sử" },
-            { key: "reports" as const, label: "Báo cáo" },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setTab(item.key)}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              tab === item.key ? "bg-matcha text-white" : "text-muted"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <TabPills
+        tabs={[
+          { id: "history", label: "Lịch sử" },
+          { id: "reports", label: "Báo cáo" },
+        ]}
+        activeTab={tab}
+        onChange={(id) => setTab(id as Tab)}
+      />
 
       {loading ? <p className="text-sm text-muted">Đang tải...</p> : null}
 

@@ -86,8 +86,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="dashboard-shell-bg flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="soft-card w-full max-w-2xl p-8">
+    <div className="mobile-app-shell dashboard-shell-bg flex min-h-[100dvh] flex-col justify-end px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-8 lg:items-center lg:justify-center lg:py-10">
+      <div className="soft-card w-full max-w-2xl rounded-t-[28px] p-6 lg:rounded-[30px] lg:p-8">
         <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-matcha-soft/40">
           <div
             className="h-full bg-matcha transition-all"
@@ -97,16 +97,16 @@ export default function OnboardingPage() {
         <span className="eyebrow">
           Bước {step + 1}/{steps.length}
         </span>
-        <h1 className="mt-4 font-serif text-4xl text-matcha-deep">{current.title}</h1>
+        <h1 className="mt-4 font-serif text-[1.75rem] leading-tight text-matcha-deep lg:text-4xl">{current.title}</h1>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-6 space-y-3 lg:mt-8">
           {current.options.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => onSelect(option.value)}
               disabled={loading}
-              className={`w-full rounded-[24px] border px-5 py-4 text-left transition disabled:opacity-50 ${
+              className={`min-h-[52px] w-full rounded-[20px] border px-5 py-4 text-left transition active:scale-[0.99] disabled:opacity-50 lg:rounded-[24px] ${
                 selected === option.value
                   ? "border-matcha bg-matcha-soft/40"
                   : "border-white/70 bg-white/80 hover:bg-white"
@@ -127,7 +127,7 @@ export default function OnboardingPage() {
           </button>
         ) : null}
 
-        {error ? <p className="mt-3 text-sm text-[#9A5B5B]">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
       </div>
     </div>
   );

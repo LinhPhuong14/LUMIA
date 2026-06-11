@@ -10,7 +10,8 @@ export default async function JournalPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel={subscription.isActive ? "Hành trình 21 ngày" : "Dùng thử"}
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Cứ viết ra thôi."
       subtitle="Không cần đúng. Không cần hay. Chỉ cần đủ thật để bạn thấy lòng mình nhẹ xuống một chút."
       isAdmin={session.role === "admin"}

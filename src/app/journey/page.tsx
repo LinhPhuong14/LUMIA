@@ -10,7 +10,8 @@ export default async function JourneyPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel={subscription.isActive ? "Hành trình 21 ngày" : "Dùng thử"}
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Hành trình của bạn"
       subtitle="Nhìn lại lịch sử, mood và báo cáo — không phải để đánh giá, mà để hiểu mình hơn."
       isAdmin={session.role === "admin"}

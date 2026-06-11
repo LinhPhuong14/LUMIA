@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { StartJourneyButton } from "@/components/dashboard/start-journey-button";
+import { TabPills } from "@/components/ui/tab-pills";
 import { lumiaBoxes } from "@/data/catalog";
+import { getPlanDisplayLabel, getSubscriptionStatusLabel } from "@/lib/subscription-labels";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
@@ -25,17 +27,27 @@ const featureMatrix = [
 
 export function AccountPanel({
   subscription,
-  orders,
+  orders: initialOrders,
 }: {
   subscription: SubscriptionSnapshot;
   orders: OrderEntry[];
 }) {
   const [tab, setTab] = useState<Tab>("box");
-  const planName = subscription.isActive
-    ? "Hành trình 21 ngày"
-    : subscription.status === "expired"
-      ? "Đã hết hạn"
-      : "Dùng thử miễn phí";
+  const [orders, setOrders] = useState(initialOrders);
+
+  const refreshOrders = useCallback(() => {
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((data: OrderEntry[]) => {
+        if (Array.isArray(data)) setOrders(data);
+      })
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
+  const planName = getPlanDisplayLabel(subscription);
 
   const canStartJourney =
     orders.some((o) => o.status === "delivered") &&
@@ -46,32 +58,23 @@ export function AccountPanel({
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm">
-        {(
-          [
-            { key: "box" as const, label: "Hộp của tôi" },
-            { key: "orders" as const, label: "Đơn hàng" },
-            { key: "access" as const, label: "Quyền truy cập" },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setTab(item.key)}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              tab === item.key ? "bg-matcha text-white" : "text-muted"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <TabPills
+        fullWidth
+        className="lg:!inline-flex lg:!w-auto lg:rounded-full lg:border lg:border-white/70 lg:bg-white/84 lg:p-1 lg:shadow-sm"
+        tabs={[
+          { id: "box", label: "Hộp của tôi" },
+          { id: "orders", label: "Đơn hàng" },
+          { id: "access", label: "Quyền của tôi" },
+        ]}
+        activeTab={tab}
+        onChange={(id) => setTab(id as Tab)}
+      />
 
       {tab === "box" ? (
         <section className="soft-card p-6">
           <span className="eyebrow">Trạng thái</span>
           <h2 className="mt-4 font-serif text-4xl text-matcha-deep">{planName}</h2>
-          <p className="mt-3 text-sm text-muted">Trạng thái: {subscription.status}</p>
+          <p className="mt-3 text-sm text-muted">Trạng thái: {getSubscriptionStatusLabel(subscription.status)}</p>
           {subscription.currentDay ? (
             <>
               <p className="mt-4 text-sm text-matcha-deep">Ngày {subscription.currentDay}/21</p>
@@ -87,7 +90,7 @@ export function AccountPanel({
             <p className="mt-4 text-sm text-muted">Kết thúc: {formatDate(subscription.expiresAt)}</p>
           ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
-            {canStartJourney ? <StartJourneyButton /> : null}
+            {canStartJourney ? <StartJourneyButton onSuccess={refreshOrders} /> : null}
             {!subscription.isActive ? (
               <Link href="/boxes" className="button-primary">
                 {subscription.status === "expired" ? "Mua hộp mới" : "Mua hộp LUMIA"}
@@ -101,7 +104,7 @@ export function AccountPanel({
                 key={box.slug}
                 href={`/boxes/${box.slug}`}
                 className={`block rounded-[24px] border p-5 transition hover:bg-white/90 ${
-                  box.featured ? "border-[#B8CFA8]/80 bg-[#E8F0E0]/50" : "border-white/70 bg-white/78"
+                  box.featured ? "border-matcha-highlight/80 bg-matcha-highlight-bg/50" : "border-white/70 bg-white/78"
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -150,7 +153,7 @@ export function AccountPanel({
 
       {tab === "access" ? (
         <section className="soft-card p-6">
-          <span className="eyebrow">Feature matrix</span>
+          <span className="eyebrow">Quyền của tôi</span>
           <p className="mt-2 text-sm text-muted">
             Gói hiện tại: <strong>{planName}</strong>
           </p>
@@ -160,10 +163,10 @@ export function AccountPanel({
                 <tr className="text-muted">
                   <th className="pb-3 pr-4">Tính năng</th>
                   <th className={`pb-3 pr-4 ${tierKey === "free" ? "font-semibold text-matcha-deep" : ""}`}>
-                    Free
+                    Dùng thử
                   </th>
                   <th className={`pb-3 ${tierKey === "active" ? "font-semibold text-matcha-deep" : ""}`}>
-                    Active
+                    Đang dùng
                   </th>
                 </tr>
               </thead>

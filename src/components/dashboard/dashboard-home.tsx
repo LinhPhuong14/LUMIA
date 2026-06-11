@@ -66,7 +66,11 @@ export function DashboardHome({
       <MoodCheckInModal onComplete={(score) => setTodayMood(score)} />
       <UpsellBanner show={isFree} />
 
-      <div className="space-y-4">
+      <div className="space-y-4 lg:space-y-4">
+        <div className="lg:hidden">
+          <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-muted">Hôm nay</p>
+          <h2 className="mt-1 font-serif text-2xl text-matcha-deep">Chào buổi tối 👋</h2>
+        </div>
         {latestOrder && !subscription.isActive ? (
           <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
             Đơn hàng: {getOrderStatusLabel(latestOrder.status)}
@@ -132,17 +136,17 @@ export function DashboardHome({
           </motion.section>
         ) : null}
 
-        <section className="dashboard-glass rounded-[30px] px-5 py-5">
+        <section className="dashboard-glass rounded-[24px] px-4 py-4 lg:rounded-[30px] lg:px-5 lg:py-5">
           <span className="eyebrow">Hoạt động nhanh</span>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mobile-h-scroll mt-4 -mx-1 px-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:overflow-visible lg:px-0">
             {quickActions.map((action) => (
               <Link
                 key={action.href}
                 href={action.href}
-                className="rounded-[22px] border border-white/70 bg-white/72 p-4 transition hover:shadow-[0_14px_32px_rgba(143,168,120,0.1)]"
+                className="card-primary mobile-snap-card p-4 transition active:scale-[0.98] lg:w-auto lg:hover:shadow-[0_14px_32px_rgba(143,168,120,0.1)]"
               >
                 <div className="font-medium text-matcha-deep">{action.label}</div>
-                <div className="mt-1 text-[12px] text-muted">{action.copy}</div>
+                <div className="mt-1 text-[12px] leading-5 text-muted">{action.copy}</div>
               </Link>
             ))}
           </div>

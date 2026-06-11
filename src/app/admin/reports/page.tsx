@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import Link from "next/link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { Button } from "@/components/ui/button";
 
 type Report = {
   id: string;
@@ -42,29 +43,14 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <main className="shell py-14">
-        <Link href="/admin" className="text-sm text-muted hover:text-matcha-deep">
-          ← Quản trị
-        </Link>
-        <h1 className="font-serif text-4xl text-matcha-deep">Báo cáo</h1>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => generate("weekly")}
-            disabled={loading}
-            className="button-primary disabled:opacity-50"
-          >
-            {loading ? "Đang generate..." : "Generate Weekly"}
-          </button>
-          <button
-            type="button"
-            onClick={() => generate("full_21")}
-            disabled={loading}
-            className="button-secondary disabled:opacity-50"
-          >
-            Generate Full 21
-          </button>
+    <AdminPageShell title="Báo cáo">
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" onClick={() => generate("weekly")} disabled={loading} size="sm">
+            {loading ? "Đang tạo..." : "Tạo báo cáo tuần"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => generate("full_21")} disabled={loading} size="sm">
+            Tạo báo cáo 21 ngày
+          </Button>
         </div>
         {message ? <p className="mt-4 text-sm text-muted">{message}</p> : null}
 
@@ -72,7 +58,7 @@ export default function AdminReportsPage() {
           {reports.map((report) => (
             <article key={report.id} className="soft-card p-5">
               <div className="font-medium text-matcha-deep">
-                {report.type === "weekly" ? "Weekly" : "Full 21"} — {report.user_id.slice(0, 8)}
+                {report.type === "weekly" ? "Báo cáo tuần" : "Báo cáo 21 ngày"} — {report.user_id.slice(0, 8)}
               </div>
               <div className="text-sm text-muted">
                 {report.period_start} → {report.period_end}
@@ -84,7 +70,6 @@ export default function AdminReportsPage() {
           ))}
           {reports.length === 0 ? <p className="text-sm text-muted">Chưa có báo cáo.</p> : null}
         </div>
-      </main>
-    </div>
+    </AdminPageShell>
   );
 }

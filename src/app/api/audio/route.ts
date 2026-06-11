@@ -10,6 +10,8 @@ export async function GET(request: Request) {
   const session = await getSession();
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
+  const tag = searchParams.get("tag");
+  const isFree = searchParams.get("is_free");
 
   const supabase = await createClient();
   if (!supabase) {
@@ -24,6 +26,12 @@ export async function GET(request: Request) {
     } else if (categories.length > 1) {
       query = query.in("category", categories);
     }
+  }
+  if (isFree === "true") {
+    query = query.eq("is_free", true);
+  }
+  if (tag) {
+    query = query.ilike("description", `%tag:${tag}%`);
   }
 
   const { data, error } = await query;

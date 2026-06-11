@@ -12,7 +12,8 @@ export default async function AudioMeditationPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel="Meditation"
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Thiền định"
       subtitle="Guided meditation và mini sessions cho mọi năng lượng."
       isAdmin={session.role === "admin"}

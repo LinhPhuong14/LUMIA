@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { Input } from "@/components/ui/input";
+import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
 
 type UserRow = {
   id: string;
@@ -34,55 +36,51 @@ export default function AdminUsersPage() {
   );
 
   return (
-    <div className="min-h-screen">
-      <main className="shell py-14">
-        <Link href="/admin" className="text-sm text-muted hover:text-matcha-deep">
-          ← Quản trị
-        </Link>
-        <h1 className="font-serif text-4xl text-matcha-deep">Người dùng</h1>
-        <input
+    <AdminPageShell title="Người dùng">
+        <Input
           type="search"
+          label="Tìm kiếm"
           placeholder="Tìm theo email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-6 w-full max-w-md rounded-xl border px-4 py-2"
+          className="max-w-md"
         />
 
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="text-muted">
-                <th className="pb-3 pr-4">Email</th>
-                <th className="pb-3 pr-4">Tên</th>
-                <th className="pb-3 pr-4">Role</th>
-                <th className="pb-3 pr-4">Subscription</th>
-                <th className="pb-3 pr-4">Started</th>
-                <th className="pb-3 pr-4">Expires</th>
-                <th className="pb-3">Streak</th>
+        <div className="mt-8 overflow-x-auto rounded-[20px] border border-white/70">
+          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+            <thead className="bg-surface-warm">
+              <tr className="text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 pr-4">Email</th>
+                <th className="px-4 py-3 pr-4">Tên</th>
+                <th className="px-4 py-3 pr-4">Vai trò</th>
+                <th className="px-4 py-3 pr-4">Gói</th>
+                <th className="px-4 py-3 pr-4">Bắt đầu</th>
+                <th className="px-4 py-3 pr-4">Kết thúc</th>
+                <th className="px-4 py-3">Streak</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((user) => (
                 <tr
                   key={user.id}
-                  className="cursor-pointer border-t border-white/60 hover:bg-white/50"
+                  className="cursor-pointer border-t border-white/60 transition hover:bg-matcha-soft/30"
                   onClick={() => setSelected(user)}
                 >
-                  <td className="py-3 pr-4">{user.email}</td>
-                  <td className="py-3 pr-4">{user.full_name || "—"}</td>
-                  <td className="py-3 pr-4">{user.role}</td>
-                  <td className="py-3 pr-4">{user.subscription?.status ?? "free"}</td>
-                  <td className="py-3 pr-4">
+                  <td className="px-4 py-3 pr-4">{user.email}</td>
+                  <td className="px-4 py-3 pr-4">{user.full_name || "—"}</td>
+                  <td className="px-4 py-3 pr-4">{user.role}</td>
+                  <td className="px-4 py-3 pr-4">{getSubscriptionStatusLabel(user.subscription?.status ?? "free")}</td>
+                  <td className="px-4 py-3 pr-4">
                     {user.subscription?.started_at
                       ? new Date(user.subscription.started_at).toLocaleDateString("vi-VN")
                       : "—"}
                   </td>
-                  <td className="py-3 pr-4">
+                  <td className="px-4 py-3 pr-4">
                     {user.subscription?.expires_at
                       ? new Date(user.subscription.expires_at).toLocaleDateString("vi-VN")
                       : "—"}
                   </td>
-                  <td className="py-3">{user.streak?.current_streak ?? 0}</td>
+                  <td className="px-4 py-3">{user.streak?.current_streak ?? 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -91,13 +89,13 @@ export default function AdminUsersPage() {
 
         {selected ? (
           <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
-            <div className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl">
+            <div className="soft-card h-full w-full max-w-md overflow-y-auto rounded-none p-6 shadow-xl">
               <h2 className="font-serif text-2xl text-matcha-deep">{selected.full_name || selected.email}</h2>
               <p className="mt-2 text-sm text-muted">{selected.email}</p>
               <dl className="mt-6 space-y-3 text-sm">
                 <div>
-                  <dt className="text-muted">Subscription</dt>
-                  <dd>{selected.subscription?.status ?? "free"}</dd>
+                  <dt className="text-muted">Gói</dt>
+                  <dd>{getSubscriptionStatusLabel(selected.subscription?.status ?? "free")}</dd>
                 </div>
                 <div>
                   <dt className="text-muted">Streak</dt>
@@ -110,7 +108,6 @@ export default function AdminUsersPage() {
             </div>
           </div>
         ) : null}
-      </main>
-    </div>
+    </AdminPageShell>
   );
 }

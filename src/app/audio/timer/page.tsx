@@ -11,12 +11,13 @@ export default async function TimerPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel="Timer"
-      title="Meditation Timer"
+      sessionEmail={session.email}
+      subscription={subscription}
+      title="Hẹn giờ thiền"
       subtitle="Chọn thời gian và ambient sound — rồi để mình ở yên."
       isAdmin={session.role === "admin"}
     >
-      <UpsellOverlay featureName="Meditation Timer" locked={!subscription.isActive}>
+      <UpsellOverlay featureName="Hẹn giờ thiền" locked={!subscription.isActive}>
         <MeditationTimer enabled={subscription.isActive} />
       </UpsellOverlay>
     </DashboardShell>

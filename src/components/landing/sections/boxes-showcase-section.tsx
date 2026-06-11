@@ -12,12 +12,12 @@ export function BoxesShowcaseSection() {
   return (
     <section
       id="hop-lumia"
-      className="relative bg-[#F8F6EF] px-8 py-32 md:px-10 md:py-40 lg:px-14"
+      className="relative bg-surface-warm px-8 py-32 md:px-10 md:py-40 lg:px-14"
     >
       <div className="landing-frame">
         <div className="relative z-[1] flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading
-            eyebrow="Product Catalog"
+            eyebrow="Bộ sưu tập hộp"
             title="Chọn gói LUMIA phù hợp với nhịp chăm sóc của bạn."
             body="Từ gói người dùng mới đến Sleep Master — mỗi gói mở quyền truy cập Premium và ưu đãi riêng."
           />
@@ -34,7 +34,7 @@ export function BoxesShowcaseSection() {
               {...fadeUp(index * 0.07)}
               whileHover={{ y: -6 }}
               className={`liquid-panel p-6 ${
-                index === 2 ? "ring-1 ring-[#B8CFA8]/80 bg-[#E8F0E0]/40" : ""
+                index === 2 ? "ring-1 ring-matcha-highlight/80 bg-matcha-highlight-bg/40" : ""
               }`}
             >
               <div className="rounded-[28px] border border-white/75 bg-white/40 p-6 text-[14px] leading-6 text-muted">

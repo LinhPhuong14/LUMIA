@@ -7,7 +7,7 @@ import { fadeUp } from "@/components/landing/shared/landing-motion";
 
 export function AiListeningSection() {
   return (
-    <section className="relative bg-[#F8F6EF] px-8 py-32 md:px-10 md:py-40 lg:px-14">
+    <section className="relative bg-surface-warm px-8 py-32 md:px-10 md:py-40 lg:px-14">
       <div className="landing-frame grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
         <motion.div {...fadeUp()} className="liquid-panel p-8 md:p-9">
           <span className="eyebrow">LUMIA lắng nghe</span>

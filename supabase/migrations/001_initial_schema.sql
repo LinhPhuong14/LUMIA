@@ -216,6 +216,7 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Admins read all profiles" ON public.profiles FOR SELECT USING (public.is_admin());
 
@@ -231,7 +232,8 @@ CREATE POLICY "Admins read subscriptions" ON public.subscriptions FOR SELECT USI
 CREATE POLICY "Users manage own journal" ON public.journal_entries FOR ALL USING (auth.uid() = user_id);
 
 -- Mood policies
-CREATE POLICY "Users manage own mood checkins" ON public.mood_checkins FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own mood checkins" ON public.mood_checkins
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users manage own mood tests" ON public.mood_test_results FOR ALL USING (auth.uid() = user_id);
 
 -- Chat policies

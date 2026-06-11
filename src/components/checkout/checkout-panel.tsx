@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import type { BoxProduct } from "@/data/catalog";
 import { formatCurrency } from "@/lib/utils";
 
@@ -46,11 +47,11 @@ export function CheckoutPanel({ product }: { product: BoxProduct }) {
         ) : null}
       </div>
 
-      <button
+      <Button
         type="button"
         onClick={createPaymentLink}
         disabled={loading}
-        className="button-primary mt-6 w-full justify-center disabled:opacity-60"
+        className="mt-6 w-full justify-center"
       >
         {loading ? (
           <>
@@ -60,9 +61,9 @@ export function CheckoutPanel({ product }: { product: BoxProduct }) {
         ) : (
           "Thanh toán với PayOS"
         )}
-      </button>
+      </Button>
 
-      {error ? <p className="mt-3 text-sm text-[#9A5B5B]">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
     </div>
   );
 }

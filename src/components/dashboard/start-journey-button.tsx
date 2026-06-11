@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function StartJourneyButton() {
+export function StartJourneyButton({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export function StartJourneyButton() {
       return;
     }
 
+    onSuccess?.();
     router.refresh();
   }
 
@@ -34,7 +35,7 @@ export function StartJourneyButton() {
       >
         {loading ? "Đang bắt đầu..." : "Bắt đầu hành trình 21 ngày"}
       </button>
-      {error ? <p className="mt-2 text-[13px] text-[#9A5B5B]">{error}</p> : null}
+      {error ? <p className="mt-2 text-[13px] text-error">{error}</p> : null}
     </div>
   );
 }

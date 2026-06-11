@@ -29,7 +29,7 @@ export async function getSession(): Promise<SessionUser | null> {
     .from("profiles")
     .select("full_name, role, onboarding_goal, email")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const row = profile as Pick<Profile, "full_name" | "role" | "onboarding_goal" | "email"> | null;
 

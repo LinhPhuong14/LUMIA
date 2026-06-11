@@ -2,7 +2,7 @@ import { LumiaLogo } from "@/components/ui/logo";
 
 export function FooterSection() {
   return (
-    <footer className="bg-[#F3ECDD] px-8 pb-20 pt-16 md:px-10 lg:px-14">
+    <footer className="bg-surface-footer px-8 pb-20 pt-16 md:px-10 lg:px-14">
       <div className="landing-frame grid gap-12 md:grid-cols-[1.15fr_0.85fr_0.85fr_0.85fr]">
         <div>
           <LumiaLogo />
@@ -25,7 +25,7 @@ export function FooterSection() {
         </div>
 
         <div>
-          <div className="text-[15px] font-semibold text-[#2f2b25]">Hộp LUMIA</div>
+          <div className="text-[15px] font-semibold text-foreground">Hộp LUMIA</div>
           <div className="mt-4 grid gap-3 text-[14px] text-muted">
             <a href="/boxes">Tất cả sản phẩm</a>
             <a href="/boxes">Hộp Khởi đầu</a>
@@ -36,7 +36,7 @@ export function FooterSection() {
         </div>
 
         <div>
-          <div className="text-[15px] font-semibold text-[#2f2b25]">Về LUMIA</div>
+          <div className="text-[15px] font-semibold text-foreground">Về LUMIA</div>
           <div className="mt-4 grid gap-3 text-[14px] text-muted">
             <a href="#dong-hanh">Cách đồng hành</a>
             <a href="#testimonials">Cảm nhận</a>
@@ -46,10 +46,10 @@ export function FooterSection() {
         </div>
 
         <div>
-          <div className="text-[15px] font-semibold text-[#2f2b25]">Hỗ trợ</div>
+          <div className="text-[15px] font-semibold text-foreground">Hỗ trợ</div>
           <div className="mt-4 grid gap-3 text-[14px] text-muted">
             <a href="/boxes">Mua hộp LUMIA</a>
-            <a href="/account">Account</a>
+            <a href="/account">Tài khoản</a>
             <a href="/settings">Cài đặt riêng tư</a>
             <a href="/checkout">Thanh toán</a>
           </div>

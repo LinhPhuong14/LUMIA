@@ -18,14 +18,14 @@ export function HeroVideoBackground() {
           autoPlay
           preload="metadata"
           crossOrigin="anonymous"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="hero-video absolute inset-0 h-full w-full object-cover"
           style={{ opacity: videoReady ? 1 : 0, transition: "opacity 600ms ease" }}
         >
           <source src={currentSource} type="video/mp4" />
         </video>
       ) : null}
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.72)_24%,rgba(255,255,255,0.16)_56%,rgba(248,246,239,0.7)_100%)]" />
+      <div className="hero-video-fallback absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.72)_24%,rgba(255,255,255,0.16)_56%,rgba(248,244,237,0.7)_100%)]" />
     </div>
   );
 }

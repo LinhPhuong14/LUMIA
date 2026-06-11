@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -17,6 +18,7 @@ export function AiStudio() {
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState<{ remaining: number | null; limit: number | null }>({ remaining: null, limit: null });
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/chat/usage")
@@ -83,8 +85,8 @@ export function AiStudio() {
   const disabled = usage.remaining === 0;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
-      <section className="soft-card p-5">
+    <div className="flex min-h-[calc(100dvh-11rem)] flex-col lg:grid lg:min-h-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+      <section className="soft-card hidden p-5 xl:block">
         <span className="eyebrow">Bắt đầu nhanh</span>
         <div className="mt-4 space-y-2">
           {starters.map((text) => (
@@ -104,26 +106,29 @@ export function AiStudio() {
         ) : null}
       </section>
 
-      <section className="soft-card flex min-h-[560px] flex-col p-6">
-        <div>
+      <section className="soft-card flex min-h-0 flex-1 flex-col rounded-[24px] p-0 lg:min-h-[560px] lg:p-6">
+        <div className="hidden border-b border-white/60 px-5 py-4 lg:block">
           <span className="eyebrow">LUMIA lắng nghe</span>
           <p className="mt-2 text-xs text-muted">
             LUMIA không thay thế chuyên gia y tế hoặc chuyên gia tâm lý.
           </p>
         </div>
 
-        <div className="mt-6 flex-1 space-y-3 overflow-y-auto">
+        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
           {messages.length === 0 ? (
-            <p className="text-sm text-muted">Hôm nay bạn muốn LUMIA lắng nghe điều gì?</p>
+            <div className="py-6 text-center lg:text-left">
+              <p className="font-serif text-xl text-matcha-deep">LUMIA đang lắng nghe</p>
+              <p className="mt-2 text-sm text-muted">Hôm nay bạn muốn chia sẻ điều gì?</p>
+            </div>
           ) : null}
           {messages.map((msg, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`max-w-[85%] rounded-[24px] px-4 py-3 text-sm leading-7 ${
+              className={`max-w-[88%] rounded-[20px] px-4 py-3 text-[15px] leading-7 ${
                 msg.role === "user"
-                  ? "ml-auto bg-[#DDE8D2] text-matcha-deep"
+                  ? "ml-auto bg-matcha-soft text-matcha-deep"
                   : "bg-white text-matcha-deep shadow-sm"
               }`}
             >
@@ -134,25 +139,58 @@ export function AiStudio() {
           <div ref={bottomRef} />
         </div>
 
+        {messages.length === 0 ? (
+          <div className="mobile-h-scroll border-t border-white/60 px-4 py-3 lg:hidden">
+            {starters.map((text) => (
+              <button
+                key={text}
+                type="button"
+                onClick={() => sendMessage(text)}
+                disabled={disabled || loading}
+                className="rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-[13px] text-matcha-deep disabled:opacity-50"
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {disabled ? (
-          <p className="mt-4 text-sm text-[#9A5B5B]">Đã hết lượt chat hôm nay. Mua hộp LUMIA để tiếp tục.</p>
+          <div className="mx-4 mb-2 rounded-[18px] border border-honey/50 bg-champagne/30 px-4 py-3 text-sm text-matcha-deep lg:mx-0 lg:mt-4">
+            Đã hết lượt chat hôm nay.{" "}
+            <Link href="/boxes" className="font-semibold underline">
+              Khám phá gói LUMIA
+            </Link>{" "}
+            để tiếp tục không giới hạn.
+          </div>
+        ) : null}
+
+        {usage.limit !== null ? (
+          <p className="px-4 pb-1 text-center text-[11px] text-muted lg:hidden">
+            Còn {usage.remaining}/{usage.limit} lượt hôm nay
+          </p>
         ) : null}
 
         <form
-          className="mt-4 flex gap-2"
+          className="fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-4 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage(input);
           }}
         >
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={disabled || loading}
-            className="flex-1 rounded-[20px] border border-matcha-soft bg-white px-4 py-3 text-sm outline-none disabled:opacity-50"
+            className="min-h-[44px] flex-1 rounded-full border border-matcha-soft bg-white px-4 py-3 text-[15px] outline-none disabled:opacity-50"
             placeholder="Viết điều đang ở trong lòng bạn…"
           />
-          <button type="submit" disabled={disabled || loading} className="button-primary disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={disabled || loading}
+            className="button-primary min-h-[44px] shrink-0 rounded-full px-5 disabled:opacity-50"
+          >
             Gửi
           </button>
         </form>

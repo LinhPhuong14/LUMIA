@@ -46,7 +46,11 @@ export async function* runChat(params: {
       yield { type: "token", text: token };
     }
     yield { type: "done", finish_reason: "stop" };
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[chat-pipeline] llmStream failed:", message);
+    }
     yield { type: "error", error: "llm_unavailable" };
     yield { type: "done", finish_reason: "error" };
   }

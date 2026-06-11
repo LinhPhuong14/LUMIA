@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 type AuthMode = "login" | "register";
 
 export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?: string }) {
@@ -56,8 +59,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
   return (
     <form action={onSubmit} className="flex h-full w-full flex-col gap-4 overflow-hidden p-4 md:p-5">
       <div>
-        
-        <h2 className="mt-4 font-serif text-4xl leading-tight text-matcha-deep">
+        <h2 className="mt-4 font-serif text-3xl leading-tight text-matcha-deep md:text-4xl">
           {mode === "login" ? "Chào mừng bạn quay trở lại!" : "Tạo không gian LUMIA của riêng bạn."}
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted">
@@ -69,61 +71,27 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
 
       <div className={`grid gap-4 ${mode === "register" ? "md:grid-cols-2" : ""}`}>
         {mode === "register" ? (
-          <label className="flex flex-col gap-2 text-sm font-medium text-matcha-deep">
-            Họ và tên
-            <input
-              name="name"
-              className="rounded-[20px] border border-matcha-soft bg-white/92 px-4 py-3 outline-none ring-matcha/20 transition focus:ring-4"
-              placeholder="Linh Nguyễn"
-              required
-            />
-          </label>
+          <Input name="name" label="Họ và tên" placeholder="Linh Nguyễn" required />
         ) : null}
-
-        <label className="flex flex-col gap-2 text-sm font-medium text-matcha-deep">
-          Email
-          <input
-            name="email"
-            type="email"
-            className="rounded-[20px] border border-matcha-soft bg-white/92 px-4 py-3 outline-none ring-matcha/20 transition focus:ring-4"
-            placeholder="hello@lumia.vn"
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-2 text-sm font-medium text-matcha-deep">
-          Mật khẩu
-          <input
-            name="password"
-            type="password"
-            className="rounded-[20px] border border-matcha-soft bg-white/92 px-4 py-3 outline-none ring-matcha/20 transition focus:ring-4"
-            placeholder="Tối thiểu 8 ký tự"
-            required
-          />
-        </label>
-
+        <Input name="email" type="email" label="Email" placeholder="hello@lumia.vn" required />
+        <Input name="password" type="password" label="Mật khẩu" placeholder="Tối thiểu 8 ký tự" required />
         {mode === "register" ? (
-          <label className="flex flex-col gap-2 text-sm font-medium text-matcha-deep">
-            Xác nhận mật khẩu
-            <input
-              name="confirmPassword"
-              type="password"
-              className="rounded-[20px] border border-matcha-soft bg-white/92 px-4 py-3 outline-none ring-matcha/20 transition focus:ring-4"
-              placeholder="Nhập lại mật khẩu"
-              required
-            />
-          </label>
+          <Input
+            name="confirmPassword"
+            type="password"
+            label="Xác nhận mật khẩu"
+            placeholder="Nhập lại mật khẩu"
+            required
+          />
         ) : null}
       </div>
 
-      
-
       <div className="mt-auto space-y-3">
-        <button type="submit" disabled={loading} className="button-primary w-full justify-center disabled:opacity-60 mt-2">
-          {loading ? "Đang xử lý..." : mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
-        </button>
+        <Button type="submit" disabled={loading} size="md" className="mt-2 w-full justify-center">
+          {loading ? "Đang xử lý..." : mode === "login" ? "Đăng nhập" : "Đăng ký"}
+        </Button>
 
-        {error ? <p className="text-sm text-[#9A5B5B]">{error}</p> : null}
+        {error ? <p className="text-sm text-error">{error}</p> : null}
 
         <p className="text-xs leading-6 text-muted">
           LUMIA không thay thế chuyên gia y tế hay chuyên gia tâm lý. Không gian này được thiết kế để lắng nghe một cách dịu dàng.

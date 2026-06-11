@@ -1,14 +1,17 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SettingsPanel } from "@/components/dashboard/settings-panel";
+import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
 
 export default async function SettingsPage() {
   const session = await requireSession();
+  const subscription = await getSubscriptionSnapshot(session.id);
 
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel="Cài đặt"
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Cài đặt và quyền riêng tư"
       subtitle="Kiểm soát mục tiêu, dữ liệu cảm xúc và cách LUMIA phản hồi với bạn."
       isAdmin={session.role === "admin"}

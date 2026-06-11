@@ -13,14 +13,14 @@ export function TestimonialsSection() {
   return (
     <section
       id="testimonials"
-      className="relative overflow-hidden bg-[#F8F6EF] px-8 py-28 md:px-10 md:py-32 lg:px-14"
-    >      <div className="pointer-events-none absolute left-20 top-[32%] z-20 h-[12rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F4D878]/18 blur-3xl" />
+      className="relative overflow-hidden bg-surface-warm px-8 py-28 md:px-10 md:py-32 lg:px-14"
+    >      <div className="pointer-events-none absolute left-20 top-[32%] z-20 h-[12rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-honey/18 blur-3xl" />
       {/* transition wash từ section trước xuống */}
       <div className="pointer-events-none absolute inset-x-0 top-50 z-10 h-64 bg-gradient-to-b from-[#F8F6EF] via-[#F8F6EF] to-transparent" />
       {/* glow nền chính */}
-      <div className="pointer-events-none absolute left-20 top-[32%] z-0 h-[14rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F4D878]/18 blur-3xl" />
+      <div className="pointer-events-none absolute left-20 top-[32%] z-0 h-[14rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-honey/18 blur-3xl" />
       {/* <div className="pointer-events-none absolute left-[18%] top-[28%] z-0 h-72 w-72 rounded-full bg-[#DDE8D2]/45 blur-3xl" /> */}
-      <div className="pointer-events-none absolute right-[12%] bottom-[14%] z-0 h-80 w-80 rounded-full bg-[#B8CFA6]/30 blur-3xl" />
+      <div className="pointer-events-none absolute right-[12%] bottom-[14%] z-0 h-80 w-80 rounded-full bg-matcha-highlight/30 blur-3xl" />
 
       {/* transition wash sang section sau */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-44 bg-gradient-to-t from-[#FAF6E6] via-[#FAF6E6]/92 to-transparent" />

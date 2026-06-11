@@ -23,7 +23,7 @@ export function UpsellBanner({ show }: { show: boolean }) {
   }
 
   return (
-    <div className="mb-4 flex items-center justify-between gap-4 rounded-[24px] border border-[#F4D878]/60 bg-[linear-gradient(135deg,#FFFDF5,#FFF3C7)] px-5 py-4">
+    <div className="mb-4 flex items-center justify-between gap-4 rounded-[24px] border border-honey/60 bg-[linear-gradient(135deg,var(--background),var(--champagne))] px-5 py-4">
       <p className="text-[13px] leading-6 text-matcha-deep">
         Mở khóa 21 ngày thiền và ngủ ngon —{" "}
         <Link href="/boxes" className="font-semibold underline">

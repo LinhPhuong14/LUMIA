@@ -11,7 +11,8 @@ export default async function BreathingPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel="Breathing"
+      sessionEmail={session.email}
+      subscription={subscription}
       title="Thở cùng LUMIA"
       subtitle="3 kỹ thuật thở — chọn một và để nhịp thở dẫn bạn về tĩnh lặng."
       isAdmin={session.role === "admin"}

@@ -2,6 +2,14 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover" as const,
+  themeColor: "#8d9d76",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "LUMIA | Nghi thức dịu lành cho buổi tối",

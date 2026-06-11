@@ -20,7 +20,7 @@ export default function CheckoutSuccessPage() {
             <Link href="/dashboard" className="button-primary">
               Mở không gian của bạn
             </Link>
-            <Link href="/subscription" className="button-secondary">
+            <Link href="/account" className="button-secondary">
               Xem gói của bạn
             </Link>
           </div>

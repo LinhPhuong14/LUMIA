@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/streak";
+import { ensureUserProfile } from "@/lib/supabase/ensure-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
@@ -29,6 +30,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
+  const profile = await ensureUserProfile(session);
+  if (!profile.ok) {
+    return NextResponse.json({ error: profile.error }, { status: 500 });
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("mood_checkins")
@@ -45,7 +51,17 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[mood] upsert failed:", error.message, error.code);
+    return NextResponse.json(
+      {
+        error: error.message,
+        hint:
+          error.code === "42501"
+            ? "Chạy supabase/migrations/005_ensure_profile_rpc.sql trên Supabase SQL Editor."
+            : undefined,
+      },
+      { status: 500 },
+    );
   }
 
   await logActivity(session.id, "mood");

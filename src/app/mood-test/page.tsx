@@ -10,8 +10,9 @@ export default async function MoodTestPage() {
   return (
     <DashboardShell
       sessionName={session.name}
-      planLabel={subscription.isActive ? "Hành trình 21 ngày" : "Dùng thử"}
-      title="Mood Test"
+      sessionEmail={session.email}
+      subscription={subscription}
+      title="Kiểm tra cảm xúc"
       subtitle="Vài câu hỏi ngắn để LUMIA gợi ý nội dung phù hợp với bạn."
       isAdmin={session.role === "admin"}
     >
