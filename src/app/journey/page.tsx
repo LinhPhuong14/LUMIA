@@ -16,7 +16,22 @@ export default async function JourneyPage() {
       subtitle="Nhìn lại lịch sử, mood và báo cáo — không phải để đánh giá, mà để hiểu mình hơn."
       isAdmin={session.role === "admin"}
     >
-      <JourneyPanel isActive={subscription.isActive} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <JourneyPanel
+        isActive={subscription.isActive}
+        calendarDays={
+          subscription.startedAt && subscription.expiresAt
+            ? Math.min(
+                90,
+                Math.ceil(
+                  (new Date(subscription.expiresAt).getTime() - new Date(subscription.startedAt).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                ),
+              )
+            : 30
+        }
+        />
+      </div>
     </DashboardShell>
   );
 }

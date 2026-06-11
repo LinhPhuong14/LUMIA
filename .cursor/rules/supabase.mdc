@@ -1,0 +1,30 @@
+---
+description: Supabase env và auth — chỉ 2 key connect, không bắt buộc secret key
+globs: "**/*.{ts,tsx,env*,md,sql}"
+alwaysApply: true
+---
+
+# Supabase — LUMIA
+
+## Connect (đủ cho app)
+
+Chỉ **2 biến** từ Supabase Dashboard → API Keys:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=   # sb_publishable_...
+```
+
+**Không** yêu cầu `SUPABASE_SECRET_KEY` / `service_role` trên project mới — Dashboard thường chỉ hiển thị URL + publishable.
+
+## Server / admin không dùng secret key
+
+- Session + RLS qua publishable key + cookie (`createClient` từ `@supabase/ssr`)
+- Bootstrap profile: RPC `ensure_my_profile()` (migration 005) — `SECURITY DEFINER`
+- Streak, mood, chat usage: user client + RLS (`getServiceOrUserClient()`)
+- `createAdminClient()` / secret key: **tùy chọn legacy** — không block feature chính
+
+## Khi implement tính năng mới
+
+- Ưu tiên RLS + RPC `SECURITY DEFINER`, không phụ thuộc bypass RLS
+- Không hướng dẫn user "bắt buộc secret key" trừ khi họ chủ động dùng legacy key

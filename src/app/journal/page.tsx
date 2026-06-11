@@ -16,7 +16,9 @@ export default async function JournalPage() {
       subtitle="Không cần đúng. Không cần hay. Chỉ cần đủ thật để bạn thấy lòng mình nhẹ xuống một chút."
       isAdmin={session.role === "admin"}
     >
-      <JournalStudio isActive={subscription.isActive} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <JournalStudio isActive={subscription.isActive} />
+      </div>
     </DashboardShell>
   );
 }

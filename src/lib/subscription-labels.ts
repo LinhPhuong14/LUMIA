@@ -9,16 +9,17 @@ export function getPlanBadgeVariant(snapshot: SubscriptionSnapshot): PlanBadgeVa
 }
 
 export function getPlanDisplayLabel(snapshot: SubscriptionSnapshot): string {
-  if (snapshot.isActive && snapshot.currentDay) {
-    return `Đang dùng · Ngày ${snapshot.currentDay}/21`;
+  if (snapshot.isActive && snapshot.tierName) {
+    const days = snapshot.daysRemaining ?? 0;
+    return `${snapshot.tierName} · Còn ${days} ngày`;
   }
   if (snapshot.isActive) {
     return "Đang dùng";
   }
   if (snapshot.status === "expired") {
-    return "Đã kết thúc";
+    return "Đã kết thúc · Gia hạn →";
   }
-  return "Dùng thử";
+  return "Dùng thử · Nâng cấp →";
 }
 
 export function getSubscriptionStatusLabel(status: string): string {
@@ -31,5 +32,20 @@ export function getSubscriptionStatusLabel(status: string): string {
       return "Dùng thử";
     default:
       return status;
+  }
+}
+
+export function getPhysicalBoxStatusLabel(status: string | null): string {
+  switch (status) {
+    case "paid":
+      return "Đã thanh toán — chờ chuẩn bị";
+    case "preparing":
+      return "Đang chuẩn bị";
+    case "shipping":
+      return "Đang giao hàng";
+    case "delivered":
+      return "Đã giao hàng";
+    default:
+      return "Chưa có thông tin";
   }
 }

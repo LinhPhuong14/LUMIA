@@ -18,7 +18,22 @@ type Report = {
   created_at: string;
 };
 
-export function JourneyPanel({ isActive }: { isActive: boolean }) {
+function buildCalendarDays(totalDays: number): string[] {
+  const count = Math.min(Math.max(totalDays, 7), 90);
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (count - 1 - i));
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+export function JourneyPanel({
+  isActive,
+  calendarDays = 30,
+}: {
+  isActive: boolean;
+  calendarDays?: number;
+}) {
   const [tab, setTab] = useState<Tab>("history");
   const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0 });
   const [moods, setMoods] = useState<MoodEntry[]>([]);
@@ -35,8 +50,8 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
     }
     Promise.all([
       fetch("/api/streak").then((r) => r.json()),
-      fetch("/api/mood/history?days=21").then((r) => r.json()),
-      fetch("/api/activity-logs?days=21").then((r) => r.json()),
+      fetch(`/api/mood/history?days=${calendarDays}`).then((r) => r.json()),
+      fetch(`/api/activity-logs?days=${calendarDays}`).then((r) => r.json()),
       fetch("/api/reports").then((r) => r.json()),
     ])
       .then(([streakData, moodData, activityData, reportData]) => {
@@ -47,7 +62,7 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
       })
       .catch(() => null)
       .finally(() => setLoading(false));
-  }, [isActive]);
+  }, [isActive, calendarDays]);
 
   const avgMood =
     moods.length > 0
@@ -60,11 +75,7 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
   }, {});
   const topActivity = Object.entries(activityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
 
-  const days = Array.from({ length: 21 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (20 - i));
-    return d.toISOString().slice(0, 10);
-  });
+  const days = buildCalendarDays(calendarDays);
 
   function moodColor(date: string) {
     const entry = moods.find((m) => m.date === date);
@@ -75,7 +86,7 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
   }
 
   const content = (
-    <div className="space-y-6">
+    <div className="journey-content space-y-6">
       <TabPills
         tabs={[
           { id: "history", label: "Lịch sử" },
@@ -92,20 +103,20 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="soft-card p-5 text-center">
               <div className="text-[12px] text-muted">Streak</div>
-              <div className="font-serif text-3xl text-matcha-deep">{streak.current_streak}</div>
+              <div className="font-sans text-2xl font-semibold text-matcha-text">{streak.current_streak}</div>
             </div>
             <div className="soft-card p-5 text-center">
               <div className="text-[12px] text-muted">Mood TB</div>
-              <div className="font-serif text-3xl text-matcha-deep">{avgMood}</div>
+              <div className="font-sans text-2xl font-semibold text-matcha-text">{avgMood}</div>
             </div>
             <div className="soft-card p-5 text-center">
               <div className="text-[12px] text-muted">Hoạt động nhiều</div>
-              <div className="font-serif text-xl text-matcha-deep">{topActivity}</div>
+              <div className="font-sans text-base font-medium text-matcha-text">{topActivity}</div>
             </div>
           </div>
 
           <section className="soft-card p-6">
-            <span className="eyebrow">Lịch 21 ngày</span>
+            <span className="eyebrow">Lịch hành trình</span>
             <div className="mt-5 grid grid-cols-7 gap-2">
               {days.map((date) => (
                 <button
@@ -193,7 +204,7 @@ export function JourneyPanel({ isActive }: { isActive: boolean }) {
   return (
     <UpsellOverlay
       featureName="Hành trình"
-      description="Xem lịch sử 21 ngày, mood và báo cáo AI."
+      description="Xem lịch sử hành trình, mood và báo cáo AI."
       locked={!isActive}
     >
       {content}

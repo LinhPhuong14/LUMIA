@@ -8,7 +8,7 @@ import { fadeUp } from "@/components/landing/shared/landing-motion";
 
 export function HeroSection() {
   return (
-    <section className="relative isolate min-h-screen overflow-visible bg-surface-warm">
+    <section className="relative isolate min-h-screen overflow-visible bg-transparent">
       <HeroVideoBackground />
 
       <div className="pointer-events-none absolute inset-x-0 -bottom-44 z-30 h-[34rem] bg-gradient-to-b from-transparent via-surface-warm/95 to-surface-warm" />

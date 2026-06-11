@@ -64,7 +64,7 @@ export function Sidebar({ isAdmin }: { isAdmin?: boolean }) {
 
   return (
     <>
-      <aside className="dashboard-glass sticky top-5 hidden h-[calc(100vh-2.5rem)] w-[262px] shrink-0 flex-col rounded-[32px] px-5 py-5 lg:flex">
+      <aside className="sidebar dashboard-glass hidden w-[262px] flex-col rounded-[32px] px-5 py-5 lg:flex">
         <LumiaLogo />
         <nav className="mt-7 flex flex-1 flex-col gap-2">
           {navigation.map((item) => (

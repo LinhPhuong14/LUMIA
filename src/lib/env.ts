@@ -17,7 +17,7 @@ export const env = {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     process.env.SUPABASE_ANON_KEY,
-  /** Secret key — `sb_secret_...` (thay service_role cũ), server-only */
+  /** Legacy only — project Supabase mới thường không có; app chạy được chỉ với publishable key */
   SUPABASE_SECRET_KEY:
     process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   /** @deprecated alias — dùng SUPABASE_PUBLISHABLE_KEY */

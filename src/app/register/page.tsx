@@ -11,9 +11,9 @@ export default async function RegisterPage({
   const params = await searchParams;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-background">
+    <div className="marketing-page page-scroll-area relative h-full">
       <AuthMinimalHeader />
-      <main className="shell grid min-h-[100dvh] gap-6 py-6 lg:grid-cols-[1fr_0.94fr] lg:items-center lg:overflow-hidden">
+      <main className="shell grid gap-6 py-6 lg:grid-cols-[1fr_0.94fr] lg:items-center">
         <section className="liquid-panel relative hidden min-h-[calc(100dvh-150px)] overflow-hidden p-8 lg:flex lg:flex-col lg:justify-between">
           <div className="absolute left-8 top-8 h-28 w-28 rounded-full bg-champagne/55 blur-3xl" />
           <div className="absolute bottom-10 right-8 h-36 w-36 rounded-full bg-matcha-soft/75 blur-3xl" />

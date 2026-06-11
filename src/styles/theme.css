@@ -1,6 +1,12 @@
 /* ── LUMIA Design Tokens (type, spacing, motion) ── */
 
 :root {
+  /* Page background — Matcha Fog */
+  --background: #f0f3ec;
+  --surface-warm: #eaede5;
+  --surface-card: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.86);
+
   /* Type scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

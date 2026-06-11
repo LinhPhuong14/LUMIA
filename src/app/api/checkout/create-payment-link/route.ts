@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { getProductBySlug } from "@/data/catalog";
 import { env, hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
 import { createOrder } from "@/lib/orders";
+import { isValidTierCode } from "@/lib/product-tiers";
 import { getPayOSClient } from "@/lib/payos";
+import { hasUserBoughtFirstTime } from "@/lib/subscriptions";
 import { getSession } from "@/lib/supabase/auth";
 import { buildAbsoluteUrl, toOrderCode } from "@/lib/utils";
 
@@ -17,8 +19,12 @@ export async function POST(request: Request) {
   }
 
   let slug = "first-time-user";
+  let tier: string | undefined;
   try {
-    const body = (await request.json()) as { slug?: string };
+    const body = (await request.json()) as { slug?: string; tier?: string };
+    if (body.tier && isValidTierCode(body.tier)) {
+      tier = body.tier;
+    }
     if (body.slug) {
       slug = body.slug;
     }
@@ -26,9 +32,19 @@ export async function POST(request: Request) {
     // default slug when body is empty
   }
 
-  const product = getProductBySlug(slug);
+  const product = tier
+    ? (await import("@/data/catalog")).lumiaBoxes.find((b) => b.tier === tier)
+    : getProductBySlug(slug);
+
   if (!product) {
     return NextResponse.json({ error: "Gói sản phẩm không hợp lệ." }, { status: 400 });
+  }
+
+  if (product.tier === "first_time" && (await hasUserBoughtFirstTime(session.id))) {
+    return NextResponse.json(
+      { error: "Bạn đã sử dụng ưu đãi người dùng mới. Vui lòng chọn gói khác." },
+      { status: 400 },
+    );
   }
 
   if (!hasSupabaseConfig() || !hasPayOSConfig()) {
@@ -50,11 +66,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán." }, { status: 500 });
   }
 
+  const description = `${product.name} - ${product.duration}`;
+
   try {
     const paymentLink = await payos.paymentRequests.create({
       orderCode,
       amount: product.price,
-      description: "LUMIA Box",
+      description: description.slice(0, 25),
       returnUrl,
       cancelUrl,
       buyerEmail: session.email,
@@ -66,6 +84,7 @@ export async function POST(request: Request) {
       userId: session.id,
       payosOrderId: String(paymentLink.orderCode),
       amount: product.price,
+      tier: product.tier,
     });
 
     return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });

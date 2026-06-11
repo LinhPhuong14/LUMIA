@@ -16,7 +16,8 @@ export default async function AudioSleepPage() {
       subtitle="Âm thanh dịu nhẹ để bạn dễ vào giấc hơn."
       isAdmin={session.role === "admin"}
     >
-      <AudioCategoryPage
+      <div className="flex min-h-0 flex-1 flex-col">
+        <AudioCategoryPage
         isActive={subscription.isActive}
         categories={["sleep_sound", "sleep_cast", "wind_down", "sleep_music"]}
         sections={[
@@ -25,7 +26,8 @@ export default async function AudioSleepPage() {
           { title: "Wind Down", category: "wind_down", activeOnly: true },
           { title: "Sleep Music", category: "sleep_music" },
         ]}
-      />
+        />
+      </div>
     </DashboardShell>
   );
 }

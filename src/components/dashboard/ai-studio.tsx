@@ -85,7 +85,7 @@ export function AiStudio() {
   const disabled = usage.remaining === 0;
 
   return (
-    <div className="flex min-h-[calc(100dvh-11rem)] flex-col lg:grid lg:min-h-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+    <div className="chat-container flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
       <section className="soft-card hidden p-5 xl:block">
         <span className="eyebrow">Bắt đầu nhanh</span>
         <div className="mt-4 space-y-2">
@@ -106,7 +106,7 @@ export function AiStudio() {
         ) : null}
       </section>
 
-      <section className="soft-card flex min-h-0 flex-1 flex-col rounded-[24px] p-0 lg:min-h-[560px] lg:p-6">
+      <section className="soft-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] p-0 lg:p-6">
         <div className="hidden border-b border-white/60 px-5 py-4 lg:block">
           <span className="eyebrow">LUMIA lắng nghe</span>
           <p className="mt-2 text-xs text-muted">
@@ -114,10 +114,10 @@ export function AiStudio() {
           </p>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
+        <div className="chat-messages space-y-3 px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
           {messages.length === 0 ? (
             <div className="py-6 text-center lg:text-left">
-              <p className="font-serif text-xl text-matcha-deep">LUMIA đang lắng nghe</p>
+              <p className="font-sans text-base font-medium text-matcha-text">LUMIA đang lắng nghe</p>
               <p className="mt-2 text-sm text-muted">Hôm nay bạn muốn chia sẻ điều gì?</p>
             </div>
           ) : null}
@@ -172,7 +172,7 @@ export function AiStudio() {
         ) : null}
 
         <form
-          className="fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-4 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+          className="chat-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-4 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage(input);

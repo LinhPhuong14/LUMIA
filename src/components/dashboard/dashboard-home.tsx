@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 import { MoodCheckInModal } from "@/components/dashboard/mood-check-in-modal";
-import { StartJourneyButton } from "@/components/dashboard/start-journey-button";
 import { UpsellBanner } from "@/components/dashboard/upsell-banner";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
@@ -40,10 +39,6 @@ export function DashboardHome({
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
   const isFree = !subscription.isActive;
-  const canStartJourney =
-    latestOrder?.status === "delivered" &&
-    subscription.status === "active" &&
-    !subscription.startedAt;
 
   useEffect(() => {
     fetch("/api/streak")
@@ -69,50 +64,49 @@ export function DashboardHome({
       <div className="space-y-4 lg:space-y-4">
         <div className="lg:hidden">
           <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-muted">Hôm nay</p>
-          <h2 className="mt-1 font-serif text-2xl text-matcha-deep">Chào buổi tối 👋</h2>
+          <h2 className="mt-1 font-sans text-xl font-medium text-matcha-text">Chào buổi tối 👋</h2>
         </div>
-        {latestOrder && !subscription.isActive ? (
+
+        {latestOrder?.hasPhysicalBox && subscription.isActive ? (
           <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
-            Đơn hàng: {getOrderStatusLabel(latestOrder.status)}
+            Hộp quà: {getOrderStatusLabel(latestOrder.status)}
             {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
           </div>
         ) : null}
 
-        {subscription.isActive && subscription.currentDay ? (
+        {subscription.isActive ? (
           <div className="dashboard-glass rounded-[24px] px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <span className="eyebrow">Hành trình 21 ngày</span>
-                <p className="mt-2 font-serif text-2xl text-matcha-deep">
-                  Ngày {subscription.currentDay}/21
+                <span className="eyebrow">Gói đang dùng</span>
+                <p className="mt-2 font-sans text-base font-medium text-matcha-text">
+                  {subscription.tierName ?? "LUMIA Premium"}
                 </p>
+                {subscription.daysRemaining !== null ? (
+                  <p className="mt-1 text-[13px] text-muted">Còn {subscription.daysRemaining} ngày</p>
+                ) : null}
               </div>
               <div className="text-right">
                 <div className="text-[13px] text-muted">Streak</div>
-                <div className="font-serif text-3xl text-matcha-deep">{streak}</div>
+                <div className="font-sans text-2xl font-semibold text-matcha-text">{streak}</div>
               </div>
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
-              <div
-                className="h-full rounded-full bg-matcha transition-all"
-                style={{ width: `${(subscription.currentDay / 21) * 100}%` }}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        {canStartJourney ? (
-          <div className="dashboard-glass rounded-[24px] px-5 py-4 text-center">
-            <p className="text-[13px] text-matcha-deep">Hộp đã giao — sẵn sàng bắt đầu hành trình!</p>
-            <StartJourneyButton />
+            {subscription.periodProgress !== null ? (
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
+                <div
+                  className="h-full rounded-full bg-matcha transition-all"
+                  style={{ width: `${subscription.periodProgress}%` }}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         {subscription.status === "expired" ? (
           <div className="dashboard-glass rounded-[24px] px-5 py-4">
-            <p className="text-[13px] text-matcha-deep">Hành trình 21 ngày đã kết thúc. Bạn vẫn có thể xem lại trong Hành trình.</p>
+            <p className="text-[13px] text-matcha-deep">Gói LUMIA đã hết hạn. Bạn vẫn có thể xem lại trong Hành trình.</p>
             <Link href="/boxes" className="button-primary mt-3 inline-flex text-[13px]">
-              Bắt đầu hành trình mới
+              Gia hạn gói LUMIA
             </Link>
           </div>
         ) : null}
@@ -156,10 +150,10 @@ export function DashboardHome({
           <section className="dashboard-glass rounded-[30px] px-5 py-5">
             <span className="eyebrow">{planLabel}</span>
             <p className="mt-3 text-[13px] leading-6 text-muted">
-              Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, chỉ cần chọn một chiếc hộp.
+              Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, đăng ký một gói LUMIA.
             </p>
             <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px]">
-              Mua hộp LUMIA
+              Xem các gói
             </Link>
           </section>
         ) : null}

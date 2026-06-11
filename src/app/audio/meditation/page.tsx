@@ -18,7 +18,7 @@ export default async function AudioMeditationPage() {
       subtitle="Guided meditation và mini sessions cho mọi năng lượng."
       isAdmin={session.role === "admin"}
     >
-      <div className="space-y-8">
+      <div className="flex min-h-0 flex-1 flex-col space-y-8">
         <AudioCategoryPage
           isActive={subscription.isActive}
           categories={["guided_meditation", "mini_meditation"]}
@@ -28,7 +28,7 @@ export default async function AudioMeditationPage() {
           ]}
         />
         <section className="soft-card p-6">
-          <h2 className="font-serif text-2xl text-matcha-deep">Breathing & Timer</h2>
+          <h2 className="font-sans text-base font-medium text-matcha-text">Breathing & Timer</h2>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/audio/breathing" className="button-secondary text-[13px]">
               Bài tập thở

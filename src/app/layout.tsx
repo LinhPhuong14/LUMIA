@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className="h-full antialiased">
-      <body className="min-h-full font-sans text-foreground">{children}</body>
+      <body className="h-full overflow-hidden font-sans text-foreground">{children}</body>
     </html>
   );
 }

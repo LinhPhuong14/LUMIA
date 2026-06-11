@@ -86,7 +86,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="mobile-app-shell dashboard-shell-bg flex min-h-[100dvh] flex-col justify-end px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-8 lg:items-center lg:justify-center lg:py-10">
+    <div className="marketing-page page-scroll-area flex h-full flex-col justify-end px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-8 lg:items-center lg:justify-center lg:py-10">
       <div className="soft-card w-full max-w-2xl rounded-t-[28px] p-6 lg:rounded-[30px] lg:p-8">
         <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-matcha-soft/40">
           <div

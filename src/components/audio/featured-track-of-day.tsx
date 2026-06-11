@@ -53,7 +53,7 @@ export function FeaturedTrackOfDay() {
     <>
       <section className="soft-card p-6">
         <span className="eyebrow">Gợi ý hôm nay</span>
-        <h2 className="mt-3 font-serif text-3xl text-matcha-deep">{track.title}</h2>
+        <h2 className="mt-3 font-sans text-lg font-medium text-matcha-text">{track.title}</h2>
         <p className="mt-2 text-sm text-muted">{track.description ?? "Track miễn phí cho buổi tối của bạn."}</p>
         <button type="button" onClick={() => setPlaying(track)} className="button-primary mt-5 text-[13px]">
           Nghe ngay

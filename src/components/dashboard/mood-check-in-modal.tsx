@@ -57,10 +57,10 @@ export function MoodCheckInModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/20 p-4 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-md rounded-[32px] border border-white/70 bg-white/95 p-6 shadow-[0_24px_80px_rgba(143,168,120,0.18)]">
+    <div className="modal-backdrop flex items-end justify-center bg-black/20 p-4 backdrop-blur-sm sm:items-center">
+      <div className="mood-modal w-full max-w-md rounded-[32px] border border-white/70 bg-white/95 p-6 shadow-[0_24px_80px_rgba(143,168,120,0.18)]">
         <span className="eyebrow">Check-in hôm nay</span>
-        <h2 className="mt-3 font-serif text-2xl text-matcha-deep">Bạn đang cảm thấy thế nào?</h2>
+        <h2 className="mt-3 font-sans text-xl font-medium text-matcha-text">Bạn đang cảm thấy thế nào?</h2>
         <div className="mt-5 flex flex-wrap gap-2">
           {moods.map((mood) => (
             <button

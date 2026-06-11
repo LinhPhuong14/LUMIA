@@ -22,7 +22,7 @@ export default async function CheckoutPage({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="marketing-page page-scroll-area h-full">
       <SiteHeader />
       <main className="shell grid gap-10 py-14 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
         <section className="space-y-6">

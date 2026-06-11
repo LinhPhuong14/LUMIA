@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
-import { activateSubscriptionAfterPayment } from "@/lib/subscriptions";
+import { grantSubscription } from "@/lib/subscriptions";
+import type { TierCode } from "@/lib/product-tiers";
 import { getPayOSClient } from "@/lib/payos";
 
 export const runtime = "nodejs";
@@ -45,7 +46,12 @@ export async function POST(request: Request) {
     }
 
     await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
-    await activateSubscriptionAfterPayment(order.user_id, order.id);
+
+    if (!order.tier) {
+      return NextResponse.json({ error: "Order missing tier." }, { status: 400 });
+    }
+
+    await grantSubscription(order.user_id, order.tier as TierCode, order.id);
 
     return NextResponse.json({ received: true });
   } catch (error) {

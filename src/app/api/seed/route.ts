@@ -31,7 +31,10 @@ export async function POST(request: Request) {
 
   if (!hasSupabaseServiceRole()) {
     return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY chua duoc cau hinh (Supabase Dashboard > API Keys > Secret key)." },
+      {
+        error:
+          "Seed can admin key. Chay SQL trong Supabase SQL Editor (migrations/003) hoac dat SUPABASE_SECRET_KEY legacy neu project con co.",
+      },
       { status: 503 },
     );
   }

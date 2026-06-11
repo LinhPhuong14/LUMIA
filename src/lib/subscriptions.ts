@@ -2,62 +2,110 @@ import type { GatedFeature } from "@/types/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceOrUserClient } from "@/lib/supabase/db";
-import type { Subscription, SubscriptionStatus } from "@/lib/supabase/types";
+import {
+  addMonths,
+  getProductTier,
+  isValidTierCode,
+  type ProductTier,
+  type TierCode,
+} from "@/lib/product-tiers";
+import type { OrderStatus, Subscription, SubscriptionStatus } from "@/lib/supabase/types";
 
-const JOURNEY_DAYS = 21;
+const PAID_ORDER_STATUSES: OrderStatus[] = ["paid", "preparing", "shipping", "delivered"];
 
 export type SubscriptionSnapshot = {
   status: SubscriptionStatus;
+  tier: TierCode | null;
+  tierName: string | null;
+  durationMonths: number | null;
   startedAt: string | null;
   expiresAt: string | null;
   boxOrderId: string | null;
   isActive: boolean;
-  currentDay: number | null;
+  daysRemaining: number | null;
+  periodProgress: number | null;
+  hasPhysicalBox: boolean;
+  physicalBoxStatus: OrderStatus | null;
 };
 
-export function isSubscriptionActive(sub: Pick<Subscription, "status" | "started_at" | "expires_at">): boolean {
-  return (
-    sub.status === "active" &&
-    sub.started_at !== null &&
-    sub.expires_at !== null &&
-    new Date(sub.expires_at) > new Date()
-  );
+export function isSubscriptionActive(
+  sub: Pick<Subscription, "status" | "expires_at">,
+): boolean {
+  return sub.status === "active" && sub.expires_at !== null && new Date(sub.expires_at) > new Date();
 }
 
-export function getCurrentDay(startedAt: string | null, expiresAt: string | null): number | null {
+export function getDaysRemaining(expiresAt: string | null): number | null {
+  if (!expiresAt) {
+    return null;
+  }
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) {
+    return 0;
+  }
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+export function getPeriodProgress(startedAt: string | null, expiresAt: string | null): number | null {
   if (!startedAt || !expiresAt) {
     return null;
   }
-  const start = new Date(startedAt);
-  const now = new Date();
-  if (now < start) {
-    return null;
+  const start = new Date(startedAt).getTime();
+  const end = new Date(expiresAt).getTime();
+  const now = Date.now();
+  if (now <= start) {
+    return 0;
   }
-  const day = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.min(Math.max(day, 1), JOURNEY_DAYS);
+  if (now >= end) {
+    return 100;
+  }
+  return Math.round(((now - start) / (end - start)) * 100);
 }
 
-function toSnapshot(sub: Subscription | null): SubscriptionSnapshot {
+function toSnapshot(sub: Subscription | null, physicalBoxStatus: OrderStatus | null = null): SubscriptionSnapshot {
   if (!sub) {
     return {
       status: "free",
+      tier: null,
+      tierName: null,
+      durationMonths: null,
       startedAt: null,
       expiresAt: null,
       boxOrderId: null,
       isActive: false,
-      currentDay: null,
+      daysRemaining: null,
+      periodProgress: null,
+      hasPhysicalBox: false,
+      physicalBoxStatus: null,
     };
   }
 
   const active = isSubscriptionActive(sub);
   return {
     status: active ? "active" : sub.status === "active" ? "expired" : sub.status,
+    tier: (sub.tier as TierCode | null) ?? null,
+    tierName:
+      sub.tier && isValidTierCode(sub.tier) ? getProductTier(sub.tier).name : null,
+    durationMonths: sub.duration_months,
     startedAt: sub.started_at,
     expiresAt: sub.expires_at,
     boxOrderId: sub.box_order_id,
     isActive: active,
-    currentDay: active ? getCurrentDay(sub.started_at, sub.expires_at) : null,
+    daysRemaining: active ? getDaysRemaining(sub.expires_at) : getDaysRemaining(sub.expires_at),
+    periodProgress: getPeriodProgress(sub.started_at, sub.expires_at),
+    hasPhysicalBox: sub.has_physical_box ?? false,
+    physicalBoxStatus,
   };
+}
+
+async function getPhysicalBoxOrderStatus(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  orderId: string | null,
+): Promise<OrderStatus | null> {
+  if (!orderId) {
+    return null;
+  }
+  const { data } = await admin.from("orders").select("status").eq("id", orderId).maybeSingle();
+  return (data?.status as OrderStatus | undefined) ?? null;
 }
 
 export async function getSubscriptionForUser(userId: string): Promise<Subscription | null> {
@@ -79,19 +127,40 @@ export async function getSubscriptionForUser(userId: string): Promise<Subscripti
 
 export async function getSubscriptionSnapshot(userId: string): Promise<SubscriptionSnapshot> {
   const sub = await getSubscriptionForUser(userId);
+  const admin = createAdminClient();
+
   if (sub && sub.status === "active" && sub.expires_at && new Date(sub.expires_at) <= new Date()) {
-    const admin = createAdminClient();
     if (admin) {
       await admin.from("subscriptions").update({ status: "expired" }).eq("id", sub.id);
     }
-    return toSnapshot({ ...sub, status: "expired" });
+    const physicalBoxStatus = admin ? await getPhysicalBoxOrderStatus(admin, sub.box_order_id) : null;
+    return toSnapshot({ ...sub, status: "expired" }, physicalBoxStatus);
   }
-  return toSnapshot(sub);
+
+  const physicalBoxStatus =
+    admin && sub?.box_order_id ? await getPhysicalBoxOrderStatus(admin, sub.box_order_id) : null;
+  return toSnapshot(sub, physicalBoxStatus);
 }
 
 export async function getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
   const snapshot = await getSubscriptionSnapshot(userId);
   return snapshot.status;
+}
+
+export async function hasUserBoughtFirstTime(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) {
+    return false;
+  }
+
+  const { count } = await admin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("tier", "first_time")
+    .in("status", PAID_ORDER_STATUSES);
+
+  return (count ?? 0) > 0;
 }
 
 export function checkAccess(snapshot: SubscriptionSnapshot, feature: GatedFeature): boolean {
@@ -112,56 +181,15 @@ export function checkAccess(snapshot: SubscriptionSnapshot, feature: GatedFeatur
   return snapshot.isActive;
 }
 
-export async function startJourney(userId: string, orderId: string) {
+export async function grantSubscription(userId: string, tier: TierCode, orderId: string) {
   const admin = createAdminClient();
   if (!admin) {
     throw new Error("Supabase service role not configured.");
   }
 
-  const { data: order } = await admin.from("orders").select("*").eq("id", orderId).eq("user_id", userId).single();
-  if (!order || order.status !== "delivered") {
-    throw new Error("Order must be delivered before starting journey.");
-  }
-
-  const { data: sub } = await admin
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!sub || sub.status !== "active" || sub.started_at) {
-    throw new Error("Subscription not ready to start.");
-  }
-
+  const product: ProductTier = getProductTier(tier);
   const startedAt = new Date();
-  const expiresAt = new Date(startedAt);
-  expiresAt.setDate(expiresAt.getDate() + JOURNEY_DAYS);
-
-  const { data: updated, error } = await admin
-    .from("subscriptions")
-    .update({
-      started_at: startedAt.toISOString(),
-      expires_at: expiresAt.toISOString(),
-      box_order_id: orderId,
-    })
-    .eq("id", sub.id)
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return updated as Subscription;
-}
-
-export async function activateSubscriptionAfterPayment(userId: string, orderId: string) {
-  const admin = createAdminClient();
-  if (!admin) {
-    throw new Error("Supabase service role not configured.");
-  }
+  const expiresAt = addMonths(startedAt, product.durationMonths);
 
   const { data: existing } = await admin
     .from("subscriptions")
@@ -171,34 +199,32 @@ export async function activateSubscriptionAfterPayment(userId: string, orderId: 
     .limit(1)
     .maybeSingle();
 
-  if (existing?.status === "active" && existing.started_at && existing.expires_at && new Date(existing.expires_at) > new Date()) {
-    return existing as Subscription;
-  }
+  const payload = {
+    status: "active" as const,
+    tier,
+    duration_months: product.durationMonths,
+    has_physical_box: product.hasPhysicalBox,
+    started_at: startedAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    box_order_id: orderId,
+  };
 
   if (existing) {
-    const { data: updated } = await admin
+    const { data: updated, error } = await admin
       .from("subscriptions")
-      .update({
-        status: "active",
-        started_at: null,
-        expires_at: null,
-        box_order_id: orderId,
-      })
+      .update(payload)
       .eq("id", existing.id)
       .select()
       .single();
+    if (error) {
+      throw error;
+    }
     return updated as Subscription;
   }
 
   const { data: created, error } = await admin
     .from("subscriptions")
-    .insert({
-      user_id: userId,
-      status: "active",
-      started_at: null,
-      expires_at: null,
-      box_order_id: orderId,
-    })
+    .insert({ user_id: userId, ...payload })
     .select()
     .single();
 
@@ -207,6 +233,21 @@ export async function activateSubscriptionAfterPayment(userId: string, orderId: 
   }
 
   return created as Subscription;
+}
+
+/** @deprecated Use grantSubscription from PayOS webhook */
+export async function activateSubscriptionAfterPayment(userId: string, orderId: string) {
+  const admin = createAdminClient();
+  if (!admin) {
+    throw new Error("Supabase service role not configured.");
+  }
+
+  const { data: order } = await admin.from("orders").select("tier").eq("id", orderId).single();
+  if (!order?.tier) {
+    throw new Error("Order missing tier.");
+  }
+
+  return grantSubscription(userId, order.tier as TierCode, orderId);
 }
 
 export async function requireActiveSubscription() {

@@ -28,6 +28,9 @@ export type Subscription = {
   id: string;
   user_id: string;
   status: SubscriptionStatus;
+  tier: string | null;
+  duration_months: number | null;
+  has_physical_box: boolean;
   started_at: string | null;
   expires_at: string | null;
   box_order_id: string | null;
@@ -41,7 +44,27 @@ export type Order = {
   status: OrderStatus;
   payos_order_id: string | null;
   amount: number;
+  tier: string | null;
+  duration_months: number | null;
+  has_physical_box: boolean;
+  physical_box_type: string | null;
   created_at: string;
+};
+
+export type ProductTierRow = {
+  id: string;
+  name: string;
+  slug: string;
+  duration_months: number;
+  price_vnd: number;
+  has_physical_box: boolean;
+  physical_box_type: string | null;
+  box_contents: string[];
+  features: string[];
+  is_featured: boolean;
+  is_first_time_only: boolean;
+  discount_percent: number;
+  sort_order: number;
 };
 
 export type AudioTrack = {

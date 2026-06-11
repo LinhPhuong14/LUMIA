@@ -25,12 +25,12 @@ export function UpsellOverlay({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-champagne shadow-[0_12px_28px_rgba(244,216,120,0.2)]">
             <Lock className="h-5 w-5 text-matcha-deep" />
           </div>
-          <h3 className="mt-4 font-serif text-xl text-matcha-deep">
-            {featureName} dành cho người có hộp LUMIA
+          <h3 className="mt-4 font-sans text-base font-medium text-matcha-text">
+            {featureName} dành cho thành viên LUMIA Premium
           </h3>
           {description ? <p className="mt-2 text-[13px] leading-6 text-muted">{description}</p> : null}
           <Link href="/boxes" className="button-primary mt-5 inline-flex">
-            Khám phá hộp LUMIA
+            Xem các gói LUMIA
           </Link>
         </div>
       </div>

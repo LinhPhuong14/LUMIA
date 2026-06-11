@@ -1,3 +1,5 @@
+import type { TierCode } from "@/lib/product-tiers";
+import { getProductTier } from "@/lib/product-tiers";
 import type { OrderStatus } from "@/lib/supabase/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,11 +16,39 @@ export type OrderEntry = {
   status: OrderStatus;
   payosOrderId: string | null;
   amount: number;
+  tier: TierCode | null;
+  tierName: string | null;
+  durationMonths: number | null;
+  hasPhysicalBox: boolean;
   createdAt: string;
 };
 
 export function getOrderStatusLabel(status: string) {
   return orderStatusLabels[status as OrderStatus] ?? "Đang xử lý";
+}
+
+export function mapOrderRow(order: {
+  id: string;
+  status: string;
+  payos_order_id: string | null;
+  amount: number;
+  tier?: string | null;
+  duration_months?: number | null;
+  has_physical_box?: boolean;
+  created_at: string;
+}): OrderEntry {
+  const tier = (order.tier as TierCode | null) ?? null;
+  return {
+    id: order.id,
+    status: order.status as OrderStatus,
+    payosOrderId: order.payos_order_id,
+    amount: order.amount,
+    tier,
+    tierName: tier ? getProductTier(tier).name : null,
+    durationMonths: order.duration_months ?? null,
+    hasPhysicalBox: order.has_physical_box ?? false,
+    createdAt: order.created_at,
+  };
 }
 
 export async function getRecentOrdersForUser(userId: string, limit = 5): Promise<OrderEntry[]> {
@@ -34,13 +64,7 @@ export async function getRecentOrdersForUser(userId: string, limit = 5): Promise
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  return (data ?? []).map((order) => ({
-    id: order.id,
-    status: order.status as OrderStatus,
-    payosOrderId: order.payos_order_id,
-    amount: order.amount,
-    createdAt: order.created_at,
-  }));
+  return (data ?? []).map(mapOrderRow);
 }
 
 export async function getLatestOrderForUser(userId: string): Promise<OrderEntry | null> {
@@ -48,43 +72,18 @@ export async function getLatestOrderForUser(userId: string): Promise<OrderEntry 
   return latest ?? null;
 }
 
-export async function getDeliveredOrderForUser(userId: string): Promise<OrderEntry | null> {
-  const admin = createAdminClient();
-  if (!admin) {
-    return null;
-  }
-
-  const { data } = await admin
-    .from("orders")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "delivered")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) {
-    return null;
-  }
-
-  return {
-    id: data.id,
-    status: data.status as OrderStatus,
-    payosOrderId: data.payos_order_id,
-    amount: data.amount,
-    createdAt: data.created_at,
-  };
-}
-
 export async function createOrder(params: {
   userId: string;
   payosOrderId: string;
   amount: number;
+  tier: TierCode;
 }) {
   const admin = createAdminClient();
   if (!admin) {
     throw new Error("Supabase service role not configured.");
   }
+
+  const product = getProductTier(params.tier);
 
   const { data, error } = await admin
     .from("orders")
@@ -92,6 +91,10 @@ export async function createOrder(params: {
       user_id: params.userId,
       payos_order_id: params.payosOrderId,
       amount: params.amount,
+      tier: params.tier,
+      duration_months: product.durationMonths,
+      has_physical_box: product.hasPhysicalBox,
+      physical_box_type: product.physicalBoxType,
       status: "pending_payment",
     })
     .select()

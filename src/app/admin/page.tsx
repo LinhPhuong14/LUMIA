@@ -33,7 +33,7 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="marketing-page page-scroll-area h-full">
       <SiteHeader />
       <main className="shell py-14">
         <div className="mb-8">

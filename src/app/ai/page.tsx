@@ -16,7 +16,9 @@ export default async function AIPage() {
       subtitle="Một không gian riêng tư để bạn được nói ra điều đang ở trong lòng, theo nhịp nhẹ và không bị phán xét."
       isAdmin={session.role === "admin"}
     >
-      <AiStudio />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <AiStudio />
+      </div>
     </DashboardShell>
   );
 }

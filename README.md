@@ -21,8 +21,8 @@ git push origin main
 | Variable | Bắt buộc | Ghi chú |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | `sb_publishable_...` — client (thay anon key) |
-| `SUPABASE_SECRET_KEY` | ✅ | `sb_secret_...` — server-only (thay service_role) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | `sb_publishable_...` — đủ cho auth + RLS |
+| `SUPABASE_SECRET_KEY` | Không | Legacy — project Supabase mới thường không có |
 | `LLM_API_KEY` | ✅ | OpenAI API key (hoặc compatible endpoint) |
 | `LLM_MODEL` | Tùy chọn | Mặc định `gpt-4o-mini` |
 | `NEXT_PUBLIC_APP_URL` | ✅ | `https://your-app.vercel.app` |

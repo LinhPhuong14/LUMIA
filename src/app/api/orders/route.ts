@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { mapOrderRow } from "@/lib/orders";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
@@ -18,7 +19,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("id, status, payos_order_id, amount, created_at")
+    .select("id, status, payos_order_id, amount, tier, duration_months, has_physical_box, created_at")
     .eq("user_id", session.id)
     .order("created_at", { ascending: false });
 
@@ -26,13 +27,5 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const orders = (data ?? []).map((order) => ({
-    id: order.id,
-    status: order.status,
-    payosOrderId: order.payos_order_id,
-    amount: order.amount,
-    createdAt: order.created_at,
-  }));
-
-  return NextResponse.json(orders);
+  return NextResponse.json((data ?? []).map(mapOrderRow));
 }

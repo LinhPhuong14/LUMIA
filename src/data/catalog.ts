@@ -1,4 +1,8 @@
+import type { TierCode } from "@/lib/product-tiers";
+import { formatPricePerMonth } from "@/lib/product-tiers";
+
 export type BoxProduct = {
+  tier: TierCode;
   slug: string;
   name: string;
   tagline: string;
@@ -23,6 +27,7 @@ const premiumFeatures = [
 
 export const lumiaBoxes: BoxProduct[] = [
   {
+    tier: "first_time",
     slug: "first-time-user",
     name: "LUMIA FIRST-TIME USER",
     tagline: "1 Tháng đầu tiên",
@@ -40,9 +45,10 @@ export const lumiaBoxes: BoxProduct[] = [
       "Mini Welcome Box: 1 Hộp trà thảo mộc + 1 Xịt gối mini",
     ],
     badge: "Người dùng mới",
-    ctaLabel: "Chọn gói này",
+    ctaLabel: "Bắt đầu ngay",
   },
   {
+    tier: "standard",
     slug: "standard",
     name: "LUMIA STANDARD",
     tagline: "1 Tháng",
@@ -59,9 +65,10 @@ export const lumiaBoxes: BoxProduct[] = [
       "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
     ],
     badge: "Tiêu chuẩn",
-    ctaLabel: "Chọn gói này",
+    ctaLabel: "Bắt đầu ngay",
   },
   {
+    tier: "saver",
     slug: "saver",
     name: "LUMIA SAVER",
     tagline: "3 Tháng",
@@ -69,7 +76,7 @@ export const lumiaBoxes: BoxProduct[] = [
       "Gói tiết kiệm 3 tháng — trải nghiệm Premium đầy đủ với mức giá tháng hấp dẫn nhất.",
     price: 349_000,
     duration: "3 Tháng",
-    priceNote: "chỉ 116.000 đ/tháng",
+    priceNote: formatPricePerMonth(349_000, 3),
     gradient: "linear-gradient(135deg, #E8F0E0 0%, #DDE8D2 40%, #C8D9B8 100%)",
     ritualFocus: "Cam kết dài hơn để xây dựng thói quen ngủ ngon bền vững.",
     digitalAccess: "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn trong 3 tháng.",
@@ -79,10 +86,11 @@ export const lumiaBoxes: BoxProduct[] = [
       "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
     ],
     badge: "Gói tiết kiệm",
-    ctaLabel: "Chọn gói này",
+    ctaLabel: "Bắt đầu ngay",
     featured: true,
   },
   {
+    tier: "sleep_well",
     slug: "sleep-well",
     name: "LUMIA SLEEP WELL",
     tagline: "3 Tháng",
@@ -99,9 +107,10 @@ export const lumiaBoxes: BoxProduct[] = [
       "Sleep Well Box: 1 Hũ nến thơm + 1 Hộp trà thảo mộc + 1 Bịt mắt lụa",
     ],
     badge: "Sleep Well",
-    ctaLabel: "Chọn gói này",
+    ctaLabel: "Bắt đầu ngay",
   },
   {
+    tier: "master",
     slug: "sleep-master",
     name: "LUMIA SLEEP MASTER",
     tagline: "6 Tháng",
@@ -124,7 +133,7 @@ export const lumiaBoxes: BoxProduct[] = [
       "Master Box: 1 Hũ nến thơm + 1 Hộp trà thảo mộc + 1 Bịt mắt lụa + 1 Bộ tinh dầu + 1 Xịt gối",
     ],
     badge: "Sleep Master",
-    ctaLabel: "Chọn gói này",
+    ctaLabel: "Bắt đầu ngay",
   },
 ];
 

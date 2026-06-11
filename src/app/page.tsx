@@ -9,7 +9,7 @@ import { FloatingNavbar } from "@/components/landing/shared/floating-navbar";
 
 export default function HomePage() {
   return (
-    <>
+    <div className="landing-page page-scroll-area h-full">
       <FloatingNavbar />
       <HeroSection />
       <RitualStepsSection />
@@ -18,6 +18,6 @@ export default function HomePage() {
       <TestimonialsSection />
       <JoinSection />
       <FooterSection />
-    </>
+    </div>
   );
 }

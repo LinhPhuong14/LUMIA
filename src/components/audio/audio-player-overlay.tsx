@@ -33,6 +33,15 @@ export function AudioPlayerOverlay({
   const [logged, setLogged] = useState(false);
 
   useEffect(() => {
+    if (track) {
+      document.body.classList.add("player-open");
+    } else {
+      document.body.classList.remove("player-open");
+    }
+    return () => document.body.classList.remove("player-open");
+  }, [track]);
+
+  useEffect(() => {
     if (!track) {
       setUrl(null);
       return;
@@ -82,7 +91,7 @@ export function AudioPlayerOverlay({
         onClick={onClose}
       />
       <div
-        className="fixed inset-x-0 bottom-0 z-[70] h-[320px] rounded-t-[28px] border border-white/70 bg-white/95 shadow-[0_-24px_80px_rgba(143,168,120,0.18)] backdrop-blur-xl lg:bottom-4 lg:left-1/2 lg:h-auto lg:max-w-lg lg:-translate-x-1/2 lg:rounded-[28px]"
+        className="audio-player-overlay h-[320px] rounded-t-[28px] border border-white/70 bg-white/95 shadow-[0_-24px_80px_rgba(143,168,120,0.18)] backdrop-blur-xl lg:bottom-4 lg:left-1/2 lg:h-auto lg:max-w-lg lg:-translate-x-1/2 lg:rounded-[28px]"
         style={{ paddingBottom: "var(--safe-bottom)" }}
       >
         <div className="mx-auto mb-3 mt-3 h-1 w-10 rounded-full bg-matcha-soft" />

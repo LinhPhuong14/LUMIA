@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { StartJourneyButton } from "@/components/dashboard/start-journey-button";
 import { TabPills } from "@/components/ui/tab-pills";
 import { lumiaBoxes } from "@/data/catalog";
-import { getPlanDisplayLabel, getSubscriptionStatusLabel } from "@/lib/subscription-labels";
+import {
+  getPhysicalBoxStatusLabel,
+  getPlanDisplayLabel,
+  getSubscriptionStatusLabel,
+} from "@/lib/subscription-labels";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
@@ -22,8 +25,10 @@ const featureMatrix = [
   { name: "Audio mẫu", free: true, active: true },
   { name: "Audio full + Breathing + Timer", free: false, active: true },
   { name: "Hành trình + Báo cáo", free: false, active: true },
-  { name: "Streak + Progress 21 ngày", free: false, active: true },
+  { name: "Streak", free: false, active: true },
 ];
+
+const upsellSlugs = ["standard", "saver", "sleep-well"] as const;
 
 export function AccountPanel({
   subscription,
@@ -47,15 +52,9 @@ export function AccountPanel({
   useEffect(() => {
     refreshOrders();
   }, [refreshOrders]);
-  const planName = getPlanDisplayLabel(subscription);
 
-  const canStartJourney =
-    orders.some((o) => o.status === "delivered") &&
-    subscription.status === "active" &&
-    !subscription.startedAt;
-
+  const planName = subscription.tierName ?? getPlanDisplayLabel(subscription);
   const tierKey = subscription.isActive ? "active" : "free";
-
   return (
     <div className="space-y-6">
       <TabPills
@@ -72,53 +71,75 @@ export function AccountPanel({
 
       {tab === "box" ? (
         <section className="soft-card p-6">
-          <span className="eyebrow">Trạng thái</span>
-          <h2 className="mt-4 font-serif text-4xl text-matcha-deep">{planName}</h2>
+          <span className="eyebrow">Gói đang dùng</span>
+          <h2 className="mt-4 font-sans text-xl font-medium text-matcha-text">{planName}</h2>
           <p className="mt-3 text-sm text-muted">Trạng thái: {getSubscriptionStatusLabel(subscription.status)}</p>
-          {subscription.currentDay ? (
+
+          {subscription.isActive && subscription.expiresAt ? (
             <>
-              <p className="mt-4 text-sm text-matcha-deep">Ngày {subscription.currentDay}/21</p>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
-                <div
-                  className="h-full bg-matcha"
-                  style={{ width: `${((subscription.currentDay ?? 0) / 21) * 100}%` }}
-                />
-              </div>
+              <p className="mt-4 text-sm text-matcha-deep">
+                Đến ngày {formatDate(subscription.expiresAt)}
+                {subscription.daysRemaining !== null ? ` (còn ${subscription.daysRemaining} ngày)` : ""}
+              </p>
+              {subscription.periodProgress !== null ? (
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
+                  <div
+                    className="h-full bg-matcha"
+                    style={{ width: `${subscription.periodProgress}%` }}
+                  />
+                </div>
+              ) : null}
             </>
           ) : null}
-          {subscription.expiresAt ? (
-            <p className="mt-4 text-sm text-muted">Kết thúc: {formatDate(subscription.expiresAt)}</p>
+
+          {subscription.hasPhysicalBox ? (
+            <div className="mt-8 rounded-[24px] border border-white/70 bg-white/78 p-5">
+              <p className="text-sm font-medium text-matcha-deep">Hộp quà của bạn</p>
+              <p className="mt-2 text-sm text-muted">
+                {getPhysicalBoxStatusLabel(subscription.physicalBoxStatus)}
+              </p>
+              <p className="mt-2 text-[12px] text-muted">
+                Truy cập app không phụ thuộc vào việc nhận hộp — bạn có thể dùng LUMIA ngay sau thanh toán.
+              </p>
+            </div>
           ) : null}
+
           <div className="mt-6 flex flex-wrap gap-3">
-            {canStartJourney ? <StartJourneyButton onSuccess={refreshOrders} /> : null}
             {!subscription.isActive ? (
               <Link href="/boxes" className="button-primary">
-                {subscription.status === "expired" ? "Mua hộp mới" : "Mua hộp LUMIA"}
+                {subscription.status === "expired" ? "Gia hạn gói" : "Xem các gói LUMIA"}
               </Link>
             ) : null}
           </div>
-          <div className="mt-8 space-y-3">
-            <p className="text-sm font-medium text-matcha-deep">Các gói LUMIA</p>
-            {lumiaBoxes.map((box) => (
-              <Link
-                key={box.slug}
-                href={`/boxes/${box.slug}`}
-                className={`block rounded-[24px] border p-5 transition hover:bg-white/90 ${
-                  box.featured ? "border-matcha-highlight/80 bg-matcha-highlight-bg/50" : "border-white/70 bg-white/78"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-medium text-matcha-deep">{box.name}</div>
-                    <p className="mt-1 text-sm text-muted">{box.duration}</p>
-                  </div>
-                  <div className="text-right font-serif text-xl text-matcha-deep">
-                    {formatCurrency(box.price)}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+
+          {!subscription.isActive ? (
+            <div className="mt-8 space-y-3">
+              <p className="text-sm font-medium text-matcha-deep">Gợi ý cho bạn</p>
+              {lumiaBoxes
+                .filter((box) => upsellSlugs.includes(box.slug as (typeof upsellSlugs)[number]))
+                .map((box) => (
+                  <Link
+                    key={box.slug}
+                    href={`/boxes/${box.slug}`}
+                    className={`block rounded-[24px] border p-5 transition hover:bg-white/90 ${
+                      box.featured
+                        ? "border-matcha-highlight/80 bg-matcha-highlight-bg/50"
+                        : "border-white/70 bg-white/78"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="font-medium text-matcha-deep">{box.name}</div>
+                        <p className="mt-1 text-sm text-muted">{box.duration}</p>
+                      </div>
+                      <div className="text-right font-sans text-base font-medium text-matcha-text">
+                        {formatCurrency(box.price)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -134,9 +155,12 @@ export function AccountPanel({
                 >
                   <div>
                     <div className="text-sm font-medium text-matcha-deep">
-                      {formatDate(order.createdAt)}
+                      {order.tierName ?? "LUMIA"}
                     </div>
-                    <div className="text-[12px] text-muted">{order.id.slice(0, 8)}...</div>
+                    <div className="text-[12px] text-muted">
+                      {formatDate(order.createdAt)}
+                      {order.durationMonths ? ` · ${order.durationMonths} tháng` : ""}
+                    </div>
                   </div>
                   <div className="text-sm">{formatCurrency(order.amount)}</div>
                   <span className="rounded-full bg-matcha-soft/50 px-3 py-1 text-[12px] font-medium text-matcha-deep">

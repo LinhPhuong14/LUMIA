@@ -115,7 +115,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   }
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col space-y-4 lg:space-y-6">
       <div className="sticky top-0 z-30 -mx-4 bg-gradient-to-b from-background via-background/95 to-transparent px-4 pb-3 pt-1 lg:static lg:mx-0 lg:bg-transparent lg:p-0">
         <TabPills
           fullWidth
@@ -126,8 +126,9 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
         />
       </div>
 
+      <div className="journal-list space-y-4 lg:space-y-6">
       {tab === "release" ? (
-        <section className="hero-card flex min-h-[calc(100dvh-14rem)] flex-col p-5 lg:min-h-0 lg:p-8">
+        <section className="hero-card flex min-h-0 flex-1 flex-col p-5 lg:p-8">
           <span className="eyebrow">Viết ra</span>
           <textarea
             value={releaseText}
@@ -212,6 +213,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       {savedMessage && tab !== "release" ? (
         <p className="text-sm text-matcha-deep">{savedMessage}</p>
       ) : null}
+      </div>
     </div>
   );
 }

@@ -77,14 +77,14 @@ export function AudioCategoryPage({
   }
 
   return (
-    <>
+    <div className="audio-library space-y-8">
       {sections.map((section) => {
         const sectionTracks = tracks.filter((t) => t.category === section.category);
         if (!sectionTracks.length && section.activeOnly && !isActive) {
           return (
             <UpsellOverlay key={section.title} featureName={section.title} locked={!isActive}>
               <section className="soft-card p-6">
-                <h2 className="font-serif text-2xl text-matcha-deep">{section.title}</h2>
+                <h2 className="font-sans text-base font-medium text-matcha-text">{section.title}</h2>
               </section>
             </UpsellOverlay>
           );
@@ -93,7 +93,7 @@ export function AudioCategoryPage({
 
         const inner = (
           <section className="space-y-4">
-            <h2 className="font-serif text-2xl text-matcha-deep">{section.title}</h2>
+            <h2 className="font-sans text-base font-medium text-matcha-text">{section.title}</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {sectionTracks.map(renderTrackCard)}
             </div>
@@ -115,14 +115,14 @@ export function AudioCategoryPage({
       ) : null}
 
       <AudioPlayerOverlay track={playing} onClose={() => setPlaying(null)} />
-    </>
+    </div>
   );
 }
 
 export function AudioHubExtras({ isActive }: { isActive: boolean }) {
   const breathingSection = (
     <section className="soft-card p-6">
-      <h2 className="font-serif text-2xl text-matcha-deep">Breathing & Timer</h2>
+      <h2 className="font-sans text-base font-medium text-matcha-text">Breathing & Timer</h2>
       <p className="mt-2 text-sm text-muted">Bài tập thở và hẹn giờ thiền.</p>
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href="/audio/breathing" className="button-secondary text-[13px]">

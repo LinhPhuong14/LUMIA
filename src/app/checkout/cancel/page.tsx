@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/marketing/site-header";
 
 export default function CheckoutCancelPage() {
   return (
-    <div className="min-h-screen">
+    <div className="marketing-page page-scroll-area h-full">
       <SiteHeader />
       <main className="shell py-20">
         <div className="soft-card mx-auto max-w-3xl p-10 text-center">

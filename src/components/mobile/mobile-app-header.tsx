@@ -31,7 +31,7 @@ export function MobileAppHeader({
     <header className="mobile-app-header sticky top-0 z-40 lg:hidden">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-serif text-[1.35rem] leading-tight tracking-[-0.03em] text-matcha-deep">
+          <h1 className="truncate font-sans text-xl font-medium text-matcha-text">
             {title}
           </h1>
           {subtitle ? (
