@@ -1,21 +1,14 @@
-export type TierCode = "free" | "1m" | "3m" | "5m" | "gift";
-
-export type ProductDefinition = {
-  slug: string;
-  tier: TierCode;
-  tierLabel: string;
-  name: string;
-  tagline: string;
-  description: string;
-  price: number;
-  durationMonths: number;
-  gradient: string;
-  ritualFocus: string;
-  digitalAccess: string;
-  physicalItems: string[];
-  features: string[];
-  badge?: string;
-  ctaLabel: string;
-};
+export type OnboardingGoal = "sleep" | "stress" | "meditation";
+export type SubscriptionStatus = "free" | "active" | "expired";
+export type OrderStatus = "paid" | "preparing" | "shipping" | "delivered";
 
 export type FeatureFlagKey = "journal" | "audio" | "ai" | "streak";
+
+export type GatedFeature =
+  | "journal_write"
+  | "audio_full"
+  | "chat"
+  | "mood_test"
+  | "breathing"
+  | "timer"
+  | "reports";

@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
 
+import { StartJourneyButton } from "@/components/dashboard/start-journey-button";
+import type { OrderEntry } from "@/lib/orders";
+import type { SubscriptionSnapshot } from "@/lib/subscriptions";
+import { getOrderStatusLabel } from "@/lib/orders";
+
 const moods = ["Bình yên", "Mệt", "Lo", "Buồn", "Căng", "Trống rỗng"] as const;
 const reasons = [
   "Công việc",
@@ -25,16 +30,22 @@ function fadeMotion(delay = 0) {
 
 export function DashboardHome({
   planLabel,
-  tier,
+  subscription,
+  latestOrder,
 }: {
   planLabel: string;
-  tier: string;
+  subscription: SubscriptionSnapshot;
+  latestOrder: OrderEntry | null;
 }) {
   const [selectedMood, setSelectedMood] = useState<string>("Mệt");
   const [selectedReason, setSelectedReason] = useState<string>("Công việc");
   const [intensity, setIntensity] = useState(3);
   const [saved, setSaved] = useState(false);
-  const isFree = tier === "free";
+  const isFree = !subscription.isActive;
+  const canStartJourney =
+    latestOrder?.status === "delivered" &&
+    subscription.status === "active" &&
+    !subscription.startedAt;
 
   return (
     <div className="grid gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.06fr)_minmax(320px,0.94fr)] lg:overflow-hidden">
@@ -58,14 +69,31 @@ export function DashboardHome({
             <div className="rounded-full border border-white/80 bg-white/74 px-3.5 py-2 text-[13px] font-medium text-matcha-deep">
               {planLabel}
             </div>
-            <Link
-              href={isFree ? "/boxes?onboarding=1" : "/subscription"}
-              className="button-primary px-5 py-2.5 text-[13px]"
-            >
-              {isFree ? "Chọn hộp để nâng cấp" : "Xem gói hiện tại"}
-            </Link>
+            {canStartJourney ? (
+              <StartJourneyButton />
+            ) : (
+              <Link
+                href={isFree ? "/boxes" : "/subscription"}
+                className="button-primary px-5 py-2.5 text-[13px]"
+              >
+                {isFree ? "Mua hộp LUMIA" : "Xem gói hiện tại"}
+              </Link>
+            )}
           </div>
         </div>
+
+        {latestOrder && !subscription.isActive ? (
+          <div className="mt-4 rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
+            Đơn hàng: {getOrderStatusLabel(latestOrder.status)}
+            {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
+          </div>
+        ) : null}
+
+        {subscription.isActive && subscription.currentDay ? (
+          <div className="mt-4 rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-matcha-deep">
+            Ngày {subscription.currentDay}/21 trên hành trình của bạn.
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)] lg:overflow-hidden">
           <section className="dashboard-glass rounded-[30px] px-5 py-5 lg:flex lg:min-h-0 lg:flex-col lg:px-6">

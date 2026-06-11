@@ -1,6 +1,6 @@
 import { AiStudio } from "@/components/dashboard/ai-studio";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { requireSession } from "@/lib/auth";
+import { requireSession } from "@/lib/supabase/auth";
 
 export default async function AIPage() {
   const session = await requireSession();

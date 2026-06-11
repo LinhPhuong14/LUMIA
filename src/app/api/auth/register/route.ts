@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { setSessionCookie, hashPassword } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { env, hasMongoConfig } from "@/lib/env";
+import { env, hasSupabaseConfig } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validators/auth";
-import { UserModel } from "@/models";
 
 export const runtime = "nodejs";
 
@@ -16,44 +14,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ." }, { status: 400 });
   }
 
-  const email = parsed.data.email.toLowerCase();
-  const role = email.includes("admin") || email.endsWith("@lumia.vn") ? "admin" : "user";
-
-  if (!hasMongoConfig()) {
+  if (!hasSupabaseConfig()) {
     if (!env.DEMO_MODE) {
       return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
     }
-
-    await setSessionCookie({
-      userId: `demo-${email}`,
-      email,
-      name: parsed.data.name,
-      role,
-    });
-
-    return NextResponse.json({ ok: true, mode: "demo" });
+    return NextResponse.json({ ok: true, mode: "demo", redirect: "/onboarding" });
   }
 
-  await connectToDatabase();
-  const existing = await UserModel.findOne({ email }).lean();
-
-  if (existing) {
-    return NextResponse.json({ error: "Email đã tồn tại." }, { status: 409 });
+  const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Không thể kết nối Supabase." }, { status: 503 });
   }
 
-  const user = await UserModel.create({
+  const email = parsed.data.email.toLowerCase();
+
+  const { data, error } = await supabase.auth.signUp({
     email,
-    name: parsed.data.name,
-    passwordHash: await hashPassword(parsed.data.password),
-    role,
+    password: parsed.data.password,
+    options: {
+      data: { full_name: parsed.data.name },
+    },
   });
 
-  await setSessionCookie({
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
-  return NextResponse.json({ ok: true, id: user.id }, { status: 201 });
+  if (!data.user) {
+    return NextResponse.json({ error: "Không thể tạo tài khoản." }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, id: data.user.id, redirect: "/onboarding" }, { status: 201 });
 }

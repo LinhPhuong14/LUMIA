@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { hasMongoConfig, hasPayOSConfig } from "@/lib/env";
-import { grantEntitlement } from "@/lib/subscriptions";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
+import { activateSubscriptionAfterPayment } from "@/lib/subscriptions";
 import { getPayOSClient } from "@/lib/payos";
-import { getProductFromTier } from "@/lib/domain";
-import { OrderModel, PaymentSessionModel } from "@/models";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const payload = await request.json();
 
-  if (!hasPayOSConfig() || !hasMongoConfig()) {
+  if (!hasPayOSConfig() || !hasSupabaseConfig()) {
     return NextResponse.json({ received: true, mode: "demo" });
   }
 
@@ -23,43 +21,31 @@ export async function POST(request: Request) {
 
   try {
     const webhookData = await payos.webhooks.verify(payload);
-    await connectToDatabase();
+    const admin = createAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Supabase admin unavailable." }, { status: 500 });
+    }
 
-    const order = await OrderModel.findOne({ orderCode: webhookData.orderCode });
+    const { data: order } = await admin
+      .from("orders")
+      .select("*")
+      .eq("payos_order_id", String(webhookData.orderCode))
+      .maybeSingle();
 
     if (!order) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 
-    if (order.totalAmount !== webhookData.amount) {
+    if (order.amount !== webhookData.amount) {
       return NextResponse.json({ error: "Amount mismatch." }, { status: 400 });
     }
 
-    await PaymentSessionModel.updateOne(
-      { orderCode: webhookData.orderCode },
-      { status: "paid", paymentLinkId: webhookData.paymentLinkId, webhookPayload: payload },
-    );
-
-    if (["paid", "fulfilled"].includes(order.status)) {
+    if (order.status !== "pending_payment") {
       return NextResponse.json({ received: true, idempotent: true });
     }
 
-    order.status = "provisioning";
-    order.paymentLinkId = webhookData.paymentLinkId;
-    order.providerMetadata = payload;
-    await order.save();
-
-    const product = getProductFromTier(order.tier);
-    await grantEntitlement({
-      userId: order.userId.toString(),
-      tier: order.tier,
-      durationMonths: product?.durationMonths ?? 1,
-      source: "order",
-      orderId: order.id,
-    });
-
-    order.status = "fulfilled";
-    await order.save();
+    await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
+    await activateSubscriptionAfterPayment(order.user_id, order.id);
 
     return NextResponse.json({ received: true });
   } catch (error) {

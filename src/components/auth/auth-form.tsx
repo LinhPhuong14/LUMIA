@@ -4,12 +4,9 @@ import { useState } from "react";
 
 type AuthMode = "login" | "register";
 
-const supportGoals = ["Xả căng thẳng", "Ghi nhận cảm xúc", "Viết nhật ký", "Được lắng nghe", "Chưa rõ"] as const;
-
 export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState<string>("Chưa rõ");
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -37,7 +34,6 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
             name: formData.get("name"),
             email: formData.get("email"),
             password: formData.get("password"),
-            supportGoal: selectedGoal,
           };
 
     const response = await fetch(endpoint, {
@@ -46,7 +42,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
       body: JSON.stringify(payload),
     });
 
-    const result = (await response.json()) as { error?: string };
+    const result = (await response.json()) as { error?: string; redirect?: string };
 
     if (!response.ok) {
       setError(result.error ?? "Đã có lỗi xảy ra.");
@@ -54,19 +50,19 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
       return;
     }
 
-    window.location.assign(next);
+    window.location.assign(result.redirect ?? next);
   }
 
   return (
     <form action={onSubmit} className="flex h-full w-full flex-col gap-4 overflow-hidden p-4 md:p-5">
       <div>
-        <span className="eyebrow">{mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}</span>
+        
         <h2 className="mt-4 font-serif text-4xl leading-tight text-matcha-deep">
-          {mode === "login" ? "Chào mừng bạn quay lại với LUMIA." : "Tạo không gian LUMIA của riêng bạn."}
+          {mode === "login" ? "Chào mừng bạn quay trở lại!" : "Tạo không gian LUMIA của riêng bạn."}
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted">
           {mode === "login"
-            ? "Hôm nay mình bắt đầu nhẹ nhàng thôi."
+            ? "Hãy lắng nghe bản thân hôm nay."
             : "Bạn có thể xóa dữ liệu cảm xúc và lịch sử trò chuyện bất cứ lúc nào."}
         </p>
       </div>
@@ -123,7 +119,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
       
 
       <div className="mt-auto space-y-3">
-        <button type="submit" disabled={loading} className="button-primary w-full justify-center disabled:opacity-60">
+        <button type="submit" disabled={loading} className="button-primary w-full justify-center disabled:opacity-60 mt-2">
           {loading ? "Đang xử lý..." : mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
         </button>
 

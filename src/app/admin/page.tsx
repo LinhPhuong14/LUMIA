@@ -1,35 +1,35 @@
-import { Boxes, CreditCard, ShieldCheck, Users } from "lucide-react";
+import { Boxes, CreditCard, FileText, Users } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 
 import { SiteHeader } from "@/components/marketing/site-header";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { hasMongoConfig } from "@/lib/env";
-import { requireRole } from "@/lib/auth";
-import { ActivationCodeModel, OrderModel, UserModel } from "@/models";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireRole } from "@/lib/supabase/auth";
 
-const adminCards = [
-  { title: "Sản phẩm", icon: Boxes, copy: "Quản lý hộp quà, mức đồng hành, giá và trạng thái hiển thị." },
-  { title: "Đơn hàng", icon: CreditCard, copy: "Theo dõi tiến trình thanh toán và xử lý đơn theo từng trạng thái." },
-  { title: "Người dùng", icon: Users, copy: "Quản lý vai trò, quyền truy cập và thông tin cơ bản của tài khoản." },
-  { title: "Mã kích hoạt", icon: ShieldCheck, copy: "Theo dõi quà tặng, lượt đổi mã và các trường hợp kích hoạt thủ công." },
+const adminCards: { title: string; href: Route; icon: typeof CreditCard; copy: string }[] = [
+  { title: "Đơn hàng", href: "/admin/orders", icon: CreditCard, copy: "Theo dõi thanh toán và trạng thái giao hàng." },
+  { title: "Người dùng", href: "/admin/users", icon: Users, copy: "Xem subscription, streak và thông tin tài khoản." },
+  { title: "Báo cáo", href: "/admin/reports", icon: FileText, copy: "Xem báo cáo đã generate." },
+  { title: "Shop", href: "/boxes", icon: Boxes, copy: "Xem trang mua hộp như user." },
 ];
 
 export default async function AdminPage() {
-  await requireRole(["admin", "superadmin"]);
+  await requireRole(["admin"]);
 
-  let stats = {
-    users: 0,
-    orders: 0,
-    codes: 0,
-  };
+  let stats = { users: 0, orders: 0, reports: 0 };
+  const admin = createAdminClient();
 
-  if (hasMongoConfig()) {
-    await connectToDatabase();
-    const [users, orders, codes] = await Promise.all([
-      UserModel.countDocuments(),
-      OrderModel.countDocuments(),
-      ActivationCodeModel.countDocuments(),
+  if (admin) {
+    const [users, orders, reports] = await Promise.all([
+      admin.from("profiles").select("id", { count: "exact", head: true }),
+      admin.from("orders").select("id", { count: "exact", head: true }),
+      admin.from("reports").select("id", { count: "exact", head: true }),
     ]);
-    stats = { users, orders, codes };
+    stats = {
+      users: users.count ?? 0,
+      orders: orders.count ?? 0,
+      reports: reports.count ?? 0,
+    };
   }
 
   return (
@@ -38,17 +38,17 @@ export default async function AdminPage() {
       <main className="shell py-14">
         <div className="mb-8">
           <span className="eyebrow">Quản trị nội bộ</span>
-          <h1 className="mt-4 font-serif text-5xl text-matcha-deep">Một không gian vận hành gọn gàng để giữ cho trải nghiệm bên ngoài luôn mềm và đẹp.</h1>
+          <h1 className="mt-4 font-serif text-5xl text-matcha-deep">Không gian vận hành LUMIA</h1>
         </div>
         <div className="grid gap-5 lg:grid-cols-4">
           {adminCards.map((card) => (
-            <article key={card.title} className="soft-card p-5">
+            <Link key={card.title} href={card.href} className="soft-card block p-5 transition hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-matcha-soft text-matcha-deep">
                 <card.icon className="h-5 w-5" />
               </div>
               <h2 className="mt-4 text-lg font-semibold text-matcha-deep">{card.title}</h2>
               <p className="mt-2 text-sm leading-6 text-muted">{card.copy}</p>
-            </article>
+            </Link>
           ))}
         </div>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -61,8 +61,8 @@ export default async function AdminPage() {
             <div className="mt-3 text-4xl font-semibold text-matcha-deep">{stats.orders}</div>
           </div>
           <div className="soft-card p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-muted">Mã kích hoạt</div>
-            <div className="mt-3 text-4xl font-semibold text-matcha-deep">{stats.codes}</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-muted">Báo cáo</div>
+            <div className="mt-3 text-4xl font-semibold text-matcha-deep">{stats.reports}</div>
           </div>
         </div>
       </main>

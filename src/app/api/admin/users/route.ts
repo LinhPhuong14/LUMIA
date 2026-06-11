@@ -1,22 +1,35 @@
 import { NextResponse } from "next/server";
 
-import { getSession } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { hasMongoConfig } from "@/lib/env";
-import { UserModel } from "@/models";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSession } from "@/lib/supabase/auth";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || !["admin", "superadmin"].includes(session.role)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!hasMongoConfig()) {
-    return NextResponse.json([]);
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  await connectToDatabase();
-  return NextResponse.json(await UserModel.find().select("email name role createdAt").sort({ createdAt: -1 }).limit(50).lean());
+  const { data: profiles, error } = await admin.from("profiles").select("*").order("created_at", { ascending: false });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const users = await Promise.all(
+    (profiles ?? []).map(async (profile) => {
+      const [{ data: sub }, { data: streak }] = await Promise.all([
+        admin.from("subscriptions").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        admin.from("streaks").select("*").eq("user_id", profile.id).maybeSingle(),
+      ]);
+      return { ...profile, subscription: sub, streak };
+    }),
+  );
+
+  return NextResponse.json(users);
 }

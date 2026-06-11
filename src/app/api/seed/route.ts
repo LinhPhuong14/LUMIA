@@ -1,97 +1,70 @@
 import { NextResponse } from "next/server";
 
-import { hashPassword } from "@/lib/auth";
-import { defaultFeatureFlags } from "@/data/flags";
-import { lumiaProducts } from "@/data/catalog";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { hasMongoConfig } from "@/lib/env";
-import { ActivationCodeModel, FeatureFlagModel, ProductModel, SubscriptionPlanModel, UserModel } from "@/models";
+import { env, hasSupabaseServiceRole } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const sampleAudioTracks = [
+  { title: "Tiếng mưa nhẹ", category: "sleep_sound", duration_seconds: 600, is_free: true, sort_order: 1 },
+  { title: "Gió trong rừng", category: "sleep_sound", duration_seconds: 720, is_free: true, sort_order: 2 },
+  { title: "Chuyện kể buổi tối", category: "sleep_cast", duration_seconds: 900, is_free: false, sort_order: 3 },
+  { title: "Thả lỏng cơ thể", category: "wind_down", duration_seconds: 480, is_free: false, sort_order: 4 },
+  { title: "Nhạc ngủ dịu", category: "sleep_music", duration_seconds: 1200, is_free: false, sort_order: 5 },
+  { title: "Thiền hướng dẫn 10 phút", category: "guided_meditation", duration_seconds: 600, is_free: false, sort_order: 6 },
+  { title: "Thiền mini 5 phút", category: "mini_meditation", duration_seconds: 300, is_free: true, sort_order: 7 },
+  { title: "Ambient timer", category: "timer_ambient", duration_seconds: 1800, is_free: false, sort_order: 8 },
+] as const;
 
 export const runtime = "nodejs";
 
-export async function POST() {
-  if (!hasMongoConfig()) {
-    return NextResponse.json({ error: "MongoDB chua duoc cau hinh." }, { status: 503 });
+export async function POST(request: Request) {
+  if (process.env.VERCEL_ENV === "production") {
+    const secret = request.headers.get("x-seed-secret");
+    if (!env.SEED_SECRET || secret !== env.SEED_SECRET) {
+      return NextResponse.json({ error: "Seed disabled in production." }, { status: 403 });
+    }
   }
 
-  await connectToDatabase();
+  if (!hasSupabaseServiceRole()) {
+    return NextResponse.json({ error: "Supabase service role chua duoc cau hinh." }, { status: 503 });
+  }
 
-  await Promise.all(
-    lumiaProducts.map((product) =>
-      ProductModel.updateOne(
-        { slug: product.slug },
-        {
-          $set: {
-            slug: product.slug,
-            name: product.name,
-            tier: product.tier,
-            tagline: product.tagline,
-            description: product.description,
-            price: product.price,
-            durationMonths: product.durationMonths,
-            features: product.features,
-            status: "published",
-          },
-        },
-        { upsert: true },
-      ),
-    ),
-  );
+  const admin = createAdminClient()!;
 
-  await Promise.all(
-    lumiaProducts.map((product) =>
-      SubscriptionPlanModel.updateOne(
-        { code: product.tier },
-        {
-          $set: {
-            code: product.tier,
-            name: product.name,
-            tier: product.tier,
-            durationMonths: product.durationMonths,
-            features: product.features,
-          },
-        },
-        { upsert: true },
-      ),
-    ),
-  );
-
-  await Promise.all(
-    Object.entries(defaultFeatureFlags).map(([key, enabled]) =>
-      FeatureFlagModel.updateOne({ key }, { $set: { key, enabled } }, { upsert: true }),
-    ),
-  );
-
-  await ActivationCodeModel.updateOne(
-    { code: "LUMIA-DEEP-3M-2026" },
-    {
-      $set: {
-        code: "LUMIA-DEEP-3M-2026",
-        tier: "3m",
-        durationMonths: 3,
-        isRedeemed: false,
-      },
-    },
-    { upsert: true },
-  );
+  const { count } = await admin.from("audio_tracks").select("id", { count: "exact", head: true });
+  if (!count) {
+    await admin.from("audio_tracks").insert([...sampleAudioTracks]);
+  }
 
   const adminEmail = "admin@lumia.vn";
-  const existingAdmin = await UserModel.findOne({ email: adminEmail });
+  const adminPassword = "Lum1aAdmin!";
+
+  const { data: existingUsers } = await admin.auth.admin.listUsers();
+  const existingAdmin = existingUsers.users.find((u) => u.email === adminEmail);
+
   if (!existingAdmin) {
-    await UserModel.create({
+    const { data: created, error } = await admin.auth.admin.createUser({
       email: adminEmail,
-      name: "LUMIA Admin",
-      role: "superadmin",
-      passwordHash: await hashPassword("Lum1aAdmin!"),
+      password: adminPassword,
+      email_confirm: true,
+      user_metadata: { full_name: "LUMIA Admin" },
     });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (created.user) {
+      await admin.from("profiles").update({ role: "admin", full_name: "LUMIA Admin" }).eq("id", created.user.id);
+    }
+  } else {
+    await admin.from("profiles").update({ role: "admin" }).eq("id", existingAdmin.id);
   }
 
   return NextResponse.json({
     ok: true,
-    seeded: true,
-    adminCredentials: {
-      email: adminEmail,
-      password: "Lum1aAdmin!",
-    },
+    adminEmail,
+    adminPassword,
+    audioTracks: sampleAudioTracks.length,
+    note: "Doi mat khau admin ngoai moi truong local.",
   });
 }

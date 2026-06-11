@@ -12,7 +12,7 @@ export default async function RegisterPage({
 
   return (
     <div className="min-h-screen overflow-hidden">
-      <SiteHeader />
+      
       <main className="shell grid min-h-[calc(100dvh-80px)] gap-6 py-6 lg:grid-cols-[1fr_0.94fr] lg:items-center lg:overflow-hidden">
         <section className="liquid-panel relative hidden min-h-[calc(100dvh-150px)] overflow-hidden p-6 lg:flex lg:flex-col lg:justify-between">
           <div className="absolute left-8 top-8 h-28 w-28 rounded-full bg-champagne/55 blur-3xl" />
@@ -39,7 +39,7 @@ export default async function RegisterPage({
         </section>
 
         <div className="hero-card h-full max-h-[calc(100dvh-150px)] overflow-hidden p-4 md:p-5">
-          <AuthForm mode="register" next={params.next ?? "/boxes?onboarding=1"} />
+          <AuthForm mode="register" next={params.next ?? "/onboarding"} />
         </div>
       </main>
     </div>

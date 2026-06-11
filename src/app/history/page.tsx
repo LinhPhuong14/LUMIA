@@ -1,5 +1,5 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { requireSession } from "@/lib/auth";
+import { requireSession } from "@/lib/supabase/auth";
 
 const entries = [
   { day: "03/06", mood: "Mệt", summary: "Hôm nay mình thấy hơi quá tải vì công việc." },

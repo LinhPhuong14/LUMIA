@@ -1,136 +1,118 @@
-import { Types } from "mongoose";
+import type { OrderStatus } from "@/lib/supabase/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { OrderModel } from "@/models";
-
-export const orderStatusLabels = {
-  draft: "Đang chuẩn bị",
+export const orderStatusLabels: Record<OrderStatus, string> = {
   pending_payment: "Chờ thanh toán",
   paid: "Đã thanh toán",
-  provisioning: "Đang mở quyền truy cập",
-  fulfilled: "Đã hoàn tất",
-  cancelled: "Đã hủy",
-  refunded: "Đã hoàn tiền",
-} as const;
-
-export type OrderStatusCode = keyof typeof orderStatusLabels;
-
-export type OrderHistoryItem = {
-  productSlug: string;
-  productName: string;
-  quantity: number;
-  tier: string;
-  unitPrice: number;
+  preparing: "Đang chuẩn bị",
+  shipping: "Đang giao hàng",
+  delivered: "Đã giao hàng",
 };
 
-export type OrderHistoryEntry = {
+export type OrderEntry = {
   id: string;
-  orderCode: number;
-  status: OrderStatusCode;
-  totalAmount: number;
-  tier: string;
-  createdAt: Date;
-  items: OrderHistoryItem[];
+  status: OrderStatus;
+  payosOrderId: string | null;
+  amount: number;
+  createdAt: string;
 };
 
-function normalizeOrder(order: {
-  _id?: unknown;
-  id?: string;
-  orderCode: number;
-  status: OrderStatusCode;
-  totalAmount: number;
-  tier: string;
-  createdAt: Date;
-  items?: Array<{
-    productSlug: string;
-    productName: string;
-    quantity: number;
-    tier: string;
-    unitPrice: number;
-  }>;
-}): OrderHistoryEntry {
+export function getOrderStatusLabel(status: string) {
+  return orderStatusLabels[status as OrderStatus] ?? "Đang xử lý";
+}
+
+export async function getRecentOrdersForUser(userId: string, limit = 5): Promise<OrderEntry[]> {
+  const admin = createAdminClient();
+  if (!admin) {
+    return [];
+  }
+
+  const { data } = await admin
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((order) => ({
+    id: order.id,
+    status: order.status as OrderStatus,
+    payosOrderId: order.payos_order_id,
+    amount: order.amount,
+    createdAt: order.created_at,
+  }));
+}
+
+export async function getLatestOrderForUser(userId: string): Promise<OrderEntry | null> {
+  const [latest] = await getRecentOrdersForUser(userId, 1);
+  return latest ?? null;
+}
+
+export async function getDeliveredOrderForUser(userId: string): Promise<OrderEntry | null> {
+  const admin = createAdminClient();
+  if (!admin) {
+    return null;
+  }
+
+  const { data } = await admin
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "delivered")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    return null;
+  }
+
   return {
-    id: order.id ?? String(order._id ?? order.orderCode),
-    orderCode: order.orderCode,
-    status: order.status,
-    totalAmount: order.totalAmount,
-    tier: order.tier,
-    createdAt: order.createdAt,
-    items:
-      order.items?.map((item) => ({
-        productSlug: item.productSlug,
-        productName: item.productName,
-        quantity: item.quantity,
-        tier: item.tier,
-        unitPrice: item.unitPrice,
-      })) ?? [],
+    id: data.id,
+    status: data.status as OrderStatus,
+    payosOrderId: data.payos_order_id,
+    amount: data.amount,
+    createdAt: data.created_at,
   };
 }
 
-function isValidUserId(userId: string) {
-  return Types.ObjectId.isValid(userId);
-}
-
-export function getOrderStatusLabel(status: string) {
-  return orderStatusLabels[status as OrderStatusCode] ?? "Đang xử lý";
-}
-
-export function getOrderPrimaryProduct(order: OrderHistoryEntry) {
-  return order.items[0] ?? null;
-}
-
-export async function getRecentOrdersForUser(userId: string, limit = 5): Promise<OrderHistoryEntry[]> {
-  if (!isValidUserId(userId)) {
-    return [] satisfies OrderHistoryEntry[];
+export async function createOrder(params: {
+  userId: string;
+  payosOrderId: string;
+  amount: number;
+}) {
+  const admin = createAdminClient();
+  if (!admin) {
+    throw new Error("Supabase service role not configured.");
   }
 
-  const orders = await OrderModel.find({ userId })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
+  const { data, error } = await admin
+    .from("orders")
+    .insert({
+      user_id: params.userId,
+      payos_order_id: params.payosOrderId,
+      amount: params.amount,
+      status: "pending_payment",
+    })
+    .select()
+    .single();
 
-  return orders.map((order) =>
-    normalizeOrder({
-      _id: order._id,
-      id: String(order._id),
-      orderCode: order.orderCode,
-      status: order.status as OrderStatusCode,
-      totalAmount: order.totalAmount,
-      tier: order.tier,
-      createdAt: order.createdAt,
-      items: order.items,
-    }),
-  );
-}
-
-export async function getLatestOrderForUser(userId: string): Promise<OrderHistoryEntry | null> {
-  const [latestOrder] = await getRecentOrdersForUser(userId, 1);
-  return latestOrder ?? null;
-}
-
-export async function getLatestCompletedOrderForUser(userId: string): Promise<OrderHistoryEntry | null> {
-  if (!isValidUserId(userId)) {
-    return null;
+  if (error) {
+    throw error;
   }
 
-  const order = await OrderModel.findOne({
-    userId,
-    status: { $in: ["paid", "provisioning", "fulfilled"] },
-  })
-    .sort({ createdAt: -1 })
-    .lean();
+  return data;
+}
 
-  if (!order) {
-    return null;
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+  const admin = createAdminClient();
+  if (!admin) {
+    throw new Error("Supabase service role not configured.");
   }
 
-  return normalizeOrder({
-    _id: order._id,
-    id: String(order._id),
-    orderCode: order.orderCode,
-    status: order.status as OrderStatusCode,
-    totalAmount: order.totalAmount,
-    tier: order.tier,
-    createdAt: order.createdAt,
-    items: order.items,
-  });
+  const { data, error } = await admin.from("orders").update({ status }).eq("id", orderId).select().single();
+  if (error) {
+    throw error;
+  }
+  return data;
 }

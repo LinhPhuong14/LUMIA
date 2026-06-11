@@ -1,0 +1,45 @@
+import OpenAI from "openai";
+
+import { env, hasLlmConfig } from "@/lib/env";
+
+let client: OpenAI | null = null;
+
+function getClient() {
+  if (!hasLlmConfig()) {
+    throw new Error("LLM not configured.");
+  }
+  if (!client) {
+    client = new OpenAI({
+      apiKey: env.LLM_API_KEY,
+      baseURL: env.LLM_BASE_URL,
+    });
+  }
+  return client;
+}
+
+export async function llmComplete(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
+  const openai = getClient();
+  const resp = await openai.chat.completions.create({
+    model: env.LLM_MODEL,
+    messages,
+    max_tokens: env.LLM_MAX_TOKENS,
+    temperature: env.LLM_TEMPERATURE,
+  });
+  return resp.choices[0]?.message?.content ?? "";
+}
+
+export async function* llmStream(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
+  const openai = getClient();
+  const stream = await openai.chat.completions.create({
+    model: env.LLM_MODEL,
+    messages,
+    max_tokens: env.LLM_MAX_TOKENS,
+    temperature: env.LLM_TEMPERATURE,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) yield delta;
+  }
+}

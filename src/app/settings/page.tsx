@@ -1,6 +1,6 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SettingsPanel } from "@/components/dashboard/settings-panel";
-import { requireSession } from "@/lib/auth";
+import { requireSession } from "@/lib/supabase/auth";
 
 export default async function SettingsPage() {
   const session = await requireSession();

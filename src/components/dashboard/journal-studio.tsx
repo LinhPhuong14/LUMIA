@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -10,27 +11,77 @@ const prompts = [
   "Nếu dịu lại 1%, bạn sẽ làm gì trước?",
 ] as const;
 
-const moods = ["Bình yên", "Mệt", "Lo", "Buồn", "Căng", "Trống rỗng"] as const;
-const reasons = ["Công việc", "Học tập", "Gia đình", "Tình cảm", "Sức khỏe", "Tài chính", "Không rõ"] as const;
-
 type JournalMode = "release" | "journal" | "mood";
 
-export function JournalStudio({ initialMode = "release" }: { initialMode?: JournalMode }) {
+export function JournalStudio({
+  initialMode = "release",
+  isActive = false,
+}: {
+  initialMode?: JournalMode;
+  isActive?: boolean;
+}) {
   const [mode, setMode] = useState<JournalMode>(initialMode);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [selectedMood, setSelectedMood] = useState("Mệt");
-  const [selectedReason, setSelectedReason] = useState("Không rõ");
   const [intensity, setIntensity] = useState(3);
+  const [releaseText, setReleaseText] = useState("");
+  const [journalText, setJournalText] = useState("");
+  const [moodNote, setMoodNote] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const particles = useMemo(() => Array.from({ length: 9 }), []);
 
-  function onSoftSave(message: string) {
-    setSavedMessage(message);
-    window.setTimeout(() => setSavedMessage(null), 2200);
+  async function saveJournal(content: string, promptUsed?: string) {
+    if (!isActive) return;
+    setLoading(true);
+    const response = await fetch("/api/journal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, promptUsed }),
+    });
+    setLoading(false);
+    if (response.ok) {
+      setSavedMessage("Nhật ký hôm nay đã được lưu.");
+      window.setTimeout(() => setSavedMessage(null), 2200);
+    }
+  }
+
+  async function saveMood() {
+    setLoading(true);
+    const response = await fetch("/api/mood", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score: intensity, note: moodNote || undefined }),
+    });
+    setLoading(false);
+    if (response.ok) {
+      setSavedMessage("Đã lưu cảm xúc hiện tại của bạn.");
+      window.setTimeout(() => setSavedMessage(null), 2200);
+    }
+  }
+
+  async function saveRelease() {
+    if (!releaseText.trim()) return;
+    if (isActive) {
+      await saveJournal(releaseText, "Xả nhanh");
+    } else {
+      setSavedMessage("Bạn đã đặt cảm xúc này xuống một chút rồi.");
+      window.setTimeout(() => setSavedMessage(null), 2200);
+    }
+    setReleaseText("");
   }
 
   return (
     <div className="space-y-6">
+      {!isActive ? (
+        <div className="rounded-[24px] border border-[#F4D878]/50 bg-[#FFFDF5] px-5 py-4 text-sm text-matcha-deep">
+          Viết nhật ký đầy đủ cần hành trình active.{" "}
+          <Link href="/boxes" className="font-semibold underline">
+            Mua hộp LUMIA
+          </Link>{" "}
+          để mở khóa.
+        </div>
+      ) : null}
+
       <div className="inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm">
         {[
           { key: "release", label: "Xả nhanh" },
@@ -51,31 +102,17 @@ export function JournalStudio({ initialMode = "release" }: { initialMode?: Journ
       </div>
 
       {mode === "release" ? (
-        <section className="hero-card relative overflow-hidden p-8 md:p-10">
+        <section className="hero-card p-8">
           <span className="eyebrow">Xả nhanh</span>
-          <h2 className="mt-4 font-serif text-5xl leading-tight text-matcha-deep">Cứ viết ra. Không cần đúng. Không cần hay.</h2>
           <textarea
-            className="mt-8 min-h-72 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none ring-matcha/20 focus:ring-4"
+            value={releaseText}
+            onChange={(e) => setReleaseText(e.target.value)}
+            className="mt-6 min-h-56 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none"
             placeholder="Hôm nay có điều gì bạn muốn đặt xuống không?"
           />
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <div className="relative h-14">
-              {savedMessage ? (
-                <div className="absolute inset-0 flex items-center gap-2 text-sm text-matcha-deep">
-                  {particles.map((_, index) => (
-                    <span
-                      key={index}
-                      className="absolute h-2.5 w-2.5 rounded-full bg-[#F4D878] animate-particle-rise"
-                      style={{ left: `${index * 12}px`, animationDelay: `${index * 0.06}s` }}
-                    />
-                  ))}
-                  <span className="relative z-10">{savedMessage}</span>
-                </div>
-              ) : (
-                <p className="text-sm text-muted">Viết ra vừa đủ thôi, mình không cần cố trọn vẹn ngay.</p>
-              )}
-            </div>
-            <button type="button" onClick={() => onSoftSave("Bạn đã đặt cảm xúc này xuống một chút rồi.")} className="button-primary">
+          <div className="mt-6 flex justify-between gap-4">
+            {savedMessage ? <span className="text-sm text-matcha-deep">{savedMessage}</span> : <span />}
+            <button type="button" onClick={saveRelease} disabled={loading} className="button-primary">
               Xả đi
             </button>
           </div>
@@ -83,32 +120,29 @@ export function JournalStudio({ initialMode = "release" }: { initialMode?: Journ
       ) : null}
 
       {mode === "journal" ? (
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="hero-card p-8 md:p-10">
-            <span className="eyebrow">Nhật ký có gợi mở</span>
-            <h2 className="mt-4 font-serif text-5xl leading-tight text-matcha-deep">Một câu hỏi nhỏ cho hôm nay.</h2>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <section className="hero-card p-8">
+            <span className="eyebrow">Nhật ký</span>
             <textarea
-              className="mt-8 min-h-72 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none ring-matcha/20 focus:ring-4"
-              placeholder="Bắt đầu từ câu hỏi khiến bạn muốn viết nhất..."
+              value={journalText}
+              onChange={(e) => setJournalText(e.target.value)}
+              disabled={!isActive}
+              className="mt-6 min-h-56 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none disabled:opacity-50"
+              placeholder="Bắt đầu viết..."
             />
-            <div className="mt-6 flex items-center justify-between gap-4">
-              <p className="text-sm text-muted">{savedMessage ?? "Không cần viết dài. Một dòng thật cũng đủ."}</p>
-              <button type="button" onClick={() => onSoftSave("Nhật ký hôm nay đã được lưu nhẹ nhàng.")} className="button-primary">
-                Lưu nhật ký
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => saveJournal(journalText, prompts[0])}
+              disabled={!isActive || loading}
+              className="button-primary mt-4 disabled:opacity-50"
+            >
+              Lưu nhật ký
+            </button>
           </section>
-          <aside className="grid gap-4">
+          <aside className="grid gap-3">
             {prompts.map((prompt, index) => (
-              <motion.article
-                key={prompt}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.06 }}
-                className="soft-card p-6"
-              >
-                <p className="text-base leading-7 text-matcha-deep">{prompt}</p>
+              <motion.article key={prompt} {...{ initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: index * 0.05 } }} className="soft-card p-5">
+                <p className="text-sm text-matcha-deep">{prompt}</p>
               </motion.article>
             ))}
           </aside>
@@ -116,28 +150,11 @@ export function JournalStudio({ initialMode = "release" }: { initialMode?: Journ
       ) : null}
 
       {mode === "mood" ? (
-        <section className="soft-card p-8 md:p-10">
+        <section className="soft-card p-8">
           <span className="eyebrow">Ghi nhận cảm xúc</span>
-          <h2 className="mt-4 font-serif text-5xl leading-tight text-matcha-deep">Ghi nhận cảm xúc hiện tại.</h2>
-
-          <div className="mt-7 flex flex-wrap gap-3">
-            {moods.map((mood) => (
-              <button
-                key={mood}
-                type="button"
-                onClick={() => setSelectedMood(mood)}
-                className={`rounded-full px-4 py-2 text-sm transition ${
-                  selectedMood === mood ? "bg-matcha text-white" : "border border-matcha-soft bg-white text-matcha-deep"
-                }`}
-              >
-                {mood}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-7">
-            <div className="flex items-center justify-between text-sm text-muted">
-              <span>Mức độ cảm xúc</span>
+          <div className="mt-6">
+            <div className="flex justify-between text-sm text-muted">
+              <span>Mức độ</span>
               <span>{intensity}/5</span>
             </div>
             <input
@@ -145,37 +162,20 @@ export function JournalStudio({ initialMode = "release" }: { initialMode?: Journ
               min={1}
               max={5}
               value={intensity}
-              onChange={(event) => setIntensity(Number(event.target.value))}
-              className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[linear-gradient(90deg,#DDE8D2,#FFF3C7)]"
+              onChange={(e) => setIntensity(Number(e.target.value))}
+              className="mt-3 h-2 w-full"
             />
           </div>
-
-          <div className="mt-7 flex flex-wrap gap-3">
-            {reasons.map((reason) => (
-              <button
-                key={reason}
-                type="button"
-                onClick={() => setSelectedReason(reason)}
-                className={`rounded-full px-4 py-2 text-sm transition ${
-                  selectedReason === reason ? "bg-[#FFF3C7] text-matcha-deep" : "border border-white/70 bg-white text-muted"
-                }`}
-              >
-                {reason}
-              </button>
-            ))}
-          </div>
-
           <textarea
-            className="mt-7 min-h-32 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none ring-matcha/20 focus:ring-4"
-            placeholder="Một ghi chú ngắn cho chính mình..."
+            value={moodNote}
+            onChange={(e) => setMoodNote(e.target.value)}
+            className="mt-6 min-h-28 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 outline-none"
+            placeholder="Ghi chú ngắn..."
           />
-
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted">{savedMessage ?? "Chỉ cần đủ để bạn nhìn lại mình rõ hơn một chút."}</p>
-            <button type="button" onClick={() => onSoftSave("Đã lưu cảm xúc hiện tại của bạn.")} className="button-primary">
-              Lưu cảm xúc
-            </button>
-          </div>
+          <button type="button" onClick={saveMood} disabled={loading} className="button-primary mt-4">
+            Lưu cảm xúc
+          </button>
+          {savedMessage ? <p className="mt-3 text-sm text-matcha-deep">{savedMessage}</p> : null}
         </section>
       ) : null}
     </div>

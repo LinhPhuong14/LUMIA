@@ -1,22 +1,29 @@
 import { NextResponse } from "next/server";
 
-import { getSession } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db/mongoose";
-import { hasMongoConfig } from "@/lib/env";
-import { OrderModel } from "@/models";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSession } from "@/lib/supabase/auth";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || !["admin", "superadmin"].includes(session.role)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!hasMongoConfig()) {
-    return NextResponse.json([]);
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  await connectToDatabase();
-  return NextResponse.json(await OrderModel.find().sort({ createdAt: -1 }).limit(50).lean());
+  const { data, error } = await admin
+    .from("orders")
+    .select("*, profiles(full_name, email)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
 }

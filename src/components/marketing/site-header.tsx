@@ -2,21 +2,18 @@ import type { Route } from "next";
 import Link from "next/link";
 
 import { LumiaLogo } from "@/components/ui/logo";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/supabase/auth";
 import { cn } from "@/lib/utils";
 
 const baseLinks: { href: Route; label: string }[] = [
   { href: "/boxes", label: "Hộp LUMIA" },
-  { href: "/activate", label: "Kích hoạt" },
   { href: "/dashboard", label: "Không gian của bạn" },
 ];
 
 export async function SiteHeader({ transparent = false }: { transparent?: boolean }) {
   const session = await getSession();
   const links =
-    session && ["admin", "superadmin"].includes(session.role)
-      ? [...baseLinks, { href: "/admin" as Route, label: "Quản trị" }]
-      : baseLinks;
+    session?.role === "admin" ? [...baseLinks, { href: "/admin" as Route, label: "Quản trị" }] : baseLinks;
 
   return (
     <header className={cn("sticky top-0 z-50 border-b border-white/70 backdrop-blur-xl", transparent ? "bg-white/42" : "bg-white/82")}>
@@ -39,7 +36,7 @@ export async function SiteHeader({ transparent = false }: { transparent?: boolea
               <Link href="/login" className="text-sm font-medium text-matcha-deep">
                 Đăng nhập
               </Link>
-              <Link href={"/register?next=/boxes?onboarding=1" as Route} className="button-primary">
+              <Link href={"/register?next=/onboarding" as Route} className="button-primary">
                 Tạo tài khoản
               </Link>
             </>
