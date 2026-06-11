@@ -12,11 +12,22 @@ export const env = {
   DEMO_MODE: resolveDemoMode(),
   VERCEL_ENV: process.env.VERCEL_ENV,
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
-  SUPABASE_ANON_KEY:
+  /** Publishable key — `sb_publishable_...` (thay anon key cũ) */
+  SUPABASE_PUBLISHABLE_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_ANON_KEY,
+  /** Secret key — `sb_secret_...` (thay service_role cũ), server-only */
+  SUPABASE_SECRET_KEY:
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+  /** @deprecated alias — dùng SUPABASE_PUBLISHABLE_KEY */
+  SUPABASE_ANON_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_ANON_KEY,
+  /** @deprecated alias — dùng SUPABASE_SECRET_KEY */
+  SUPABASE_SERVICE_ROLE_KEY:
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID,
   PAYOS_API_KEY: process.env.PAYOS_API_KEY,
   PAYOS_CHECKSUM_KEY: process.env.PAYOS_CHECKSUM_KEY,
@@ -33,11 +44,16 @@ export const env = {
 };
 
 export function hasSupabaseConfig() {
-  return Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY);
+  return Boolean(env.SUPABASE_URL && env.SUPABASE_PUBLISHABLE_KEY);
 }
 
+export function hasSupabaseSecretKey() {
+  return Boolean(env.SUPABASE_URL && env.SUPABASE_SECRET_KEY);
+}
+
+/** @deprecated use hasSupabaseSecretKey */
 export function hasSupabaseServiceRole() {
-  return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+  return hasSupabaseSecretKey();
 }
 
 export function hasPayOSConfig() {

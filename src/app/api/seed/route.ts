@@ -25,7 +25,10 @@ export async function POST(request: Request) {
   }
 
   if (!hasSupabaseServiceRole()) {
-    return NextResponse.json({ error: "Supabase service role chua duoc cau hinh." }, { status: 503 });
+    return NextResponse.json(
+      { error: "SUPABASE_SECRET_KEY chua duoc cau hinh (Supabase Dashboard > API Keys > Secret key)." },
+      { status: 503 },
+    );
   }
 
   const admin = createAdminClient()!;
