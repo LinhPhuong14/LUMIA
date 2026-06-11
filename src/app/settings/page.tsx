@@ -7,13 +7,17 @@ export default async function SettingsPage() {
 
   return (
     <DashboardShell
-      currentPath="/settings"
       sessionName={session.name}
-      planLabel="Hộp LUMIA Mỗi ngày"
+      planLabel="Cài đặt"
       title="Cài đặt và quyền riêng tư"
-      subtitle="Bạn có thể kiểm soát dữ liệu cảm xúc, lịch sử trò chuyện và cách LUMIA phản hồi với mình bất cứ lúc nào."
+      subtitle="Kiểm soát mục tiêu, dữ liệu cảm xúc và cách LUMIA phản hồi với bạn."
+      isAdmin={session.role === "admin"}
     >
-      <SettingsPanel />
+      <SettingsPanel
+        initialGoal={session.onboardingGoal}
+        userName={session.name}
+        userEmail={session.email}
+      />
     </DashboardShell>
   );
 }

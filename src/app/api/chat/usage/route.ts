@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
 const FREE_DAILY_LIMIT = 3;
@@ -19,13 +19,13 @@ export async function GET() {
     return NextResponse.json({ limit: null, used: 0, remaining: null, isActive: true });
   }
 
-  const admin = createAdminClient();
-  if (!admin) {
+  const supabase = await createClient();
+  if (!supabase) {
     return NextResponse.json({ limit: FREE_DAILY_LIMIT, used: 0, remaining: FREE_DAILY_LIMIT, isActive: false });
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data } = await admin
+  const { data } = await supabase
     .from("chat_daily_usage")
     .select("count")
     .eq("user_id", session.id)

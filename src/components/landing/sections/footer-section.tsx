@@ -49,7 +49,7 @@ export function FooterSection() {
           <div className="text-[15px] font-semibold text-[#2f2b25]">Hỗ trợ</div>
           <div className="mt-4 grid gap-3 text-[14px] text-muted">
             <a href="/boxes">Mua hộp LUMIA</a>
-            <a href="/subscription">Gói của tôi</a>
+            <a href="/account">Account</a>
             <a href="/settings">Cài đặt riêng tư</a>
             <a href="/checkout">Thanh toán</a>
           </div>

@@ -18,7 +18,12 @@ export async function GET(request: Request) {
 
   let query = supabase.from("audio_tracks").select("*").order("sort_order", { ascending: true });
   if (category) {
-    query = query.eq("category", category);
+    const categories = category.split(",").map((c) => c.trim()).filter(Boolean);
+    if (categories.length === 1) {
+      query = query.eq("category", categories[0]);
+    } else if (categories.length > 1) {
+      query = query.in("category", categories);
+    }
   }
 
   const { data, error } = await query;
@@ -27,7 +32,10 @@ export async function GET(request: Request) {
   }
 
   const snapshot = session ? await getSubscriptionSnapshot(session.id) : { isActive: false };
-  const tracks = (data ?? []).filter((track) => snapshot.isActive || track.is_free);
+  const tracks = (data ?? []).map((track) => ({
+    ...track,
+    locked: !snapshot.isActive && !track.is_free,
+  }));
 
   return NextResponse.json(tracks);
 }

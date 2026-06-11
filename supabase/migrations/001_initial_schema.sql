@@ -185,6 +185,20 @@ CREATE TRIGGER subscriptions_updated_at
   BEFORE UPDATE ON public.subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+-- Admin check (SECURITY DEFINER bypasses RLS — avoids infinite recursion in policies)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
 -- RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
@@ -203,21 +217,15 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 -- Profiles policies
 CREATE POLICY "Users read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Admins read all profiles" ON public.profiles FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
-);
+CREATE POLICY "Admins read all profiles" ON public.profiles FOR SELECT USING (public.is_admin());
 
 -- Orders policies
 CREATE POLICY "Users read own orders" ON public.orders FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Admins manage orders" ON public.orders FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
-);
+CREATE POLICY "Admins manage orders" ON public.orders FOR ALL USING (public.is_admin());
 
 -- Subscriptions policies
 CREATE POLICY "Users read own subscription" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Admins read subscriptions" ON public.subscriptions FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
-);
+CREATE POLICY "Admins read subscriptions" ON public.subscriptions FOR SELECT USING (public.is_admin());
 
 -- Journal policies
 CREATE POLICY "Users manage own journal" ON public.journal_entries FOR ALL USING (auth.uid() = user_id);
@@ -237,6 +245,7 @@ CREATE POLICY "Anyone reads audio tracks" ON public.audio_tracks FOR SELECT USIN
 -- Activity & streak
 CREATE POLICY "Users manage own activity" ON public.activity_logs FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users read own streak" ON public.streaks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users update own streak" ON public.streaks FOR UPDATE USING (auth.uid() = user_id);
 
 -- Reports
 CREATE POLICY "Users read own reports" ON public.reports FOR SELECT USING (auth.uid() = user_id);

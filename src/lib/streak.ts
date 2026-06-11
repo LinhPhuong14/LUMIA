@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getServiceOrUserClient } from "@/lib/supabase/db";
 import type { ActivityType } from "@/lib/supabase/types";
 
 function todayDateString() {
@@ -12,28 +12,22 @@ function yesterdayDateString() {
 }
 
 export async function logActivity(userId: string, activityType: ActivityType) {
-  const admin = createAdminClient();
-  if (!admin) {
+  const client = await getServiceOrUserClient();
+  if (!client) {
     return null;
   }
 
   const today = todayDateString();
 
-  await admin.from("activity_logs").insert({
+  await client.from("activity_logs").insert({
     user_id: userId,
     activity_type: activityType,
     date: today,
   });
 
-  const { data: streak } = await admin.from("streaks").select("*").eq("user_id", userId).maybeSingle();
+  const { data: streak } = await client.from("streaks").select("*").eq("user_id", userId).maybeSingle();
   if (!streak) {
-    await admin.from("streaks").insert({
-      user_id: userId,
-      current_streak: 1,
-      longest_streak: 1,
-      last_active_date: today,
-    });
-    return { current_streak: 1, longest_streak: 1 };
+    return { current_streak: 0, longest_streak: 0 };
   }
 
   if (streak.last_active_date === today) {
@@ -44,7 +38,7 @@ export async function logActivity(userId: string, activityType: ActivityType) {
   const currentStreak = streak.last_active_date === yesterday ? streak.current_streak + 1 : 1;
   const longestStreak = Math.max(streak.longest_streak, currentStreak);
 
-  const { data: updated } = await admin
+  const { data: updated } = await client
     .from("streaks")
     .update({
       current_streak: currentStreak,
@@ -59,12 +53,12 @@ export async function logActivity(userId: string, activityType: ActivityType) {
 }
 
 export async function getStreak(userId: string) {
-  const admin = createAdminClient();
-  if (!admin) {
+  const client = await getServiceOrUserClient();
+  if (!client) {
     return { current_streak: 0, longest_streak: 0, badges: [] as string[] };
   }
 
-  const { data: streak } = await admin.from("streaks").select("*").eq("user_id", userId).maybeSingle();
+  const { data: streak } = await client.from("streaks").select("*").eq("user_id", userId).maybeSingle();
   const current = streak?.current_streak ?? 0;
   const badges: string[] = [];
   if (current >= 7) badges.push("Ngày 7");

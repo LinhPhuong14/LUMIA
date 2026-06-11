@@ -19,6 +19,30 @@ function computeResult(avg: number) {
 
 export const runtime = "nodejs";
 
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ hasTaken: false, results: [] });
+  }
+
+  const { data } = await admin
+    .from("mood_test_results")
+    .select("*")
+    .eq("user_id", session.id)
+    .order("created_at", { ascending: false });
+
+  return NextResponse.json({
+    hasTaken: (data?.length ?? 0) > 0,
+    count: data?.length ?? 0,
+    latest: data?.[0] ?? null,
+  });
+}
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {

@@ -6,8 +6,8 @@ import type { ChatHistoryMessage } from "@/lib/ai/chat-pipeline";
 import { env, hasLlmConfig } from "@/lib/env";
 import { logActivity } from "@/lib/streak";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession } from "@/lib/supabase/auth";
 
 const FREE_DAILY_LIMIT = 3;
@@ -15,12 +15,9 @@ const schema = z.object({ message: z.string().min(1).max(2000) });
 
 export const runtime = "nodejs";
 
-async function incrementDailyUsage(userId: string) {
-  const admin = createAdminClient();
-  if (!admin) return;
-
+async function incrementDailyUsage(supabase: SupabaseClient, userId: string) {
   const today = new Date().toISOString().slice(0, 10);
-  const { data: existing } = await admin
+  const { data: existing } = await supabase
     .from("chat_daily_usage")
     .select("*")
     .eq("user_id", userId)
@@ -28,9 +25,9 @@ async function incrementDailyUsage(userId: string) {
     .maybeSingle();
 
   if (existing) {
-    await admin.from("chat_daily_usage").update({ count: existing.count + 1 }).eq("id", existing.id);
+    await supabase.from("chat_daily_usage").update({ count: existing.count + 1 }).eq("id", existing.id);
   } else {
-    await admin.from("chat_daily_usage").insert({ user_id: userId, date: today, count: 1 });
+    await supabase.from("chat_daily_usage").insert({ user_id: userId, date: today, count: 1 });
   }
 }
 
@@ -66,12 +63,11 @@ export async function POST(request: Request) {
   }
 
   const snapshot = await getSubscriptionSnapshot(session.id);
-  const admin = createAdminClient();
   const supabase = await createClient();
 
-  if (!snapshot.isActive && admin) {
+  if (!snapshot.isActive && supabase) {
     const today = new Date().toISOString().slice(0, 10);
-    const { data: usage } = await admin
+    const { data: usage } = await supabase
       .from("chat_daily_usage")
       .select("count")
       .eq("user_id", session.id)
@@ -126,7 +122,7 @@ export async function POST(request: Request) {
             ]);
           }
         }
-        if (!snapshot.isActive) await incrementDailyUsage(session.id);
+        if (!snapshot.isActive && supabase) await incrementDailyUsage(supabase, session.id);
         await logActivity(session.id, "chat");
 
         if (escalated) {

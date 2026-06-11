@@ -7,5 +7,5 @@ export function createClient() {
     throw new Error("Supabase is not configured.");
   }
 
-  return createBrowserClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!);
+  return createBrowserClient(env.SUPABASE_URL!, env.SUPABASE_PUBLISHABLE_KEY!);
 }

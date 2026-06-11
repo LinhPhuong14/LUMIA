@@ -1,15 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 
-import { env, hasSupabaseConfig } from "@/lib/env";
-import { getSubscriptionSnapshot } from "@/lib/subscriptions";
+import { createClientFromRequest } from "@/lib/supabase/middleware";
 
 const authRoutes = [
   "/dashboard",
-  "/subscription",
+  "/account",
   "/journal",
   "/ai",
-  "/chat",
   "/history",
   "/settings",
   "/onboarding",
@@ -18,36 +15,22 @@ const authRoutes = [
   "/reports",
   "/journey",
   "/audio",
+  "/subscription",
 ];
 const adminRoutes = ["/admin", "/api/admin"];
-const activeOnlyRoutes = ["/chat", "/mood-test", "/reports", "/audio/breathing", "/audio/timer"];
 
 async function getSessionFromRequest(request: NextRequest) {
-  if (!hasSupabaseConfig()) {
-    return null;
+  const { supabase, getResponse } = createClientFromRequest(request);
+  if (!supabase) {
+    return { user: null, role: null, response: getResponse() };
   }
-
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-      },
-    },
-  });
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { user: null, role: null, response };
+    return { user: null, role: null, response: getResponse() };
   }
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
@@ -55,7 +38,8 @@ async function getSessionFromRequest(request: NextRequest) {
   return {
     user,
     role: (profile?.role as string | undefined) ?? "user",
-    response,
+    response: getResponse(),
+    supabase,
   };
 }
 
@@ -73,28 +57,27 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (session?.user && pathname === "/onboarding") {
-    const supabase = createServerClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll() {},
-      },
-    });
-    const { data: profile } = await supabase.from("profiles").select("onboarding_goal").eq("id", session.user.id).single();
+  if (session?.user && session.supabase && pathname === "/onboarding") {
+    const { data: profile } = await session.supabase
+      .from("profiles")
+      .select("onboarding_goal")
+      .eq("id", session.user.id)
+      .single();
     if (profile?.onboarding_goal) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
-  if (session?.user && activeOnlyRoutes.some((route) => pathname.startsWith(route))) {
-    const snapshot = await getSubscriptionSnapshot(session.user.id);
-    if (!snapshot.isActive) {
-      const dashboardUrl = new URL("/dashboard", request.url);
-      dashboardUrl.searchParams.set("upsell", "1");
-      return NextResponse.redirect(dashboardUrl);
-    }
+  if (pathname.startsWith("/subscription") || pathname.startsWith("/dashboard/boxes")) {
+    return NextResponse.redirect(new URL("/account", request.url));
+  }
+
+  if (pathname.startsWith("/history") || pathname.startsWith("/reports")) {
+    return NextResponse.redirect(new URL("/journey", request.url));
+  }
+
+  if (pathname.startsWith("/chat")) {
+    return NextResponse.redirect(new URL("/ai", request.url));
   }
 
   return session?.response ?? NextResponse.next();
@@ -103,6 +86,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/account/:path*",
     "/subscription/:path*",
     "/journal/:path*",
     "/ai/:path*",

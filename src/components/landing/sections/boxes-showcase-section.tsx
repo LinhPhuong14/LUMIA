@@ -17,9 +17,9 @@ export function BoxesShowcaseSection() {
       <div className="landing-frame">
         <div className="relative z-[1] flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading
-            eyebrow="Hộp LUMIA"
-            title="Chọn chiếc hộp phù hợp với nhịp chăm sóc của bạn."
-            body="Mỗi hộp mở một mức trải nghiệm digital khác nhau, từ check-in cảm xúc cơ bản đến không gian lắng nghe sâu hơn."
+            eyebrow="Product Catalog"
+            title="Chọn gói LUMIA phù hợp với nhịp chăm sóc của bạn."
+            body="Từ gói người dùng mới đến Sleep Master — mỗi gói mở quyền truy cập Premium và ưu đãi riêng."
           />
 
           <Link href="/boxes" className="button-secondary px-7 py-4 text-[13px]">
@@ -27,14 +27,14 @@ export function BoxesShowcaseSection() {
           </Link>
         </div>
 
-        <div className="relative z-[1] mt-12 grid gap-5 lg:grid-cols-3">
+        <div className="relative z-[1] mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           {landingBoxCards.map((box, index) => (
             <motion.article
               key={box.title}
               {...fadeUp(index * 0.07)}
               whileHover={{ y: -6 }}
               className={`liquid-panel p-6 ${
-                index === 1 ? "ring-1 ring-[#F4D878]/70" : ""
+                index === 2 ? "ring-1 ring-[#B8CFA8]/80 bg-[#E8F0E0]/40" : ""
               }`}
             >
               <div className="rounded-[28px] border border-white/75 bg-white/40 p-6 text-[14px] leading-6 text-muted">

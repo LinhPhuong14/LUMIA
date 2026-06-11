@@ -18,16 +18,17 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell
-      currentPath="/dashboard"
       sessionName={session.name}
       planLabel={planLabel}
       title={`Chào buổi tối, ${session.name}.`}
-      subtitle="Đây là workspace riêng của bạn: check-in nhanh, viết ra điều đang nặng và mở LUMIA lắng nghe khi cần."
+      subtitle="Check-in nhanh, chọn hoạt động hôm nay và để LUMIA đồng hành."
+      isAdmin={session.role === "admin"}
     >
       <DashboardHome
         planLabel={planLabel}
         subscription={subscription}
         latestOrder={latestOrder}
+        onboardingGoal={session.onboardingGoal}
       />
     </DashboardShell>
   );

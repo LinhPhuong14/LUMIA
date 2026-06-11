@@ -42,19 +42,29 @@ export type LandingBoxCard = {
 
 export const landingBoxCards: LandingBoxCard[] = [
   {
-    title: "Hộp LUMIA Khởi đầu",
-    price: "x.000đ",
-    copy: "Bắt đầu thật nhẹ với ritual cơ bản và không gian riêng đầu tiên.",
+    title: "LUMIA FIRST-TIME USER",
+    price: "99.000đ · 1 tháng đầu",
+    copy: "Premium đầy đủ + Mini Welcome Box (trà thảo mộc & xịt gối mini).",
   },
   {
-    title: "Hộp LUMIA Mỗi ngày",
-    price: "x.000đ",
-    copy: "Dành cho người muốn giữ một nhịp chăm sóc cảm xúc đều và đẹp.",
+    title: "LUMIA STANDARD",
+    price: "129.000đ · 1 tháng",
+    copy: "Premium không giới hạn và ưu đãi 10% sản phẩm vật lý trên website.",
   },
   {
-    title: "Hộp LUMIA Dịu sâu",
-    price: "x.000đ",
-    copy: "Mở thêm nhiều lớp trải nghiệm riêng tư và cá nhân hóa hơn.",
+    title: "LUMIA SAVER",
+    price: "349.000đ · 3 tháng",
+    copy: "Gói tiết kiệm — chỉ 116.000đ/tháng, ưu đãi 10% sản phẩm vật lý.",
+  },
+  {
+    title: "LUMIA SLEEP WELL",
+    price: "699.000đ · 3 tháng",
+    copy: "Premium 3 tháng kèm Sleep Well Box: nến, trà thảo mộc, bịt mắt lụa.",
+  },
+  {
+    title: "LUMIA SLEEP MASTER",
+    price: "1.199.000đ · 6 tháng",
+    copy: "Gói cao cấp 6 tháng kèm Master Box đầy đủ nhất.",
   },
 ];
 

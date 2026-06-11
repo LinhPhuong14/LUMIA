@@ -4,6 +4,8 @@ export type BoxProduct = {
   tagline: string;
   description: string;
   price: number;
+  duration: string;
+  priceNote?: string;
   gradient: string;
   ritualFocus: string;
   digitalAccess: string;
@@ -11,38 +13,124 @@ export type BoxProduct = {
   features: string[];
   badge: string;
   ctaLabel: string;
+  featured?: boolean;
 };
 
-export const lumiaBox: BoxProduct = {
-  slug: "lumia-box",
-  name: "Hộp LUMIA",
-  tagline: "21 ngày đồng hành cùng giấc ngủ và thiền định.",
-  description:
-    "Một chiếc hộp vật lý kèm quyền truy cập đầy đủ vào không gian số LUMIA — mood check-in, nhật ký, audio, AI lắng nghe và hành trình 21 ngày.",
-  price: 890_000,
-  gradient: "linear-gradient(135deg, #FFFEFA 0%, #FFFDF5 35%, #DDE8D2 70%, #FFF3C7 100%)",
-  ritualFocus: "Một nghi thức buổi tối nhẹ nhàng để quay về với mình.",
-  digitalAccess:
-    "Full access 21 ngày: nhật ký, mood, audio đầy đủ, AI lắng nghe không giới hạn, breathing, timer, báo cáo.",
-  physicalItems: [
-    "Nến thơm",
-    "Thẻ nghi thức buổi tối",
-    "Thẻ gợi mở viết ra",
-    "Bịt mắt ngủ",
-  ],
-  features: [
-    "Hành trình 21 ngày",
-    "Nhật ký không giới hạn",
-    "Ghi nhận cảm xúc hằng ngày",
-    "Thư viện audio đầy đủ",
-    "LUMIA lắng nghe cá nhân hóa",
-    "Streak & badges",
-    "Báo cáo tuần & 21 ngày",
-  ],
-  badge: "Hộp chính",
-  ctaLabel: "Mua hộp LUMIA",
-};
+const premiumFeatures = [
+  "Truy cập toàn bộ tính năng Premium",
+  "AI cá nhân hóa không giới hạn",
+] as const;
+
+export const lumiaBoxes: BoxProduct[] = [
+  {
+    slug: "first-time-user",
+    name: "LUMIA FIRST-TIME USER",
+    tagline: "1 Tháng đầu tiên",
+    description:
+      "Gói dành cho người dùng mới — trải nghiệm đầy đủ Premium và nhận Mini Welcome Box kèm theo.",
+    price: 99_000,
+    duration: "1 Tháng đầu tiên",
+    gradient: "linear-gradient(135deg, #FFFEFA 0%, #FFFDF5 35%, #DDE8D2 70%, #FFF3C7 100%)",
+    ritualFocus: "Bắt đầu hành trình chăm sóc giấc ngủ và sức khỏe tinh thần.",
+    digitalAccess:
+      "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn trong tháng đầu.",
+    physicalItems: ["1 Hộp trà thảo mộc", "1 Xịt gối mini"],
+    features: [
+      ...premiumFeatures,
+      "Mini Welcome Box: 1 Hộp trà thảo mộc + 1 Xịt gối mini",
+    ],
+    badge: "Người dùng mới",
+    ctaLabel: "Chọn gói này",
+  },
+  {
+    slug: "standard",
+    name: "LUMIA STANDARD",
+    tagline: "1 Tháng",
+    description:
+      "Gói tiêu chuẩn hàng tháng — toàn bộ tính năng Premium và ưu đãi khi mua sản phẩm vật lý.",
+    price: 129_000,
+    duration: "1 Tháng",
+    gradient: "linear-gradient(135deg, #FFFEFA 0%, #FFFDF5 50%, #E8EDE3 100%)",
+    ritualFocus: "Duy trì nhịp chăm sóc giấc ngủ và cảm xúc đều đặn.",
+    digitalAccess: "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn.",
+    physicalItems: [],
+    features: [
+      ...premiumFeatures,
+      "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
+    ],
+    badge: "Tiêu chuẩn",
+    ctaLabel: "Chọn gói này",
+  },
+  {
+    slug: "saver",
+    name: "LUMIA SAVER",
+    tagline: "3 Tháng",
+    description:
+      "Gói tiết kiệm 3 tháng — trải nghiệm Premium đầy đủ với mức giá tháng hấp dẫn nhất.",
+    price: 349_000,
+    duration: "3 Tháng",
+    priceNote: "chỉ 116.000 đ/tháng",
+    gradient: "linear-gradient(135deg, #E8F0E0 0%, #DDE8D2 40%, #C8D9B8 100%)",
+    ritualFocus: "Cam kết dài hơn để xây dựng thói quen ngủ ngon bền vững.",
+    digitalAccess: "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn trong 3 tháng.",
+    physicalItems: [],
+    features: [
+      ...premiumFeatures,
+      "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
+    ],
+    badge: "Gói tiết kiệm",
+    ctaLabel: "Chọn gói này",
+    featured: true,
+  },
+  {
+    slug: "sleep-well",
+    name: "LUMIA SLEEP WELL",
+    tagline: "3 Tháng",
+    description:
+      "Gói 3 tháng kèm Sleep Well Box — bộ sản phẩm vật lý hỗ trợ nghi thức buổi tối.",
+    price: 699_000,
+    duration: "3 Tháng",
+    gradient: "linear-gradient(135deg, #FFFEFA 0%, #FFFDF5 35%, #DDE8D2 70%, #FFF3C7 100%)",
+    ritualFocus: "Kết hợp trải nghiệm số và ritual vật lý cho giấc ngủ sâu hơn.",
+    digitalAccess: "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn trong 3 tháng.",
+    physicalItems: ["1 Hũ nến thơm", "1 Hộp trà thảo mộc", "1 Bịt mắt lụa"],
+    features: [
+      ...premiumFeatures,
+      "Sleep Well Box: 1 Hũ nến thơm + 1 Hộp trà thảo mộc + 1 Bịt mắt lụa",
+    ],
+    badge: "Sleep Well",
+    ctaLabel: "Chọn gói này",
+  },
+  {
+    slug: "sleep-master",
+    name: "LUMIA SLEEP MASTER",
+    tagline: "6 Tháng",
+    description:
+      "Gói 6 tháng cao cấp nhất — trải nghiệm Premium đầy đủ và Master Box với bộ sản phẩm hoàn chỉnh.",
+    price: 1_199_000,
+    duration: "6 Tháng",
+    gradient: "linear-gradient(135deg, #FFFEFA 0%, #FFFDF5 35%, #DDE8D2 70%, #FFF3C7 100%)",
+    ritualFocus: "Hành trình dài hạn với bộ ritual vật lý đầy đủ nhất.",
+    digitalAccess: "Truy cập toàn bộ tính năng Premium và AI cá nhân hóa không giới hạn trong 6 tháng.",
+    physicalItems: [
+      "1 Hũ nến thơm",
+      "1 Hộp trà thảo mộc",
+      "1 Bịt mắt lụa",
+      "1 Bộ tinh dầu",
+      "1 Xịt gối",
+    ],
+    features: [
+      ...premiumFeatures,
+      "Master Box: 1 Hũ nến thơm + 1 Hộp trà thảo mộc + 1 Bịt mắt lụa + 1 Bộ tinh dầu + 1 Xịt gối",
+    ],
+    badge: "Sleep Master",
+    ctaLabel: "Chọn gói này",
+  },
+];
+
+/** @deprecated Use lumiaBoxes or getProductBySlug instead */
+export const lumiaBox = lumiaBoxes[0];
 
 export function getProductBySlug(slug: string) {
-  return slug === lumiaBox.slug ? lumiaBox : undefined;
+  return lumiaBoxes.find((box) => box.slug === slug);
 }

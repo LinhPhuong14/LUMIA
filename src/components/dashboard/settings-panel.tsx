@@ -2,6 +2,14 @@
 
 import { useMemo, useState } from "react";
 
+import type { OnboardingGoal } from "@/lib/supabase/types";
+
+const goalOptions: { id: OnboardingGoal; label: string }[] = [
+  { id: "sleep", label: "Ngủ tốt hơn" },
+  { id: "stress", label: "Giảm stress" },
+  { id: "meditation", label: "Tập thiền" },
+];
+
 type ToggleKey =
   | "saveChats"
   | "saveJournal"
@@ -44,11 +52,22 @@ function Toggle({
   );
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({
+  initialGoal,
+  userName,
+  userEmail,
+}: {
+  initialGoal: OnboardingGoal | null;
+  userName: string;
+  userEmail: string;
+}) {
   const [state, setState] = useState(initialState);
   const [saved, setSaved] = useState("Đã đồng bộ thiết lập gần nhất.");
   const [responseStyle, setResponseStyle] = useState<(typeof responseOptions)[number]>(responseOptions[0]);
   const [showDanger, setShowDanger] = useState<null | "account" | "data">(null);
+  const [goal, setGoal] = useState<OnboardingGoal | null>(initialGoal);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalSaving, setGoalSaving] = useState(false);
 
   const sections = useMemo(
     () => [
@@ -78,17 +97,74 @@ export function SettingsPanel() {
     window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 1800);
   }
 
+  async function saveGoal() {
+    if (!goal) return;
+    setGoalSaving(true);
+    const response = await fetch("/api/me/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ onboardingGoal: goal }),
+    });
+    setGoalSaving(false);
+    if (response.ok) {
+      setEditingGoal(false);
+      setSaved("Đã cập nhật mục tiêu.");
+      window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2200);
+    }
+  }
+
+  const goalLabel = goalOptions.find((g) => g.id === goal)?.label ?? "Chưa chọn";
+
   return (
     <div className="relative space-y-6">
+      <section className="soft-card p-6">
+        <span className="eyebrow">Mục tiêu của tôi</span>
+        {!editingGoal ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-matcha-deep">{goalLabel}</p>
+            <button type="button" onClick={() => setEditingGoal(true)} className="button-secondary text-[13px]">
+              Thay đổi
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {goalOptions.map((option) => (
+              <label
+                key={option.id}
+                className={`flex cursor-pointer items-center gap-3 rounded-[20px] border px-4 py-3 ${
+                  goal === option.id ? "border-matcha bg-matcha-soft/30" : "border-white/70"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="goal"
+                  checked={goal === option.id}
+                  onChange={() => setGoal(option.id)}
+                />
+                <span className="text-sm text-matcha-deep">{option.label}</span>
+              </label>
+            ))}
+            <div className="flex gap-3">
+              <button type="button" onClick={saveGoal} disabled={goalSaving} className="button-primary text-[13px]">
+                {goalSaving ? "Đang lưu..." : "Lưu"}
+              </button>
+              <button type="button" onClick={() => setEditingGoal(false)} className="button-secondary text-[13px]">
+                Huỷ
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="soft-card p-6">
         <span className="eyebrow">Thông tin cá nhân</span>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <input
-            defaultValue="Linh Nguyễn"
+            defaultValue={userName}
             className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
           />
           <input
-            defaultValue="hello@lumia.vn"
+            defaultValue={userEmail}
             className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
           />
         </div>

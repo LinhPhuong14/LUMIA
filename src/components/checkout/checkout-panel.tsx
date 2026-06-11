@@ -17,6 +17,7 @@ export function CheckoutPanel({ product }: { product: BoxProduct }) {
     const response = await fetch("/api/checkout/create-payment-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: product.slug }),
     });
 
     const result = (await response.json()) as { checkoutUrl?: string; error?: string };
@@ -34,11 +35,15 @@ export function CheckoutPanel({ product }: { product: BoxProduct }) {
     <div className="soft-card w-full max-w-md p-6">
       <div className="eyebrow">Hoàn tất lựa chọn của bạn</div>
       <h3 className="mt-4 font-serif text-3xl text-matcha-deep">{product.name}</h3>
+      <p className="mt-2 text-sm text-muted">{product.duration}</p>
       <p className="mt-2 text-sm leading-6 text-muted">{product.description}</p>
 
       <div className="mt-5 rounded-[28px] bg-[linear-gradient(145deg,rgba(255,254,250,0.96),rgba(255,253,245,0.92),rgba(255,243,199,0.48))] p-5">
         <div className="text-xs uppercase tracking-[0.2em] text-muted">Tổng thanh toán</div>
         <div className="mt-2 font-serif text-4xl text-matcha-deep">{formatCurrency(product.price)}</div>
+        {product.priceNote ? (
+          <p className="mt-1 text-sm text-muted">({product.priceNote})</p>
+        ) : null}
       </div>
 
       <button

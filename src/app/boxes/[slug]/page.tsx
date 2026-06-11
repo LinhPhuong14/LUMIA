@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { CheckoutPanel } from "@/components/checkout/checkout-panel";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteHeader } from "@/components/marketing/site-header";
-import { getProductBySlug, lumiaBox } from "@/data/catalog";
+import { getProductBySlug, lumiaBoxes } from "@/data/catalog";
 
 export function generateStaticParams() {
-  return [{ slug: lumiaBox.slug }];
+  return lumiaBoxes.map((box) => ({ slug: box.slug }));
 }
 
 export default async function BoxDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -24,10 +24,14 @@ export default async function BoxDetailPage({ params }: { params: Promise<{ slug
         <section className="soft-card p-8">
           <span className="eyebrow">{product.badge}</span>
           <h1 className="mt-4 font-serif text-5xl text-matcha-deep">{product.name}</h1>
+          <p className="mt-2 text-lg text-muted">{product.duration}</p>
           <p className="mt-4 text-lg leading-8 text-muted">{product.description}</p>
           <ul className="mt-6 space-y-2 text-sm leading-7 text-foreground">
             {product.features.map((feature) => (
-              <li key={feature}>- {feature}</li>
+              <li key={feature} className="flex gap-2">
+                <span className="text-matcha">✓</span>
+                <span>{feature}</span>
+              </li>
             ))}
           </ul>
         </section>

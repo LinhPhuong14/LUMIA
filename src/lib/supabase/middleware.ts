@@ -3,14 +3,15 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { env, hasSupabaseConfig } from "@/lib/env";
 
-export async function updateSession(request: NextRequest) {
+/** Supabase quickstart pattern — refresh session cookies on each matched request. */
+export function createClientFromRequest(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   if (!hasSupabaseConfig()) {
-    return supabaseResponse;
+    return { supabase: null, getResponse: () => supabaseResponse };
   }
 
-  const supabase = createServerClient(env.SUPABASE_URL!, env.SUPABASE_ANON_KEY!, {
+  const supabase = createServerClient(env.SUPABASE_URL!, env.SUPABASE_PUBLISHABLE_KEY!, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -27,7 +28,13 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  return { supabase, getResponse: () => supabaseResponse };
+}
 
-  return supabaseResponse;
+export async function updateSession(request: NextRequest) {
+  const { supabase, getResponse } = createClientFromRequest(request);
+  if (supabase) {
+    await supabase.auth.getUser();
+  }
+  return getResponse();
 }

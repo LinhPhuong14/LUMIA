@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { lumiaBox } from "@/data/catalog";
+import { getProductBySlug } from "@/data/catalog";
 import { env, hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
 import { createOrder } from "@/lib/orders";
 import { getPayOSClient } from "@/lib/payos";
@@ -9,11 +9,26 @@ import { buildAbsoluteUrl, toOrderCode } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await getSession();
 
   if (!session) {
     return NextResponse.json({ error: "Bạn cần đăng nhập trước khi tiếp tục." }, { status: 401 });
+  }
+
+  let slug = "first-time-user";
+  try {
+    const body = (await request.json()) as { slug?: string };
+    if (body.slug) {
+      slug = body.slug;
+    }
+  } catch {
+    // default slug when body is empty
+  }
+
+  const product = getProductBySlug(slug);
+  if (!product) {
+    return NextResponse.json({ error: "Gói sản phẩm không hợp lệ." }, { status: 400 });
   }
 
   if (!hasSupabaseConfig() || !hasPayOSConfig()) {
@@ -38,19 +53,19 @@ export async function POST() {
   try {
     const paymentLink = await payos.paymentRequests.create({
       orderCode,
-      amount: lumiaBox.price,
+      amount: product.price,
       description: "LUMIA Box",
       returnUrl,
       cancelUrl,
       buyerEmail: session.email,
       buyerName: session.name,
-      items: [{ name: lumiaBox.name.slice(0, 25), quantity: 1, price: lumiaBox.price }],
+      items: [{ name: product.name.slice(0, 25), quantity: 1, price: product.price }],
     });
 
     await createOrder({
       userId: session.id,
       payosOrderId: String(paymentLink.orderCode),
-      amount: lumiaBox.price,
+      amount: product.price,
     });
 
     return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });

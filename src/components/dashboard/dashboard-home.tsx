@@ -1,259 +1,165 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+import { MoodCheckInModal } from "@/components/dashboard/mood-check-in-modal";
 import { StartJourneyButton } from "@/components/dashboard/start-journey-button";
+import { UpsellBanner } from "@/components/dashboard/upsell-banner";
 import type { OrderEntry } from "@/lib/orders";
-import type { SubscriptionSnapshot } from "@/lib/subscriptions";
 import { getOrderStatusLabel } from "@/lib/orders";
+import type { SubscriptionSnapshot } from "@/lib/subscriptions";
 
-const moods = ["Bình yên", "Mệt", "Lo", "Buồn", "Căng", "Trống rỗng"] as const;
-const reasons = [
-  "Công việc",
-  "Học tập",
-  "Gia đình",
-  "Tình cảm",
-  "Sức khỏe",
-  "Tài chính",
-  "Không rõ",
+const quickActions = [
+  { href: "/journal#release", label: "Viết ra", copy: "Đặt cảm xúc xuống một chút" },
+  { href: "/journal#journal", label: "Viết nhật ký", copy: "Ghi lại ngày hôm nay" },
+  { href: "/audio/meditation", label: "Nghe thiền", copy: "Guided meditation ngắn" },
+  { href: "/audio/sleep", label: "Sleep sounds", copy: "Âm thanh cho giấc ngủ" },
+  { href: "/audio/breathing", label: "Bài thở", copy: "Thở cùng LUMIA" },
+  { href: "/ai", label: "Nói chuyện", copy: "LUMIA lắng nghe bạn" },
 ] as const;
 
-function fadeMotion(delay = 0) {
-  return {
-    initial: { opacity: 0, y: 18 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
-  } as const;
-}
+const goalSuggestions: Record<string, string> = {
+  sleep: "Tối nay thử wind-down 10 phút trước khi ngủ.",
+  stress: "Bắt đầu bằng 3 dòng viết ra — không cần giải thích.",
+  meditation: "Một bài thiền mini 3 phút có thể đủ cho hôm nay.",
+};
 
 export function DashboardHome({
   planLabel,
   subscription,
   latestOrder,
+  onboardingGoal,
 }: {
   planLabel: string;
   subscription: SubscriptionSnapshot;
   latestOrder: OrderEntry | null;
+  onboardingGoal?: string | null;
 }) {
-  const [selectedMood, setSelectedMood] = useState<string>("Mệt");
-  const [selectedReason, setSelectedReason] = useState<string>("Công việc");
-  const [intensity, setIntensity] = useState(3);
-  const [saved, setSaved] = useState(false);
+  const [todayMood, setTodayMood] = useState<number | null>(null);
+  const [streak, setStreak] = useState(0);
   const isFree = !subscription.isActive;
   const canStartJourney =
     latestOrder?.status === "delivered" &&
     subscription.status === "active" &&
     !subscription.startedAt;
 
+  useEffect(() => {
+    fetch("/api/streak")
+      .then((r) => r.json())
+      .then((data: { current_streak?: number }) => setStreak(data.current_streak ?? 0))
+      .catch(() => null);
+
+    const today = new Date().toISOString().slice(0, 10);
+    fetch("/api/mood/history?days=1")
+      .then((r) => r.json())
+      .then((data: { date: string; score: number }[]) => {
+        const entry = Array.isArray(data) ? data.find((e) => e.date === today) : null;
+        if (entry) setTodayMood(entry.score);
+      })
+      .catch(() => null);
+  }, []);
+
   return (
-    <div className="grid gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.06fr)_minmax(320px,0.94fr)] lg:overflow-hidden">
-      <motion.section
-        {...fadeMotion()}
-        className="dashboard-glass rounded-[32px] px-5 py-5 lg:flex lg:min-h-0 lg:flex-col lg:px-6 lg:py-6"
-      >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <span className="eyebrow">
-              {isFree ? "Dùng thử miễn phí" : "Không gian premium"}
-            </span>
-            <p className="mt-3 max-w-2xl text-[13px] leading-6 text-muted">
-              {isFree
-                ? "Bạn vẫn có thể ghi nhận cảm xúc, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, chỉ cần chọn một chiếc hộp."
-                : "Hôm nay bạn có thể check-in, viết ra điều đang nặng hoặc để LUMIA ở cạnh thêm một chút."}
-            </p>
-          </div>
+    <>
+      <MoodCheckInModal onComplete={(score) => setTodayMood(score)} />
+      <UpsellBanner show={isFree} />
 
-          <div className="flex flex-wrap gap-2.5">
-            <div className="rounded-full border border-white/80 bg-white/74 px-3.5 py-2 text-[13px] font-medium text-matcha-deep">
-              {planLabel}
-            </div>
-            {canStartJourney ? (
-              <StartJourneyButton />
-            ) : (
-              <Link
-                href={isFree ? "/boxes" : "/subscription"}
-                className="button-primary px-5 py-2.5 text-[13px]"
-              >
-                {isFree ? "Mua hộp LUMIA" : "Xem gói hiện tại"}
-              </Link>
-            )}
-          </div>
-        </div>
-
+      <div className="space-y-4">
         {latestOrder && !subscription.isActive ? (
-          <div className="mt-4 rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
+          <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
             Đơn hàng: {getOrderStatusLabel(latestOrder.status)}
             {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
           </div>
         ) : null}
 
         {subscription.isActive && subscription.currentDay ? (
-          <div className="mt-4 rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-matcha-deep">
-            Ngày {subscription.currentDay}/21 trên hành trình của bạn.
+          <div className="dashboard-glass rounded-[24px] px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="eyebrow">Hành trình 21 ngày</span>
+                <p className="mt-2 font-serif text-2xl text-matcha-deep">
+                  Ngày {subscription.currentDay}/21
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] text-muted">Streak</div>
+                <div className="font-serif text-3xl text-matcha-deep">{streak}</div>
+              </div>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
+              <div
+                className="h-full rounded-full bg-matcha transition-all"
+                style={{ width: `${(subscription.currentDay / 21) * 100}%` }}
+              />
+            </div>
           </div>
         ) : null}
 
-        <div className="mt-4 grid gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)] lg:overflow-hidden">
-          <section className="dashboard-glass rounded-[30px] px-5 py-5 lg:flex lg:min-h-0 lg:flex-col lg:px-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span className="eyebrow">Tâm trạng hôm nay</span>
-                <h3 className="mt-3 font-serif text-[1.72rem] leading-[0.98] tracking-[-0.04em] text-matcha-deep">
-                  Bạn đang cảm thấy thế nào?
-                </h3>
-              </div>
-              <div className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-matcha-deep">
-                {intensity}/5
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {moods.map((mood, index) => (
-                <motion.button
-                  key={mood}
-                  type="button"
-                  {...fadeMotion(index * 0.03)}
-                  onClick={() => setSelectedMood(mood)}
-                  className={`rounded-full px-3 py-2 text-[13px] transition ${
-                    selectedMood === mood
-                      ? "bg-matcha text-white shadow-[0_14px_30px_rgba(143,168,120,0.24)]"
-                      : "border border-white/80 bg-white/72 text-matcha-deep hover:bg-white"
-                  }`}
-                >
-                  {mood}
-                </motion.button>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-[13px] text-muted">
-                <span>Mức độ cảm xúc</span>
-                <span>{intensity}/5</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={intensity}
-                onChange={(event) => setIntensity(Number(event.target.value))}
-                className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[linear-gradient(90deg,#DDE8D2,#FFF3C7)]"
-              />
-            </div>
-
-            <div className="mt-4">
-              <div className="text-[13px] text-muted">
-                Điều gì đang ảnh hưởng nhiều nhất?
-              </div>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {reasons.map((reason) => (
-                  <button
-                    key={reason}
-                    type="button"
-                    onClick={() => setSelectedReason(reason)}
-                    className={`rounded-full px-3 py-2 text-[13px] transition ${
-                      selectedReason === reason
-                        ? "bg-[#FFF3C7] text-matcha-deep shadow-[0_14px_30px_rgba(244,216,120,0.18)]"
-                        : "border border-white/80 bg-white/68 text-muted"
-                    }`}
-                  >
-                    {reason}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSaved(true)}
-                className="button-primary px-5 py-2.5 text-[13px]"
-              >
-                Lưu check-in
-              </button>
-              {saved ? (
-                <p className="text-[13px] text-matcha-deep">
-                  Đã lưu cảm xúc hiện tại của bạn.
-                </p>
-              ) : null}
-            </div>
-          </section>
-
-          <div className="grid gap-4 lg:min-h-0 lg:grid-rows-[auto_auto_1fr] lg:overflow-hidden">
-            <motion.section
-              {...fadeMotion(0.1)}
-              className="dashboard-glass rounded-[30px] px-5 py-5 lg:px-6"
-            >
-              <span className="eyebrow">Gợi ý cho hôm nay</span>
-              <p className="mt-3 text-[13px] leading-6 text-muted">
-                Nếu hôm nay hơi quá tải, hãy bắt đầu bằng 3 dòng ngắn. Không cần giải thích mọi thứ.
-              </p>
-            </motion.section>
-
-            <motion.section
-              {...fadeMotion(0.14)}
-              className="dashboard-glass rounded-[30px] px-5 py-5 lg:px-6"
-            >
-              <span className="eyebrow">Nhịp riêng của bạn</span>
-              <p className="mt-3 text-[13px] leading-6 text-muted">
-                Gần đây bạn thường quay lại vào buổi tối. LUMIA sẽ ưu tiên gợi ý các bước ngắn và ít áp lực hơn.
-              </p>
-            </motion.section>
-
-            <motion.section
-              {...fadeMotion(0.18)}
-              className="dashboard-glass rounded-[30px] px-5 py-5 lg:flex lg:min-h-0 lg:flex-col lg:px-6"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="eyebrow">Nhìn lại nhẹ nhàng</span>
-                  <h3 className="mt-3 font-serif text-[1.62rem] leading-[1] tracking-[-0.04em] text-matcha-deep">
-                    7 ngày gần đây
-                  </h3>
-                </div>
-                <Link
-                  href="/history"
-                  className="text-[13px] font-semibold text-matcha-deep"
-                >
-                  Xem lịch sử
-                </Link>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                {[
-                  { day: "T2", tone: "bg-[#DDE8D2]" },
-                  { day: "T3", tone: "bg-[#F8E7A1]" },
-                  { day: "T4", tone: "bg-[#B8CFA6]" },
-                  { day: "T5", tone: "bg-[#FFF3C7]" },
-                  { day: "T6", tone: "bg-[#DDE8D2]" },
-                  { day: "T7", tone: "bg-[#F7EFCB]" },
-                ].map((item, index) => (
-                  <motion.div
-                    key={item.day}
-                    initial={{ opacity: 0, scale: 0.88 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.34, delay: index * 0.04 }}
-                    className="flex flex-col items-center gap-2"
-                  >
-                    <div
-                      className={`h-4 w-4 rounded-full ${item.tone} shadow-[0_8px_22px_rgba(244,216,120,0.18)]`}
-                    />
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-muted">
-                      {item.day}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-
-              <p className="mt-4 text-[13px] leading-6 text-muted">
-                Tuần này bạn có nhiều ngày ở trạng thái mệt và lo. Việc nhận ra điều đó đã là một bước bắt đầu rồi.
-              </p>
-            </motion.section>
+        {canStartJourney ? (
+          <div className="dashboard-glass rounded-[24px] px-5 py-4 text-center">
+            <p className="text-[13px] text-matcha-deep">Hộp đã giao — sẵn sàng bắt đầu hành trình!</p>
+            <StartJourneyButton />
           </div>
-        </div>
-      </motion.section>
-    </div>
+        ) : null}
+
+        {subscription.status === "expired" ? (
+          <div className="dashboard-glass rounded-[24px] px-5 py-4">
+            <p className="text-[13px] text-matcha-deep">Hành trình 21 ngày đã kết thúc. Bạn vẫn có thể xem lại trong Hành trình.</p>
+            <Link href="/boxes" className="button-primary mt-3 inline-flex text-[13px]">
+              Bắt đầu hành trình mới
+            </Link>
+          </div>
+        ) : null}
+
+        {todayMood ? (
+          <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-matcha-deep">
+            Cảm xúc hôm nay: {todayMood}/5
+          </div>
+        ) : null}
+
+        {subscription.isActive && onboardingGoal ? (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="dashboard-glass rounded-[30px] px-5 py-5"
+          >
+            <span className="eyebrow">Gợi ý cho hôm nay</span>
+            <p className="mt-3 text-[13px] leading-6 text-muted">
+              {goalSuggestions[onboardingGoal] ?? "Hãy chọn một hoạt động nhẹ bên dưới."}
+            </p>
+          </motion.section>
+        ) : null}
+
+        <section className="dashboard-glass rounded-[30px] px-5 py-5">
+          <span className="eyebrow">Hoạt động nhanh</span>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {quickActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="rounded-[22px] border border-white/70 bg-white/72 p-4 transition hover:shadow-[0_14px_32px_rgba(143,168,120,0.1)]"
+              >
+                <div className="font-medium text-matcha-deep">{action.label}</div>
+                <div className="mt-1 text-[12px] text-muted">{action.copy}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {isFree ? (
+          <section className="dashboard-glass rounded-[30px] px-5 py-5">
+            <span className="eyebrow">{planLabel}</span>
+            <p className="mt-3 text-[13px] leading-6 text-muted">
+              Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, chỉ cần chọn một chiếc hộp.
+            </p>
+            <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px]">
+              Mua hộp LUMIA
+            </Link>
+          </section>
+        ) : null}
+      </div>
+    </>
   );
 }

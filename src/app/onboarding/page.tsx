@@ -3,30 +3,65 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const goals = [
-  { id: "sleep", label: "Ngủ tốt hơn", copy: "Tôi muốn có giấc ngủ sâu và dễ đi vào hơn." },
-  { id: "stress", label: "Giảm stress", copy: "Tôi muốn thả lỏng căng thẳng sau những ngày dài." },
-  { id: "meditation", label: "Tập thiền", copy: "Tôi muốn quay về với nhịp thở và sự tĩnh lặng." },
+const steps = [
+  {
+    id: "goal",
+    title: "Bạn muốn cải thiện điều gì?",
+    options: [
+      { id: "sleep", label: "Ngủ tốt hơn", value: "sleep" },
+      { id: "stress", label: "Giảm stress", value: "stress" },
+      { id: "meditation", label: "Tập thiền", value: "meditation" },
+    ],
+    persist: true,
+  },
+  {
+    id: "bedtime",
+    title: "Bạn thường thức đến mấy giờ?",
+    options: [
+      { id: "early", label: "Trước 22h", value: "early" },
+      { id: "mid", label: "22h – 0h", value: "mid" },
+      { id: "late", label: "Sau 0h", value: "late" },
+    ],
+    persist: false,
+  },
+  {
+    id: "experience",
+    title: "Bạn đã từng thiền chưa?",
+    options: [
+      { id: "never", label: "Chưa bao giờ", value: "never" },
+      { id: "sometimes", label: "Đôi khi", value: "sometimes" },
+      { id: "often", label: "Thường xuyên", value: "often" },
+    ],
+    persist: false,
+  },
 ] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onContinue() {
-    if (!selected) {
-      return;
-    }
+  const current = steps[step];
+  const selected = answers[current.id];
 
+  async function finish(allAnswers: Record<string, string>) {
     setLoading(true);
     setError(null);
+
+    sessionStorage.setItem(
+      "lumia-onboarding-hints",
+      JSON.stringify({
+        bedtime: allAnswers.bedtime,
+        experience: allAnswers.experience,
+      }),
+    );
 
     const response = await fetch("/api/me/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ onboardingGoal: selected }),
+      body: JSON.stringify({ onboardingGoal: allAnswers.goal }),
     });
 
     if (!response.ok) {
@@ -39,39 +74,58 @@ export default function OnboardingPage() {
     router.push("/dashboard");
   }
 
+  function onSelect(value: string) {
+    const next = { ...answers, [current.id]: value };
+    setAnswers(next);
+
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      finish({ goal: next.goal ?? value, bedtime: next.bedtime, experience: next.experience });
+    }
+  }
+
   return (
     <div className="dashboard-shell-bg flex min-h-screen items-center justify-center px-4 py-10">
       <div className="soft-card w-full max-w-2xl p-8">
-        <span className="eyebrow">Bắt đầu nhẹ nhàng</span>
-        <h1 className="mt-4 font-serif text-4xl text-matcha-deep">Bạn muốn LUMIA đồng hành điều gì?</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">Chọn một hướng để LUMIA gợi ý nội dung phù hợp hơn với bạn.</p>
+        <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-matcha-soft/40">
+          <div
+            className="h-full bg-matcha transition-all"
+            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+        <span className="eyebrow">
+          Bước {step + 1}/{steps.length}
+        </span>
+        <h1 className="mt-4 font-serif text-4xl text-matcha-deep">{current.title}</h1>
 
         <div className="mt-8 space-y-3">
-          {goals.map((goal) => (
+          {current.options.map((option) => (
             <button
-              key={goal.id}
+              key={option.id}
               type="button"
-              onClick={() => setSelected(goal.id)}
-              className={`w-full rounded-[24px] border px-5 py-4 text-left transition ${
-                selected === goal.id
+              onClick={() => onSelect(option.value)}
+              disabled={loading}
+              className={`w-full rounded-[24px] border px-5 py-4 text-left transition disabled:opacity-50 ${
+                selected === option.value
                   ? "border-matcha bg-matcha-soft/40"
                   : "border-white/70 bg-white/80 hover:bg-white"
               }`}
             >
-              <div className="font-medium text-matcha-deep">{goal.label}</div>
-              <div className="mt-1 text-sm text-muted">{goal.copy}</div>
+              <div className="font-medium text-matcha-deep">{option.label}</div>
             </button>
           ))}
         </div>
 
-        <button
-          type="button"
-          disabled={!selected || loading}
-          onClick={onContinue}
-          className="button-primary mt-8 w-full justify-center disabled:opacity-50"
-        >
-          {loading ? "Đang lưu..." : "Tiếp tục vào dashboard"}
-        </button>
+        {step > 0 ? (
+          <button
+            type="button"
+            onClick={() => setStep(step - 1)}
+            className="button-secondary mt-6"
+          >
+            Quay lại
+          </button>
+        ) : null}
 
         {error ? <p className="mt-3 text-sm text-[#9A5B5B]">{error}</p> : null}
       </div>

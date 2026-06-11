@@ -1,42 +1,95 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const prompts = [
-  "Điều gì khiến bạn mệt nhất hôm nay?",
-  "Điều gì đã giúp bạn đi qua ngày hôm nay?",
-  "Bạn đang cần điều gì mà chưa nói ra?",
-  "Nếu dịu lại 1%, bạn sẽ làm gì trước?",
-] as const;
+import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 
-type JournalMode = "release" | "journal" | "mood";
+type JournalTab = "release" | "journal" | "mood";
 
-export function JournalStudio({
-  initialMode = "release",
-  isActive = false,
-}: {
-  initialMode?: JournalMode;
-  isActive?: boolean;
-}) {
-  const [mode, setMode] = useState<JournalMode>(initialMode);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [intensity, setIntensity] = useState(3);
+const tabs: { key: JournalTab; label: string }[] = [
+  { key: "release", label: "Viết ra" },
+  { key: "journal", label: "Nhật ký" },
+  { key: "mood", label: "Mood" },
+];
+
+const moodEmojis = ["😌", "😔", "😟", "😢", "😤"] as const;
+
+function hashToTab(hash: string): JournalTab {
+  if (hash === "#journal" || hash === "#mood") return hash.slice(1) as JournalTab;
+  return "release";
+}
+
+export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
+  const [tab, setTab] = useState<JournalTab>("release");
+  const [prompts, setPrompts] = useState<string[]>([]);
+  const [promptUsed, setPromptUsed] = useState("");
   const [releaseText, setReleaseText] = useState("");
   const [journalText, setJournalText] = useState("");
+  const [moodScore, setMoodScore] = useState(3);
   const [moodNote, setMoodNote] = useState("");
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const particles = useMemo(() => Array.from({ length: 9 }), []);
+  const syncHash = useCallback(() => {
+    setTab(hashToTab(window.location.hash));
+  }, []);
 
-  async function saveJournal(content: string, promptUsed?: string) {
+  useEffect(() => {
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [syncHash]);
+
+  useEffect(() => {
     if (!isActive) return;
+    fetch("/api/journal/prompts")
+      .then((r) => r.json())
+      .then((data: { all?: string[]; prompts?: string[] }) => {
+        const list = data.all ?? data.prompts ?? [];
+        setPrompts(list);
+        if (list[0]) setPromptUsed(list[0]);
+      })
+      .catch(() => null);
+
+    const today = new Date().toISOString().slice(0, 10);
+    fetch("/api/journal")
+      .then((r) => r.json())
+      .then((entries: { date: string; content: string }[]) => {
+        const todayEntry = Array.isArray(entries) ? entries.find((e) => e.date === today) : null;
+        if (todayEntry) setJournalText(todayEntry.content);
+      })
+      .catch(() => null);
+  }, [isActive]);
+
+  function switchTab(next: JournalTab) {
+    window.location.hash = next === "release" ? "#release" : `#${next}`;
+    setTab(next);
+  }
+
+  async function logStreak(type: string) {
+    await fetch("/api/streak/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activityType: type }),
+    }).catch(() => null);
+  }
+
+  async function saveRelease() {
+    if (!releaseText.trim()) return;
+    setSavedMessage("Bạn đã đặt cảm xúc này xuống một chút rồi.");
+    setReleaseText("");
+    await logStreak("journal");
+    window.setTimeout(() => setSavedMessage(null), 2200);
+  }
+
+  async function saveJournal() {
+    if (!journalText.trim()) return;
     setLoading(true);
     const response = await fetch("/api/journal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, promptUsed }),
+      body: JSON.stringify({ content: journalText, promptUsed }),
     });
     setLoading(false);
     if (response.ok) {
@@ -50,50 +103,26 @@ export function JournalStudio({
     const response = await fetch("/api/mood", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ score: intensity, note: moodNote || undefined }),
+      body: JSON.stringify({ score: moodScore, note: moodNote || undefined }),
     });
     setLoading(false);
     if (response.ok) {
-      setSavedMessage("Đã lưu cảm xúc hiện tại của bạn.");
+      await logStreak("mood");
+      setSavedMessage("Đã lưu cảm xúc.");
       window.setTimeout(() => setSavedMessage(null), 2200);
     }
-  }
-
-  async function saveRelease() {
-    if (!releaseText.trim()) return;
-    if (isActive) {
-      await saveJournal(releaseText, "Xả nhanh");
-    } else {
-      setSavedMessage("Bạn đã đặt cảm xúc này xuống một chút rồi.");
-      window.setTimeout(() => setSavedMessage(null), 2200);
-    }
-    setReleaseText("");
   }
 
   return (
     <div className="space-y-6">
-      {!isActive ? (
-        <div className="rounded-[24px] border border-[#F4D878]/50 bg-[#FFFDF5] px-5 py-4 text-sm text-matcha-deep">
-          Viết nhật ký đầy đủ cần hành trình active.{" "}
-          <Link href="/boxes" className="font-semibold underline">
-            Mua hộp LUMIA
-          </Link>{" "}
-          để mở khóa.
-        </div>
-      ) : null}
-
       <div className="inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm">
-        {[
-          { key: "release", label: "Xả nhanh" },
-          { key: "journal", label: "Nhật ký có gợi mở" },
-          { key: "mood", label: "Ghi nhận cảm xúc" },
-        ].map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.key}
             type="button"
-            onClick={() => setMode(item.key as JournalMode)}
+            onClick={() => switchTab(item.key)}
             className={`rounded-full px-5 py-2 text-sm font-medium transition ${
-              mode === item.key ? "bg-matcha text-white" : "text-muted"
+              tab === item.key ? "bg-matcha text-white" : "text-muted"
             }`}
           >
             {item.label}
@@ -101,9 +130,9 @@ export function JournalStudio({
         ))}
       </div>
 
-      {mode === "release" ? (
+      {tab === "release" ? (
         <section className="hero-card p-8">
-          <span className="eyebrow">Xả nhanh</span>
+          <span className="eyebrow">Viết ra</span>
           <textarea
             value={releaseText}
             onChange={(e) => setReleaseText(e.target.value)}
@@ -119,64 +148,73 @@ export function JournalStudio({
         </section>
       ) : null}
 
-      {mode === "journal" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="hero-card p-8">
-            <span className="eyebrow">Nhật ký</span>
-            <textarea
-              value={journalText}
-              onChange={(e) => setJournalText(e.target.value)}
-              disabled={!isActive}
-              className="mt-6 min-h-56 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none disabled:opacity-50"
-              placeholder="Bắt đầu viết..."
-            />
-            <button
-              type="button"
-              onClick={() => saveJournal(journalText, prompts[0])}
-              disabled={!isActive || loading}
-              className="button-primary mt-4 disabled:opacity-50"
-            >
-              Lưu nhật ký
-            </button>
-          </section>
-          <aside className="grid gap-3">
-            {prompts.map((prompt, index) => (
-              <motion.article key={prompt} {...{ initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: index * 0.05 } }} className="soft-card p-5">
-                <p className="text-sm text-matcha-deep">{prompt}</p>
-              </motion.article>
-            ))}
-          </aside>
-        </div>
+      {tab === "journal" ? (
+        <UpsellOverlay featureName="Nhật ký" description="Lưu nhật ký theo ngày với prompt gợi ý từ LUMIA." locked={!isActive}>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="hero-card p-8">
+              <span className="eyebrow">Nhật ký</span>
+              <textarea
+                value={journalText}
+                onChange={(e) => setJournalText(e.target.value)}
+                className="mt-6 min-h-56 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 text-base leading-8 outline-none"
+                placeholder="Bắt đầu viết..."
+              />
+              <button type="button" onClick={saveJournal} disabled={loading} className="button-primary mt-4">
+                Lưu nhật ký
+              </button>
+            </section>
+            <aside className="grid gap-3">
+              {prompts.map((prompt, index) => (
+                <motion.button
+                  key={prompt}
+                  type="button"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => setPromptUsed(prompt)}
+                  className={`soft-card p-5 text-left ${promptUsed === prompt ? "ring-2 ring-matcha" : ""}`}
+                >
+                  <p className="text-sm text-matcha-deep">{prompt}</p>
+                </motion.button>
+              ))}
+            </aside>
+          </div>
+        </UpsellOverlay>
       ) : null}
 
-      {mode === "mood" ? (
-        <section className="soft-card p-8">
-          <span className="eyebrow">Ghi nhận cảm xúc</span>
-          <div className="mt-6">
-            <div className="flex justify-between text-sm text-muted">
-              <span>Mức độ</span>
-              <span>{intensity}/5</span>
+      {tab === "mood" ? (
+        <UpsellOverlay featureName="Ghi nhận Mood" description="Theo dõi cảm xúc chi tiết hơn mỗi ngày." locked={!isActive}>
+          <section className="soft-card p-8">
+            <span className="eyebrow">Mood</span>
+            <div className="mt-6 flex justify-between gap-2">
+              {moodEmojis.map((emoji, i) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setMoodScore(i + 1)}
+                  className={`flex-1 rounded-[20px] py-4 text-2xl transition ${
+                    moodScore === i + 1 ? "bg-matcha-soft ring-2 ring-matcha" : "bg-white/80"
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={intensity}
-              onChange={(e) => setIntensity(Number(e.target.value))}
-              className="mt-3 h-2 w-full"
+            <textarea
+              value={moodNote}
+              onChange={(e) => setMoodNote(e.target.value)}
+              className="mt-6 min-h-28 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 outline-none"
+              placeholder="Ghi chú ngắn..."
             />
-          </div>
-          <textarea
-            value={moodNote}
-            onChange={(e) => setMoodNote(e.target.value)}
-            className="mt-6 min-h-28 w-full rounded-[30px] border border-white/70 bg-white/84 p-6 outline-none"
-            placeholder="Ghi chú ngắn..."
-          />
-          <button type="button" onClick={saveMood} disabled={loading} className="button-primary mt-4">
-            Lưu cảm xúc
-          </button>
-          {savedMessage ? <p className="mt-3 text-sm text-matcha-deep">{savedMessage}</p> : null}
-        </section>
+            <button type="button" onClick={saveMood} disabled={loading} className="button-primary mt-4">
+              Lưu mood
+            </button>
+          </section>
+        </UpsellOverlay>
+      ) : null}
+
+      {savedMessage && tab !== "release" ? (
+        <p className="text-sm text-matcha-deep">{savedMessage}</p>
       ) : null}
     </div>
   );

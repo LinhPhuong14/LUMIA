@@ -7,11 +7,11 @@ export default async function AIPage() {
 
   return (
     <DashboardShell
-      currentPath="/ai"
       sessionName={session.name}
-      planLabel="Hộp LUMIA Dịu sâu"
+      planLabel="LUMIA lắng nghe"
       title="LUMIA lắng nghe bạn."
       subtitle="Một không gian riêng tư để bạn được nói ra điều đang ở trong lòng, theo nhịp nhẹ và không bị phán xét."
+      isAdmin={session.role === "admin"}
     >
       <AiStudio />
     </DashboardShell>

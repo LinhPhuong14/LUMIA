@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/marketing/product-card";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteHeader } from "@/components/marketing/site-header";
-import { lumiaBox } from "@/data/catalog";
+import { lumiaBoxes } from "@/data/catalog";
 import { getSession } from "@/lib/supabase/auth";
 
 export default async function BoxesPage({
@@ -21,10 +21,10 @@ export default async function BoxesPage({
       <main className="mx-auto max-w-[1280px] px-7 py-12">
         <section className="mx-auto max-w-4xl text-center">
           <div className="font-serif text-[4.6rem] leading-[0.95] tracking-[-0.06em] text-[#2f2b25] md:text-[5.6rem]">
-            Hộp LUMIA
+            Product Catalog
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-[#6f6b63]">
-            Một hộp duy nhất — 21 ngày đồng hành cùng giấc ngủ và thiền định.
+            Nền tảng chăm sóc giấc ngủ và sức khỏe tinh thần — chọn gói phù hợp với bạn.
           </p>
         </section>
 
@@ -32,11 +32,11 @@ export default async function BoxesPage({
           <section className="mx-auto mt-10 max-w-3xl rounded-[32px] border border-white/70 bg-white/82 p-5 shadow-[0_20px_50px_rgba(106,134,88,0.08)] backdrop-blur">
             <div className="grid gap-3 md:grid-cols-2">
               <Link
-                href={`/boxes/${lumiaBox.slug}`}
+                href="/boxes/first-time-user"
                 className="rounded-[24px] bg-[#2f2f2f] px-6 py-5 text-left text-white transition hover:bg-[#242424]"
               >
-                <div className="text-sm font-medium">Mua hộp LUMIA</div>
-                <div className="mt-2 text-sm text-white/70">Mở khóa hành trình 21 ngày đầy đủ.</div>
+                <div className="text-sm font-medium">Bắt đầu với gói người dùng mới</div>
+                <div className="mt-2 text-sm text-white/70">99.000đ — tháng đầu tiên kèm Mini Welcome Box.</div>
               </Link>
               <Link
                 href={session ? "/dashboard" : "/register?next=/onboarding"}
@@ -49,8 +49,10 @@ export default async function BoxesPage({
           </section>
         ) : null}
 
-        <section className="mx-auto mt-14 max-w-xl">
-          <ProductCard product={lumiaBox} featured />
+        <section className="mx-auto mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+          {lumiaBoxes.map((product) => (
+            <ProductCard key={product.slug} product={product} />
+          ))}
         </section>
       </main>
       <SiteFooter />

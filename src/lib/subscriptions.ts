@@ -1,6 +1,7 @@
 import type { GatedFeature } from "@/types/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceOrUserClient } from "@/lib/supabase/db";
 import type { Subscription, SubscriptionStatus } from "@/lib/supabase/types";
 
 const JOURNEY_DAYS = 21;
@@ -60,12 +61,12 @@ function toSnapshot(sub: Subscription | null): SubscriptionSnapshot {
 }
 
 export async function getSubscriptionForUser(userId: string): Promise<Subscription | null> {
-  const admin = createAdminClient();
-  if (!admin) {
+  const client = await getServiceOrUserClient();
+  if (!client) {
     return null;
   }
 
-  const { data } = await admin
+  const { data } = await client
     .from("subscriptions")
     .select("*")
     .eq("user_id", userId)

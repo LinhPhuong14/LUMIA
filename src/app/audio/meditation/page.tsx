@@ -1,22 +1,42 @@
 import Link from "next/link";
-import type { Route } from "next";
 
+import { AudioCategoryPage } from "@/components/audio/audio-category-page";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { AudioLibrary } from "@/components/audio/audio-library";
+import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
 
 export default async function AudioMeditationPage() {
   const session = await requireSession();
+  const subscription = await getSubscriptionSnapshot(session.id);
+
   return (
-    <DashboardShell currentPath="/audio" sessionName={session.name} planLabel="Meditation" title="Meditation library" subtitle="Guided và mini meditation">
-      <AudioLibrary category="guided_meditation" />
-      <div className="mt-6 flex gap-3">
-        <Link href={"/audio/breathing" as Route} className="button-secondary">
-          Breathing
-        </Link>
-        <Link href={"/audio/timer" as Route} className="button-secondary">
-          Timer
-        </Link>
+    <DashboardShell
+      sessionName={session.name}
+      planLabel="Meditation"
+      title="Thiền định"
+      subtitle="Guided meditation và mini sessions cho mọi năng lượng."
+      isAdmin={session.role === "admin"}
+    >
+      <div className="space-y-8">
+        <AudioCategoryPage
+          isActive={subscription.isActive}
+          categories={["guided_meditation", "mini_meditation"]}
+          sections={[
+            { title: "Guided Meditation", category: "guided_meditation" },
+            { title: "Mini Meditations", category: "mini_meditation" },
+          ]}
+        />
+        <section className="soft-card p-6">
+          <h2 className="font-serif text-2xl text-matcha-deep">Breathing & Timer</h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/audio/breathing" className="button-secondary text-[13px]">
+              Bài tập thở
+            </Link>
+            <Link href="/audio/timer" className="button-secondary text-[13px]">
+              Meditation Timer
+            </Link>
+          </div>
+        </section>
       </div>
     </DashboardShell>
   );

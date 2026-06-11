@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { env, hasLlmConfig, hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
+import { env, hasLlmConfig, hasPayOSConfig, hasSupabaseConfig, hasSupabaseSecretKey } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -10,7 +10,10 @@ export async function GET() {
     appUrl: env.APP_URL,
     vercelEnv: env.VERCEL_ENV ?? "local",
     demoMode: env.DEMO_MODE,
-    supabase: hasSupabaseConfig(),
+    supabase: {
+      client: hasSupabaseConfig(),
+      secretKey: hasSupabaseSecretKey(),
+    },
     payos: hasPayOSConfig(),
     ai: {
       mode: "in-process",

@@ -4,12 +4,22 @@ import Link from "next/link";
 
 import { CheckoutPanel } from "@/components/checkout/checkout-panel";
 import { SiteHeader } from "@/components/marketing/site-header";
-import { lumiaBox } from "@/data/catalog";
+import { getProductBySlug } from "@/data/catalog";
 import { getSession } from "@/lib/supabase/auth";
+import { redirect } from "next/navigation";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ slug?: string }>;
+}) {
   const session = await getSession();
-  const product = lumiaBox;
+  const params = await searchParams;
+  const product = getProductBySlug(params.slug ?? "first-time-user");
+
+  if (!product) {
+    redirect("/boxes");
+  }
 
   return (
     <div className="min-h-screen">
