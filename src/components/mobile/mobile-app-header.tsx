@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bell, Menu } from "lucide-react";
 
 import { PlanBadge } from "@/components/ui/plan-badge";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
@@ -20,20 +21,45 @@ export function MobileAppHeader({
   planLabel,
   badgeVariant,
   sessionName,
+  variant = "default",
+  onMoreOpen,
 }: {
   title: string;
   subtitle?: string;
   planLabel?: string;
   badgeVariant?: PlanBadgeVariant;
   sessionName: string;
+  variant?: "default" | "hub";
+  onMoreOpen?: () => void;
 }) {
+  if (variant === "hub") {
+    return (
+      <header className="sticky top-0 z-40 px-[18px] pb-2.5 pt-[calc(var(--safe-top)+6px)] lg:hidden">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onMoreOpen}
+            className="dash-glass-btn"
+            aria-label="Menu"
+          >
+            <Menu className="h-[19px] w-[19px] text-[var(--foreground)]" />
+          </button>
+          <span className="font-serif text-lg font-medium tracking-[-0.01em] text-[var(--foreground)]">
+            {title}
+          </span>
+          <button type="button" className="dash-glass-btn" aria-label="Thông báo">
+            <Bell className="h-[19px] w-[19px] text-[var(--foreground)]" />
+          </button>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="mobile-app-header sticky top-0 z-40 lg:hidden">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-sans text-xl font-medium text-matcha-text">
-            {title}
-          </h1>
+          <h1 className="truncate font-serif text-xl font-medium text-matcha-text">{title}</h1>
           {subtitle ? (
             <p className="mt-0.5 truncate text-[12px] leading-5 text-muted">{subtitle}</p>
           ) : null}

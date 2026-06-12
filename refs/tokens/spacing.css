@@ -1,0 +1,41 @@
+/* ── LUMIA · Spacing, radii & shadows ── */
+
+:root {
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Semantic spacing */
+  --section-gap: var(--space-24);
+  --card-padding: var(--space-8);
+  --card-gap: var(--space-6);
+  --input-padding-x: var(--space-6);
+  --input-padding-y: var(--space-4);
+
+  /* Radii — LUMIA leans on big, pillowy corners */
+  --radius-sm: 12px;     /* tertiary chips / tags */
+  --radius-md: 20px;     /* inputs, secondary cards */
+  --radius-lg: 24px;     /* primary cards */
+  --radius-xl: 32px;     /* hero cards, sidebar */
+  --radius-2xl: 34px;    /* liquid panels */
+  --radius-pill: 999px;  /* buttons, eyebrows, badges */
+
+  /* Shadows — warm honey-tinted, very soft & wide */
+  --shadow: 0 24px 80px rgba(244, 216, 120, 0.16);
+  --shadow-card: 0 2px 12px rgba(125, 143, 104, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0 24px 80px rgba(244, 216, 120, 0.14);
+  --shadow-button: 0 20px 40px rgba(143, 168, 120, 0.2);
+  --shadow-lift: 0 14px 32px rgba(143, 168, 120, 0.1);
+
+  /* Mobile shell metrics */
+  --mobile-header-height: 3.75rem;
+  --mobile-tab-bar-height: 4.25rem;
+}

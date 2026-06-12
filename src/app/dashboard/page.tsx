@@ -16,8 +16,8 @@ export default async function DashboardPage() {
       sessionName={session.name}
       sessionEmail={session.email}
       subscription={subscription}
-      title={`Chào buổi tối, ${session.name}.`}
-      subtitle="Check-in nhanh, chọn hoạt động hôm nay và để LUMIA đồng hành."
+      title={`Chào buổi tối, ${session.name} 👋`}
+      subtitle="Hôm nay bạn muốn bắt đầu từ đâu?"
       isAdmin={session.role === "admin"}
     >
       <DashboardHome
@@ -25,6 +25,8 @@ export default async function DashboardPage() {
         subscription={subscription}
         latestOrder={latestOrder}
         onboardingGoal={session.onboardingGoal}
+        userName={session.name}
+        userId={session.id}
       />
     </DashboardShell>
   );

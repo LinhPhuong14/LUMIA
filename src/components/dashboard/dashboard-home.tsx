@@ -2,42 +2,33 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 
+import { HubDesktop } from "@/components/dashboard/hub/hub-desktop";
+import { HubMobile } from "@/components/dashboard/hub/hub-mobile";
 import { MoodCheckInModal } from "@/components/dashboard/mood-check-in-modal";
 import { UpsellBanner } from "@/components/dashboard/upsell-banner";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
 
-const quickActions = [
-  { href: "/journal#release", label: "Viết ra", copy: "Đặt cảm xúc xuống một chút" },
-  { href: "/journal#journal", label: "Viết nhật ký", copy: "Ghi lại ngày hôm nay" },
-  { href: "/audio/meditation", label: "Nghe thiền", copy: "Guided meditation ngắn" },
-  { href: "/audio/sleep", label: "Sleep sounds", copy: "Âm thanh cho giấc ngủ" },
-  { href: "/audio/breathing", label: "Bài thở", copy: "Thở cùng LUMIA" },
-  { href: "/ai", label: "Nói chuyện", copy: "LUMIA lắng nghe bạn" },
-] as const;
-
-const goalSuggestions: Record<string, string> = {
-  sleep: "Tối nay thử wind-down 10 phút trước khi ngủ.",
-  stress: "Bắt đầu bằng 3 dòng viết ra — không cần giải thích.",
-  meditation: "Một bài thiền mini 3 phút có thể đủ cho hôm nay.",
-};
-
 export function DashboardHome({
   planLabel,
   subscription,
   latestOrder,
-  onboardingGoal,
+  userName = "bạn",
 }: {
   planLabel: string;
   subscription: SubscriptionSnapshot;
   latestOrder: OrderEntry | null;
   onboardingGoal?: string | null;
+  userName?: string;
+  userId?: string;
 }) {
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
+  const [moodIndex, setMoodIndex] = useState(0);
+  const [level, setLevel] = useState(3);
+  const [pickedMood, setPickedMood] = useState<number | null>(null);
   const isFree = !subscription.isActive;
 
   useEffect(() => {
@@ -57,107 +48,62 @@ export function DashboardHome({
   }, []);
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <MoodCheckInModal onComplete={(score) => setTodayMood(score)} />
       <UpsellBanner show={isFree} />
 
-      <div className="space-y-4 lg:space-y-4">
-        <div className="lg:hidden">
-          <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-muted">Hôm nay</p>
-          <h2 className="mt-1 font-sans text-xl font-medium text-matcha-text">Chào buổi tối 👋</h2>
-        </div>
-
-        {latestOrder?.hasPhysicalBox && subscription.isActive ? (
-          <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-muted">
-            Hộp quà: {getOrderStatusLabel(latestOrder.status)}
-            {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
-          </div>
-        ) : null}
-
-        {subscription.isActive ? (
-          <div className="dashboard-glass rounded-[24px] px-5 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <span className="eyebrow">Gói đang dùng</span>
-                <p className="mt-2 font-sans text-base font-medium text-matcha-text">
-                  {subscription.tierName ?? "LUMIA Premium"}
-                </p>
-                {subscription.daysRemaining !== null ? (
-                  <p className="mt-1 text-[13px] text-muted">Còn {subscription.daysRemaining} ngày</p>
-                ) : null}
-              </div>
-              <div className="text-right">
-                <div className="text-[13px] text-muted">Streak</div>
-                <div className="font-sans text-2xl font-semibold text-matcha-text">{streak}</div>
-              </div>
-            </div>
-            {subscription.periodProgress !== null ? (
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-matcha-soft/40">
-                <div
-                  className="h-full rounded-full bg-matcha transition-all"
-                  style={{ width: `${subscription.periodProgress}%` }}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {subscription.status === "expired" ? (
-          <div className="dashboard-glass rounded-[24px] px-5 py-4">
-            <p className="text-[13px] text-matcha-deep">Gói LUMIA đã hết hạn. Bạn vẫn có thể xem lại trong Hành trình.</p>
-            <Link href="/boxes" className="button-primary mt-3 inline-flex text-[13px]">
-              Gia hạn gói LUMIA
-            </Link>
-          </div>
-        ) : null}
-
-        {todayMood ? (
-          <div className="rounded-[24px] border border-white/70 bg-white/78 px-4 py-3 text-[13px] text-matcha-deep">
-            Cảm xúc hôm nay: {todayMood}/5
-          </div>
-        ) : null}
-
-        {subscription.isActive && onboardingGoal ? (
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="dashboard-glass rounded-[30px] px-5 py-5"
-          >
-            <span className="eyebrow">Gợi ý cho hôm nay</span>
-            <p className="mt-3 text-[13px] leading-6 text-muted">
-              {goalSuggestions[onboardingGoal] ?? "Hãy chọn một hoạt động nhẹ bên dưới."}
-            </p>
-          </motion.section>
-        ) : null}
-
-        <section className="dashboard-glass rounded-[24px] px-4 py-4 lg:rounded-[30px] lg:px-5 lg:py-5">
-          <span className="eyebrow">Hoạt động nhanh</span>
-          <div className="mobile-h-scroll mt-4 -mx-1 px-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:overflow-visible lg:px-0">
-            {quickActions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="card-primary mobile-snap-card p-4 transition active:scale-[0.98] lg:w-auto lg:hover:shadow-[0_14px_32px_rgba(143,168,120,0.1)]"
-              >
-                <div className="font-medium text-matcha-deep">{action.label}</div>
-                <div className="mt-1 text-[12px] leading-5 text-muted">{action.copy}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {isFree ? (
-          <section className="dashboard-glass rounded-[30px] px-5 py-5">
-            <span className="eyebrow">{planLabel}</span>
-            <p className="mt-3 text-[13px] leading-6 text-muted">
-              Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, đăng ký một gói LUMIA.
-            </p>
-            <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px]">
-              Xem các gói
-            </Link>
-          </section>
-        ) : null}
+      <div className="hidden lg:block">
+        <HubDesktop
+          moodIndex={moodIndex}
+          level={level}
+          streak={streak}
+          todayMood={todayMood}
+          onMoodChange={setMoodIndex}
+          onLevelChange={setLevel}
+        />
       </div>
-    </>
+
+      <div className="lg:hidden">
+        <HubMobile
+          userName={userName}
+          pickedMood={pickedMood}
+          streak={streak}
+          todayMood={todayMood}
+          onMoodPick={setPickedMood}
+        />
+      </div>
+
+      {latestOrder?.hasPhysicalBox && subscription.isActive ? (
+        <div className="dash-panel mt-4 rounded-[24px] px-4 py-3 text-[13px] text-[var(--muted)] lg:mt-[18px]">
+          Hộp quà: {getOrderStatusLabel(latestOrder.status)}
+          {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
+        </div>
+      ) : null}
+
+      {subscription.status === "expired" ? (
+        <div className="dash-panel mt-4 rounded-[24px] px-5 py-4 lg:mt-[18px]">
+          <p className="text-[13px] text-[var(--green-deep)]">
+            Gói LUMIA đã hết hạn. Bạn vẫn có thể xem lại trong Hành trình.
+          </p>
+          <Link href="/boxes" className="button-primary mt-3 inline-flex text-[13px]">
+            Gia hạn gói LUMIA
+          </Link>
+        </div>
+      ) : null}
+
+      {isFree ? (
+        <div className="dash-panel mt-4 rounded-[24px] px-5 py-5 lg:hidden">
+          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--green)]">
+            {planLabel}
+          </span>
+          <p className="mt-3 text-[13px] leading-6 text-[var(--muted)]">
+            Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, đăng ký một gói LUMIA.
+          </p>
+          <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px]">
+            Xem các gói
+          </Link>
+        </div>
+      ) : null}
+    </div>
   );
 }

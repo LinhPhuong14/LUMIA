@@ -106,6 +106,10 @@ Nguồn: `src/app/globals.css`, `src/styles/fonts.css`, `src/styles/theme.css`
 
 ## 4. Layout theo màn hình
 
+> **Chi tiết đầy đủ:** xem [PAGE_LAYOUTS.md](./PAGE_LAYOUTS.md) — mô tả cây layout, responsive, premium gating và file tham chiếu cho từng route.
+
+Phần dưới là **tóm tắt**; bảng route dashboard xem §4.4.
+
 ### 4.1 Landing — `/`
 
 **File:** `src/app/page.tsx`

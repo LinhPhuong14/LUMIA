@@ -18,6 +18,7 @@ export default async function JourneyPage() {
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <JourneyPanel
+        userId={session.id}
         isActive={subscription.isActive}
         calendarDays={
           subscription.startedAt && subscription.expiresAt

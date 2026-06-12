@@ -1,0 +1,21 @@
+/* ── LUMIA · Webfonts ──
+   Display: Noto Serif Display (elegant high-contrast editorial serif with
+   COMPLETE Vietnamese diacritic coverage — chosen because Playfair / Fraunces /
+   Cormorant all render the circumflex+tone vowels (ố ấ ề) detached).
+   Body / UI: Manrope (humanist geometric sans).
+   Loaded from Google Fonts. */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  /* No Georgia / Times in the fallback: this rendering host substitutes them
+     with a font that renders Vietnamese stacked diacritics (ố ấ ề) DETACHED.
+     The generic `serif` keyword composes Vietnamese correctly. */
+  --font-display: "Noto Serif Display", serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Semantic aliases */
+  --font-serif: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-body);
+}

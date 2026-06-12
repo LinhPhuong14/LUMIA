@@ -4,13 +4,13 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { BarChart2, LogOut, Package, Settings, Shield, X } from "lucide-react";
+import { BarChart2, Feather, LogOut, Settings, Shield, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const moreLinks = [
+  { href: "/journal" as Route, label: "Nhật ký", icon: Feather },
   { href: "/journey" as Route, label: "Hành trình", icon: BarChart2 },
-  { href: "/account" as Route, label: "Tài khoản", icon: Package },
   { href: "/settings" as Route, label: "Cài đặt", icon: Settings },
 ] as const;
 

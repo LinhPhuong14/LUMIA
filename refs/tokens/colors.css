@@ -1,0 +1,116 @@
+/* ── LUMIA · Colors ──
+   Healing editorial palette: bright warm cream, sage→olive greens, honey gold,
+   a soft dusty-rose accent and sand neutrals. Calm, luminous, never clinical.
+   Light-mode only. Tuned to the LUMIA brand board. */
+
+:root {
+  /* ---- Base neutrals & surfaces — bright warm cream ---- */
+  --background: #fdf8ec;          /* luminous beige-cream — the page */
+  --surface: #fffdf6;             /* warm ivory */
+  --surface-strong: #ffffff;
+  --surface-warm: #f4eedd;        /* sand-tinted band */
+  --surface-card: #fffefa;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-footer: #f3ecd9;
+  --foreground: #383328;          /* warm dark-brown ink */
+  --muted: #837e72;               /* secondary text (warm grey) */
+  --border: rgba(216, 199, 163, 0.4);
+
+  /* ---- Sage → Olive (primary green family) ---- */
+  --matcha-soft: #eef4e8;         /* palest mint wash / chips */
+  --matcha: #c5d6ad;              /* light sage fill / progress */
+  --matcha-deep: #5f6f52;         /* primary action — deep olive */
+  --matcha-hover: #4d5c41;        /* primary hover */
+  --matcha-text: #46553a;         /* olive text on light */
+  --matcha-vivid: #9caf88;        /* sage accent */
+  --matcha-highlight: #b6c79f;
+  --matcha-highlight-bg: #e7efdd;
+  --accent-light: #9caf88;        /* hero highlight / sage */
+
+  /* ---- Honey / champagne (warm accent family) ---- */
+  --champagne: #fff8e7;
+  --honey: #ebc872;               /* signature gold */
+  --honey-dark: #cca84e;
+  --honey-glow: #f7e7b7;          /* pale honey */
+  --clay: #f3ecd9;
+
+  /* ---- Dusty rose (soft emotional accent) ---- */
+  --rose: #dfa6a0;
+  --rose-deep: #c9847d;
+  --rose-soft: #f5e4e1;
+
+  /* ---- Sand (warm neutral) ---- */
+  --sand: #d8c7a3;
+  --sand-soft: #ece2cd;
+
+  /* ---- Catalog / subscription product greens ---- */
+  --lumia-green: #5f6f52;
+  --lumia-green-mid: #88a06f;
+  --lumia-green-soft: #b6c79f;
+  --lumia-green-pale: #dde8cf;
+  --lumia-green-bg: #eef4e8;
+  --lumia-cream: #f6f0e2;
+  --lumia-cream-warm: #ede5d3;
+  --lumia-text: #383328;
+  --lumia-text-mid: #5a5a48;
+  --lumia-text-soft: #837e72;
+  --lumia-highlight: #5f6f52;
+  --lumia-highlight-text: #ffffff;
+
+  /* ---- Semantic status ---- */
+  --error: #b06b62;               /* warm rose-clay */
+  --error-soft: #f5e4e1;
+  --success: #6f8a57;
+  --success-soft: #eaf1df;
+
+  /* ---- Mood scale accents ---- */
+  --mood-mid: #fdf0c8;
+  --mood-high: #f7e7b7;
+
+  /* ---- Bands & inverse ---- */
+  --join-band: #5f6f52;
+  --join-band-text: #46553a;
+  --inverse: #383328;
+  --inverse-hover: #2a2620;
+  --onboarding-border: #ece2cd;
+  --onboarding-surface: #fdf9ef;
+
+  /* ════ Gradients — soft, luminous, healing ════
+     Honey→sage editorial sweeps. Gentle, airy, never heavy or neon. */
+  --gradient-primary: linear-gradient(135deg, #788a64 0%, #54664a 100%); /* @kind color */
+  --gradient-primary-hover: linear-gradient(135deg, #6c7e58 0%, #475739 100%); /* @kind color */
+  --gradient-warm: linear-gradient(135deg, #fbe9b4 0%, #ebc872 100%); /* @kind color */
+  --gradient-fresh: linear-gradient(135deg, #cfdcb6 0%, #9cb286 100%); /* @kind color */
+  /* Honey→sage→olive brand sweep for hero words & highlights */
+  --gradient-brand: linear-gradient(102deg, #d9ad4f 0%, #9caf88 52%, #5f6f52 100%); /* @kind color */
+  /* Soft tinted surface for feature cards */
+  --gradient-surface: linear-gradient(160deg, #fffdf7 0%, #f7f2e4 55%, #eef4e8 100%); /* @kind color */
+  --gradient-mist: linear-gradient(180deg, #fdf9ef 0%, #eef4e8 100%); /* @kind color */
+  /* Ambient hero glow — honey + sage, bright & airy */
+  --gradient-glow: radial-gradient(circle at 50% 12%, rgba(235,200,114,0.28) 0%, rgba(156,175,136,0.22) 38%, rgba(253,248,236,0) 70%); /* @kind color */
+
+  /* ════ Fresh green (saturation ~70) — landing / glassy-gradient surfaces ════
+     MATCHA / PASTEL family: soft, slightly yellow-green, never jewel-emerald.
+     Lives over the warm cream base. */
+  --green: #8aab63;            /* matcha — soft yellow-green, landing primary */
+  --green-bright: #a9c987;     /* light matcha */
+  --green-deep: #5f7a45;       /* deep matcha-olive (text / hover) */
+  --green-mint: #d8ebc2;       /* pastel mint (yellowish) */
+  --green-lime: #e4efb2;       /* pale lime pastel */
+  --green-teal: #98c39d;       /* soft sage-green (de-tealed) */
+  --green-jade: #b0d8a6;       /* pastel jade-green */
+  --green-wash: #f0f5e4;       /* palest matcha wash */
+
+  /* ════ Iridescent gradients (moana-style glass card fills) — matcha/pastel ════ */
+  --gradient-iris:    linear-gradient(135deg, #ecf5d6 0%, #cfe6a6 28%, #a6cd7c 56%, #8cb869 82%, #d6e9b4 100%); /* @kind color */
+  --gradient-emerald: linear-gradient(150deg, #e8f3d4 0%, #b0d088 45%, #7a9c52 100%); /* @kind color */
+  --gradient-jade:    linear-gradient(150deg, #e0efcd 0%, #a8d090 48%, #6f9a54 100%); /* @kind color */
+  --gradient-lime:    linear-gradient(150deg, #f3f8d0 0%, #d6ec9e 46%, #a6c862 100%); /* @kind color */
+  --gradient-honeyjade: linear-gradient(150deg, #fbeec2 0%, #d0e0a2 50%, #88a85c 100%); /* @kind color */
+
+  /* Aura core tints (used by .lumia-aura-* utilities) — soft matcha/pastel */
+  --aura-1: rgba(138,171,99,0.40);
+  --aura-2: rgba(176,216,166,0.34);
+  --aura-3: rgba(214,235,158,0.34);
+  --aura-4: rgba(240,216,138,0.26);
+}

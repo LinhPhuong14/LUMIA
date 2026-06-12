@@ -1,68 +1,55 @@
 "use client";
 
-import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Menu, MessageCircle, Music, PenLine } from "lucide-react";
 
+import { isNavActive, mobileTabs } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
-const primaryTabs = [
-  { href: "/dashboard" as Route, label: "Trang chủ", icon: Home },
-  { href: "/journal" as Route, label: "Nhật ký", icon: PenLine },
-  { href: "/audio" as Route, label: "Âm thanh", icon: Music },
-  { href: "/ai" as Route, label: "Lắng nghe", icon: MessageCircle },
-] as const;
+const moreRoutes = ["/journal", "/settings", "/admin", "/audio/sleep"];
 
-const moreRoutes = ["/journey", "/account", "/settings", "/admin"];
-
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function isMoreActive(pathname: string) {
+export function isMoreRouteActive(pathname: string) {
   return moreRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
-export function MobileTabBar({ onMoreOpen }: { onMoreOpen: () => void }) {
+export function MobileTabBar() {
   const pathname = usePathname();
-  const moreActive = isMoreActive(pathname);
 
   return (
-    <nav className="mobile-tab-bar lg:hidden" aria-label="Điều hướng chính">
-      {primaryTabs.map((item) => {
-        const active = isActive(pathname, item.href);
+    <nav className="mobile-tab-bar-floating lg:hidden" aria-label="Điều hướng chính">
+      {mobileTabs.map((item) => {
+        const active = isNavActive(pathname, item.href);
+        const Icon = item.icon;
         return (
           <Link
-            key={item.href}
+            key={item.id}
             href={item.href}
-            className={cn(
-              "mobile-tab-item",
-              active ? "mobile-tab-item-active" : "mobile-tab-item-inactive",
-            )}
+            className="mobile-tab-floating-item"
+            aria-current={active ? "page" : undefined}
           >
-            <span className="mobile-tab-icon-wrap">
-              <item.icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 1.75} />
+            <span
+              className={cn(
+                "mobile-tab-floating-chip",
+                active ? "bg-[var(--matcha-soft)]" : "bg-transparent",
+              )}
+            >
+              <Icon
+                className="h-[18px] w-[18px]"
+                strokeWidth={active ? 2 : 1.6}
+                style={{ color: active ? "var(--matcha-deep)" : "var(--muted)" }}
+              />
             </span>
-            <span>{item.label}</span>
+            <span
+              className={cn(
+                "text-[9.5px] font-medium",
+                active ? "font-semibold text-[var(--matcha-deep)]" : "text-[var(--muted)]",
+              )}
+            >
+              {item.mobileLabel ?? item.label}
+            </span>
           </Link>
         );
       })}
-      <button
-        type="button"
-        onClick={onMoreOpen}
-        className={cn(
-          "mobile-tab-item",
-          moreActive ? "mobile-tab-item-active" : "mobile-tab-item-inactive",
-        )}
-        aria-label="Thêm tùy chọn"
-      >
-        <span className="mobile-tab-icon-wrap">
-          <Menu className="h-[18px] w-[18px]" strokeWidth={moreActive ? 2.25 : 1.75} />
-        </span>
-        <span>Thêm</span>
-      </button>
     </nav>
   );
 }

@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 export function LumiaLogo({
   className,
   variant = "dark",
+  compact = false,
 }: {
   className?: string;
   variant?: "dark" | "light";
+  compact?: boolean;
 }) {
   const src =
     variant === "light"
@@ -22,7 +24,9 @@ export function LumiaLogo({
         alt="LUMIA"
         width={260}
         height={116}
-        className="h-auto w-[126px] md:w-[148px]"
+        className={cn(
+          compact ? "h-[26px] w-auto md:h-[29px]" : "h-auto w-[126px] md:w-[148px]",
+        )}
         priority
       />
     </Link>

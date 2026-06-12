@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
+import { GenerativeVisual } from "@/components/ui/generative-visual";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TabPills } from "@/components/ui/tab-pills";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
+import { staggerContainer, staggerItem } from "@/lib/motion-variants";
 
 type Tab = "history" | "reports";
 
@@ -27,12 +31,79 @@ function buildCalendarDays(totalDays: number): string[] {
   });
 }
 
+function moodCellBg(score: number | undefined) {
+  if (!score) return "rgba(255,255,255,0.5)";
+  const map: Record<number, string> = {
+    1: "rgba(180,80,80,0.15)",
+    2: "rgba(200,150,80,0.15)",
+    3: "rgba(180,180,80,0.15)",
+    4: "rgba(130,170,100,0.15)",
+    5: "rgba(80,150,100,0.15)",
+  };
+  return map[score] ?? map[3];
+}
+
+function MoodSparkline({ scores }: { scores: number[] }) {
+  if (!scores.length) return null;
+  const w = 80;
+  const h = 24;
+  const max = 5;
+  const points = scores
+    .map((s, i) => `${(i / (scores.length - 1 || 1)) * w},${h - (s / max) * h}`)
+    .join(" ");
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const color = avg >= 4 ? "#8d9d76" : avg >= 3 ? "#b8cba8" : "#c9a82e";
+
+  return (
+    <svg width={w} height={h} className="mx-auto mt-2" aria-hidden>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ActivityBars({ counts }: { counts: Record<string, number> }) {
+  const entries = Object.entries(counts).slice(0, 5);
+  const max = Math.max(...entries.map(([, v]) => v), 1);
+  const colors = ["#8d9d76", "#7d9a8a", "#9a8d76", "#6a7d9a", "#b8cba8"];
+
+  return (
+    <div className="mt-2 flex items-end justify-center gap-1" style={{ height: 28 }}>
+      {entries.map(([, count], i) => (
+        <div
+          key={i}
+          className="w-2 rounded-t-sm"
+          style={{
+            height: `${(count / max) * 100}%`,
+            minHeight: 4,
+            background: colors[i % colors.length],
+            opacity: 0.7,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StreakFlame({ streak }: { streak: number }) {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" className={`mx-auto mt-1 ${streak >= 7 ? "animate-breathe-glow" : ""}`} aria-hidden>
+      <path
+        d="M14 4C12 10 8 14 8 18c0 3 2.5 6 6 6s6-3 6-6c0-4-4-8-6-14z"
+        fill={streak >= 7 ? "#f0c94e" : "#8d9d76"}
+        opacity="0.8"
+      />
+    </svg>
+  );
+}
+
 export function JourneyPanel({
   isActive,
   calendarDays = 30,
+  userId = "journey",
 }: {
   isActive: boolean;
   calendarDays?: number;
+  userId?: string;
 }) {
   const [tab, setTab] = useState<Tab>("history");
   const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0 });
@@ -40,8 +111,9 @@ export function JourneyPanel({
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [hoverDay, setHoverDay] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isActive) {
@@ -76,17 +148,19 @@ export function JourneyPanel({
   const topActivity = Object.entries(activityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
 
   const days = buildCalendarDays(calendarDays);
-
-  function moodColor(date: string) {
-    const entry = moods.find((m) => m.date === date);
-    if (!entry) return "bg-white/60";
-    if (entry.score <= 2) return "bg-matcha-soft";
-    if (entry.score === 3) return "bg-mood-mid";
-    return "bg-mood-high";
-  }
+  const today = new Date().toISOString().slice(0, 10);
+  const recentMoodScores = moods.slice(-7).map((m) => m.score);
+  const moodDataForGarden = days.map((d) => moods.find((m) => m.date === d)?.score);
 
   const content = (
-    <div className="journey-content space-y-6">
+    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="journey-content space-y-6">
+      <GenerativeVisual
+        seed={userId}
+        variant="constellation"
+        moodData={moodDataForGarden.filter((s): s is number => s !== undefined)}
+        className="mb-2"
+      />
+
       <TabPills
         tabs={[
           { id: "history", label: "Lịch sử" },
@@ -101,60 +175,83 @@ export function JourneyPanel({
       {tab === "history" ? (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="soft-card p-5 text-center">
+            <motion.div variants={staggerItem} className="glass-card p-5 text-center">
               <div className="text-[12px] text-muted">Streak</div>
-              <div className="font-sans text-2xl font-semibold text-matcha-text">{streak.current_streak}</div>
-            </div>
-            <div className="soft-card p-5 text-center">
+              <div className="font-sans text-3xl font-semibold text-matcha-text">{streak.current_streak}</div>
+              <StreakFlame streak={streak.current_streak} />
+            </motion.div>
+            <motion.div variants={staggerItem} className="glass-card p-5 text-center">
               <div className="text-[12px] text-muted">Mood TB</div>
-              <div className="font-sans text-2xl font-semibold text-matcha-text">{avgMood}</div>
-            </div>
-            <div className="soft-card p-5 text-center">
+              <div className="font-sans text-3xl font-semibold text-matcha-text">{avgMood}</div>
+              <MoodSparkline scores={recentMoodScores} />
+            </motion.div>
+            <motion.div variants={staggerItem} className="glass-card p-5 text-center">
               <div className="text-[12px] text-muted">Hoạt động nhiều</div>
               <div className="font-sans text-base font-medium text-matcha-text">{topActivity}</div>
-            </div>
+              <ActivityBars counts={activityCounts} />
+            </motion.div>
           </div>
 
-          <section className="soft-card p-6">
+          <section className="glass-card relative overflow-hidden p-6">
             <span className="eyebrow">Lịch hành trình</span>
-            <div className="mt-5 grid grid-cols-7 gap-2">
-              {days.map((date) => (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => setSelectedDay(date)}
-                  className="flex flex-col items-center gap-2 rounded-[16px] border border-white/60 p-2 transition hover:bg-white/80"
-                >
-                  <div className={`h-4 w-4 rounded-full ${moodColor(date)}`} />
-                  <span className="text-[10px] text-muted">{date.slice(8)}</span>
-                </button>
-              ))}
+            <GenerativeVisual seed={userId} variant="garden" moodData={moodDataForGarden.filter((s): s is number => s !== undefined)} />
+            <div ref={calendarRef} className="relative mt-5 grid grid-cols-7 gap-2">
+              {days.map((date) => {
+                const moodEntry = moods.find((m) => m.date === date);
+                const dayActivities = activities.filter((a) => a.date === date);
+                const isToday = date === today;
+
+                return (
+                  <div key={date} className="relative">
+                    <button
+                      type="button"
+                      onMouseEnter={() => setHoverDay(date)}
+                      onMouseLeave={() => setHoverDay(null)}
+                      className={`flex h-9 w-full flex-col items-center justify-center rounded-[14px] border transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:h-11 ${
+                        isToday ? "ring-2 ring-matcha-deep ring-offset-1" : "border-white/50"
+                      }`}
+                      style={{ background: moodCellBg(moodEntry?.score) }}
+                    >
+                      {dayActivities.length > 0 ? (
+                        <span className="absolute right-1 top-1 h-0.5 w-0.5 rounded-full bg-matcha-deep" />
+                      ) : null}
+                      <span className="text-[10px] text-muted sm:text-[11px]">{date.slice(8)}</span>
+                    </button>
+                    {hoverDay === date ? (
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="glass-card-elevated absolute bottom-full left-1/2 z-20 mb-2 w-40 -translate-x-1/2 rounded-[16px] p-3 text-left text-[11px] shadow-lg"
+                      >
+                        <div className="font-medium text-matcha-deep">{date}</div>
+                        <div className="mt-1 text-muted">
+                          Mood: {moodEntry?.score ?? "—"}/5
+                        </div>
+                        <div className="text-muted">{dayActivities.length} hoạt động</div>
+                        {moodEntry?.note ? (
+                          <div className="mt-1 truncate text-muted">{moodEntry.note.slice(0, 20)}...</div>
+                        ) : null}
+                      </motion.div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
-          {selectedDay ? (
-            <section className="soft-card p-6">
-              <h3 className="font-medium text-matcha-deep">{selectedDay}</h3>
-              <p className="mt-2 text-sm text-muted">
-                Mood: {moods.find((m) => m.date === selectedDay)?.score ?? "Chưa có"}
-              </p>
-              <p className="mt-2 text-sm text-muted">
-                Hoạt động:{" "}
-                {activities
-                  .filter((a) => a.date === selectedDay)
-                  .map((a) => a.activity_type)
-                  .join(", ") || "Chưa có"}
-              </p>
-              <button type="button" onClick={() => setSelectedDay(null)} className="button-secondary mt-4 text-[13px]">
-                Đóng
-              </button>
-            </section>
+          {!moods.length && !loading ? (
+            <EmptyState
+              scene="journey"
+              title="Hành trình đang chờ bạn"
+              description="Check-in mood và hoạt động mỗi ngày để thấy lịch sử ở đây."
+              action={{ label: "Về trang chủ", href: "/dashboard" }}
+            />
           ) : null}
         </>
       ) : null}
 
       {tab === "reports" ? (
-        <section className="soft-card p-6">
+        <section className="glass-card p-6">
           <div className="flex items-center justify-between gap-4">
             <span className="eyebrow">Báo cáo</span>
             <button
@@ -172,7 +269,7 @@ export function JourneyPanel({
           {reports.length ? (
             <div className="mt-5 space-y-3">
               {reports.map((report) => (
-                <article key={report.id} className="rounded-[22px] border border-white/70 bg-white/78 p-4">
+                <article key={report.id} className="glass-card rounded-[22px] p-4">
                   <button
                     type="button"
                     onClick={() => setExpandedReport(expandedReport === report.id ? null : report.id)}
@@ -194,11 +291,15 @@ export function JourneyPanel({
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-sm text-muted">Chưa có báo cáo. Nhấn Generate để tạo.</p>
+            <EmptyState
+              scene="reports"
+              title="Chưa có báo cáo"
+              description="Nhấn Generate để tạo báo cáo từ dữ liệu hành trình của bạn."
+            />
           )}
         </section>
       ) : null}
-    </div>
+    </motion.div>
   );
 
   return (

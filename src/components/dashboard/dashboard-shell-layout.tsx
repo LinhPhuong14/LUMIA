@@ -1,32 +1,16 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { LogoutButton } from "@/components/auth/logout-button";
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { TopBar } from "@/components/dashboard/shell/top-bar";
 import { MobileAppHeader } from "@/components/mobile/mobile-app-header";
 import { MobileMoreSheet } from "@/components/mobile/mobile-more-sheet";
 import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { PlanBadge } from "@/components/ui/plan-badge";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
-
-function formatFriendlyDate() {
-  return new Intl.DateTimeFormat("vi-VN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date());
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
+import { cn } from "@/lib/utils";
 
 export function DashboardShellLayout({
   sessionName,
@@ -48,7 +32,11 @@ export function DashboardShellLayout({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const isHub = pathname === "/dashboard";
+  const isChat = pathname === "/ai" || pathname.startsWith("/ai/");
+  const mobileTitle = isHub ? "Tối nay" : title;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -58,46 +46,52 @@ export function DashboardShellLayout({
   }
 
   return (
-    <div className="dashboard-shell dashboard-shell-bg">
-      <div className="mx-auto hidden h-full max-w-[1640px] gap-4 px-5 py-5 lg:flex lg:min-h-0 lg:flex-1">
-        <Sidebar isAdmin={isAdmin} />
+    <div className="dashboard-shell lumia-aura-dashboard lumia-grain-soft relative h-dvh max-h-dvh overflow-hidden">
+      <div className="dashboard-glow dashboard-glow--mint" aria-hidden />
+      <div className="dashboard-glow dashboard-glow--lime" aria-hidden />
+      <div className="dashboard-glow dashboard-glow--honey" aria-hidden />
 
-        <div className="dashboard-content">
-          <div className="dashboard-header dashboard-glass rounded-[32px] border-matcha-soft/40 px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <div className="text-[13px] capitalize text-muted">{formatFriendlyDate()}</div>
-                <h1 className="mt-2 font-sans text-xl font-medium text-matcha-text">{title}</h1>
-                <p className="mt-2 max-w-3xl text-[13px] leading-6 text-muted">{subtitle}</p>
-              </div>
+      <div className="dashboard-shell-grid hidden lg:grid">
+        <Sidebar isAdmin={isAdmin} sessionName={sessionName} planLabel={planLabel} />
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                <PlanBadge label={planLabel} variant={badgeVariant} />
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(145deg,var(--champagne),var(--matcha-soft))] text-[13px] font-semibold text-matcha-text shadow-[0_16px_36px_rgba(244,216,120,0.14)]"
-                  title={sessionEmail}
-                >
-                  {getInitials(sessionName)}
-                </div>
-                <LogoutButton />
-              </div>
-            </div>
+        <div className="dashboard-content-column">
+          <TopBar
+            title={title}
+            subtitle={subtitle}
+            planLabel={planLabel}
+            badgeVariant={badgeVariant}
+            sessionName={sessionName}
+          />
+          <div
+            className={cn(
+              "dashboard-scroll-area lumia-scroll dashboard-page-root pr-1",
+              isChat && "dashboard-scroll-area--locked",
+            )}
+          >
+            {children}
           </div>
-
-          <div className="dashboard-scroll-area mt-4 pr-1">{children}</div>
         </div>
       </div>
 
-      <div className="mobile-app-shell flex flex-col lg:hidden">
+      <div className="mobile-app-shell lg:hidden">
         <MobileAppHeader
-          title={title}
-          subtitle={subtitle}
+          title={mobileTitle}
+          subtitle={isHub ? undefined : subtitle}
           planLabel={planLabel}
           badgeVariant={badgeVariant}
           sessionName={sessionName}
+          variant={isHub ? "hub" : "default"}
+          onMoreOpen={() => setMoreOpen(true)}
         />
-        <main className="mobile-app-content dashboard-scroll-area flex-1 px-4 pt-3">{children}</main>
-        <MobileTabBar onMoreOpen={() => setMoreOpen(true)} />
+        <main
+          className={cn(
+            "mobile-app-content lumia-scroll dashboard-page-root px-4 pt-2",
+            isChat && "overflow-hidden",
+          )}
+        >
+          {children}
+        </main>
+        <MobileTabBar />
         <MobileMoreSheet
           open={moreOpen}
           onClose={() => setMoreOpen(false)}

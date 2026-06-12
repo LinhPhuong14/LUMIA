@@ -1,0 +1,271 @@
+/* ── LUMIA · Surfaces, glass & motion ──
+   LUMIA's signature look is "liquid glass": frosted translucent panels with
+   warm honey-tinted glows, soft botanical radial washes, and gentle fades.
+   These are reusable utility classes consumers can drop in directly. */
+
+/* ---- Glassmorphism panels ---- */
+.lumia-glass {
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.78),
+    rgba(255, 255, 255, 0.56),
+    rgba(255, 243, 199, 0.18)
+  );
+  box-shadow:
+    0 20px 60px rgba(244, 216, 120, 0.12),
+    0 18px 48px rgba(143, 168, 120, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(24px) saturate(1.16);
+  -webkit-backdrop-filter: blur(24px) saturate(1.16);
+}
+
+.lumia-liquid-panel {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.62),
+    rgba(255, 255, 255, 0.34),
+    rgba(255, 243, 199, 0.18)
+  );
+  box-shadow:
+    0 24px 80px rgba(244, 216, 120, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-2xl);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---- Botanical radial halo (used behind heroes / page tops) ---- */
+.lumia-halo {
+  position: relative;
+}
+.lumia-halo::before {
+  content: "";
+  position: absolute;
+  top: -15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  aspect-ratio: 1;
+  max-width: 900px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(141, 157, 118, 0.18) 0%,
+    rgba(141, 157, 118, 0.06) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- Section wash (corner glows) ---- */
+.lumia-section-wash {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(244, 216, 120, 0.16), transparent 18%),
+    radial-gradient(circle at 88% 26%, rgba(159, 195, 133, 0.12), transparent 20%);
+}
+
+/* ---- Hairline grid overlay ---- */
+.lumia-grid-overlay {
+  background-image:
+    linear-gradient(rgba(95, 111, 82, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(95, 111, 82, 0.06) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+/* ---- Hover lift (magnetic) ---- */
+.lumia-magnetic {
+  transition: transform 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+.lumia-magnetic:hover {
+  transform: translateY(-3px) scale(1.028);
+}
+
+/* ── Motion ── */
+@keyframes lumia-fade-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lumia-float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -16px, 0); }
+}
+@keyframes lumia-breathe-glow {
+  0%, 100% { opacity: 0.52; transform: scale(0.98); }
+  50%      { opacity: 0.92; transform: scale(1.02); }
+}
+@keyframes lumia-shimmer-slide {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+@keyframes lumia-waveform {
+  0%, 100% { transform: scaleY(0.35); opacity: 0.45; }
+  50%      { transform: scaleY(1); opacity: 1; }
+}
+
+/* Entrance animations: base state is the VISIBLE end-state, so static captures,
+   PDF export, card thumbnails and reduced-motion all show content. The fade-in
+   only runs when motion is allowed, and uses forwards fill (no held hidden
+   start) so a frozen/pending animation clock never leaves text invisible. */
+.lumia-animate-fade-rise,
+.lumia-animate-fade-rise-delay,
+.lumia-animate-fade-rise-delay2 { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lumia-animate-fade-rise        { animation: lumia-fade-rise 0.8s ease-out forwards; }
+  .lumia-animate-fade-rise-delay  { animation: lumia-fade-rise 0.8s ease-out 0.2s forwards; }
+  .lumia-animate-fade-rise-delay2 { animation: lumia-fade-rise 0.8s ease-out 0.4s forwards; }
+}
+
+.lumia-animate-float-slow       { animation: lumia-float-slow 7s ease-in-out infinite; }
+.lumia-animate-breathe-glow     { animation: lumia-breathe-glow 5.5s ease-in-out infinite; }
+.lumia-animate-shimmer          { animation: lumia-shimmer-slide 3.8s linear infinite; }
+.lumia-animate-waveform         { animation: lumia-waveform 1.3s ease-in-out infinite; transform-origin: bottom; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-animate-fade-rise,
+  .lumia-animate-fade-rise-delay,
+  .lumia-animate-fade-rise-delay2,
+  .lumia-animate-float-slow,
+  .lumia-animate-breathe-glow,
+  .lumia-animate-shimmer,
+  .lumia-animate-waveform,
+  .lumia-magnetic {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASSY-GRADIENT KIT — grain, auras, iridescence, glass blobs.
+   The modern "ZERONODE / moana / LOIK" effect layer, in green.
+   ════════════════════════════════════════════════════════════ */
+
+/* ---- Grain / noise overlay (ZERONODE) ----
+   Drop on any positioned element; sits above its background, below content.
+   Add .lumia-grain to a position:relative box. */
+.lumia-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+.lumia-grain > * { position: relative; z-index: 1; }
+
+/* A standalone grain layer you can place yourself (e.g. over an image). */
+.lumia-grain-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.45;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ---- Aura background (ZERONODE) — grainy radial green glow field ----
+   Soft, blurred, organic green light over the warm cream base. */
+.lumia-aura {
+  position: relative;
+  background:
+    radial-gradient(38% 44% at 22% 30%, var(--aura-1) 0%, transparent 62%),
+    radial-gradient(42% 48% at 78% 26%, var(--aura-2) 0%, transparent 60%),
+    radial-gradient(46% 50% at 62% 82%, var(--aura-3) 0%, transparent 62%),
+    radial-gradient(34% 40% at 12% 84%, var(--aura-4) 0%, transparent 60%),
+    var(--background);
+}
+.lumia-aura-soft {
+  position: relative;
+  background:
+    radial-gradient(50% 60% at 80% 10%, var(--aura-2) 0%, transparent 64%),
+    radial-gradient(48% 56% at 14% 30%, var(--aura-3) 0%, transparent 62%),
+    var(--background);
+}
+
+/* ---- Iridescent surface (moana) — shimmering green-glass fill ---- */
+.lumia-iris {
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-iris);
+  background-size: 180% 180%;
+  animation: lumia-iris-drift 12s ease-in-out infinite;
+}
+.lumia-iris::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 50% at 30% 22%, rgba(255,255,255,0.65), transparent 60%);
+  pointer-events: none;
+}
+
+/* ---- Glass blob (hero 3D-ish object) ----
+   A morphing iridescent glass droplet. Compose with inner highlight divs. */
+.lumia-glass-blob {
+  position: relative;
+  border-radius: 47% 53% 44% 56% / 54% 46% 54% 46%;
+  background:
+    radial-gradient(48% 44% at 32% 28%, rgba(255,255,255,0.92), transparent 58%),
+    radial-gradient(52% 56% at 72% 70%, rgba(150,195,141,0.55), transparent 64%),
+    radial-gradient(60% 60% at 50% 50%, rgba(168,208,140,0.6), rgba(122,156,82,0.5));
+  box-shadow:
+    inset 8px 10px 30px rgba(255,255,255,0.55),
+    inset -14px -18px 44px rgba(122,140,82,0.42),
+    0 40px 90px rgba(122,140,82,0.26);
+  backdrop-filter: blur(2px);
+  animation: lumia-blob-morph 14s ease-in-out infinite, lumia-float-slow 8s ease-in-out infinite;
+}
+
+@keyframes lumia-iris-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes lumia-blob-morph {
+  0%, 100% { border-radius: 47% 53% 44% 56% / 54% 46% 54% 46%; }
+  33%      { border-radius: 58% 42% 56% 44% / 44% 58% 42% 56%; }
+  66%      { border-radius: 42% 58% 50% 50% / 56% 44% 56% 44%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-iris, .lumia-glass-blob { animation: none !important; }
+}
+
+/* ---- Neumorphic raised surface (white component on near-white bg) ----
+   Soft 3D: light highlight top-left, soft shade bottom-right. Pairs with a
+   light greige page background so white cards visibly lift. */
+.lumia-neu {
+  background: #ffffff;
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow:
+    10px 10px 26px rgba(116,131,92,0.14),
+    -9px -9px 22px rgba(255,255,255,0.95);
+}
+.lumia-neu-inset {
+  background: #f3f5ee;
+  box-shadow:
+    inset 4px 4px 10px rgba(116,131,92,0.13),
+    inset -4px -4px 10px rgba(255,255,255,0.92);
+}
+/* Subtle, light grain for white surfaces (gentler than .lumia-grain). */
+.lumia-grain-soft::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  mix-blend-mode: soft-light;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+.lumia-grain-soft > * { position: relative; z-index: 1; }
+

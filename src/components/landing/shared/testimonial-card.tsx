@@ -1,4 +1,4 @@
-import { testimonialCardShadow } from "@/components/landing/shared/landing-motion";
+import { Quote } from "lucide-react";
 
 export function TestimonialCard({
   quote,
@@ -8,24 +8,12 @@ export function TestimonialCard({
   tag: string;
 }) {
   return (
-    <div
-      className="mb-4 flex-shrink-0 rounded-3xl bg-white p-6"
-      style={{ boxShadow: testimonialCardShadow }}
-    >
-      <p className="mb-4 font-serif text-[1.1rem] leading-8 text-foreground/80">
-        <span aria-hidden="true">&ldquo;</span>
-        {quote}
-        <span aria-hidden="true">&rdquo;</span>
-      </p>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-bold text-foreground">Khách hàng LUMIA</p>
-          <p className="text-xs text-muted">Việt Nam</p>
-        </div>
-        <span className="whitespace-nowrap rounded-full bg-matcha-soft/40 px-2.5 py-1 text-[11px] tracking-wide text-matcha-deep">
-          {tag}
-        </span>
-      </div>
-    </div>
+    <article className="mb-4 rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-6 shadow-[0_12px_30px_rgba(95,111,82,0.08)]">
+      <Quote className="h-[18px] w-[18px] text-[var(--green)]" strokeWidth={2} />
+      <p className="mt-3 text-sm leading-relaxed text-[var(--foreground)]">{quote}</p>
+      <span className="mt-3.5 inline-block rounded-full bg-[var(--green-wash)] px-3 py-1 text-[11.5px] font-semibold text-[var(--green-deep)]">
+        {tag}
+      </span>
+    </article>
   );
 }

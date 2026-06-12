@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -11,6 +13,29 @@ const starters = [
   "Mình đang không biết bắt đầu từ đâu",
   "Hôm nay mình mệt vì công việc",
 ] as const;
+
+function ThinkingOrbs() {
+  return (
+    <div className="flex items-center gap-2 py-2">
+      {[0, 0.3, 0.6].map((delay, i) => (
+        <motion.span
+          key={i}
+          className="inline-block h-2 w-2 rounded-full bg-matcha-deep"
+          animate={{ scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 1, delay, repeat: Infinity, type: "spring", stiffness: 300, damping: 20 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function LeafAccent() {
+  return (
+    <svg className="absolute left-3 top-3 h-3 w-3 opacity-40" viewBox="0 0 12 12" aria-hidden>
+      <path d="M6 1C4 4 3 6 2 9c2-1 3-1 4 0 1-2 2-4 4-7-2 2-3 3-3 5s1 4 3 6c-1-3-1-5 0-8z" fill="#7d8f68" />
+    </svg>
+  );
+}
 
 export function AiStudio() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -59,17 +84,18 @@ export function AiStudio() {
     } else {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantText = "";
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       if (reader) {
+        let accumulated = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          assistantText += decoder.decode(value);
+          accumulated = `${accumulated}${decoder.decode(value)}`;
+          const nextText = accumulated;
           setMessages((prev) => {
             const next = [...prev];
-            next[next.length - 1] = { role: "assistant", content: assistantText };
+            next[next.length - 1] = { role: "assistant", content: nextText };
             return next;
           });
         }
@@ -85,8 +111,8 @@ export function AiStudio() {
   const disabled = usage.remaining === 0;
 
   return (
-    <div className="chat-container flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
-      <section className="soft-card hidden p-5 xl:block">
+    <div className="chat-container h-full min-h-0 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+      <section className="dash-panel hidden shrink-0 p-5 xl:block">
         <span className="eyebrow">Bắt đầu nhanh</span>
         <div className="mt-4 space-y-2">
           {starters.map((text) => (
@@ -106,41 +132,63 @@ export function AiStudio() {
         ) : null}
       </section>
 
-      <section className="soft-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] p-0 lg:p-6">
-        <div className="hidden border-b border-white/60 px-5 py-4 lg:block">
+      <section className="dash-panel lumia-grain-soft relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0 lg:p-7">
+        <AnimatePresence>
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="pointer-events-none absolute inset-0 z-10 bg-matcha/5"
+            />
+          ) : null}
+        </AnimatePresence>
+
+        <div className="hidden shrink-0 border-b border-white/60 px-5 py-4 lg:block">
           <span className="eyebrow">LUMIA lắng nghe</span>
           <p className="mt-2 text-xs text-muted">
             LUMIA không thay thế chuyên gia y tế hoặc chuyên gia tâm lý.
           </p>
         </div>
 
-        <div className="chat-messages space-y-3 px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
+        <div className="chat-messages lumia-scroll space-y-3 px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
           {messages.length === 0 ? (
-            <div className="py-6 text-center lg:text-left">
-              <p className="font-sans text-base font-medium text-matcha-text">LUMIA đang lắng nghe</p>
-              <p className="mt-2 text-sm text-muted">Hôm nay bạn muốn chia sẻ điều gì?</p>
-            </div>
+            <EmptyState
+              scene="chat"
+              title="LUMIA đang lắng nghe"
+              description="Hôm nay bạn muốn chia sẻ điều gì?"
+            />
           ) : null}
           {messages.map((msg, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`max-w-[88%] rounded-[20px] px-4 py-3 text-[15px] leading-7 ${
+              initial={{ opacity: 0, scale: 0.95, x: msg.role === "user" ? 12 : -12 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25, duration: 0.2 }}
+              className={`relative max-w-[75%] rounded-[20px] px-4 py-3 text-[15px] leading-7 ${
                 msg.role === "user"
-                  ? "ml-auto bg-matcha-soft text-matcha-deep"
-                  : "bg-white text-matcha-deep shadow-sm"
+                  ? "ml-auto bg-matcha-deep text-white"
+                  : "glass-card max-w-[85%] text-matcha-deep"
               }`}
+              style={
+                msg.role === "user"
+                  ? { borderRadius: "20px 20px 4px 20px" }
+                  : { borderRadius: "20px 20px 20px 4px" }
+              }
             >
+              {msg.role === "assistant" ? <LeafAccent /> : null}
               {msg.content}
+              {msg.role === "assistant" && loading && i === messages.length - 1 && msg.content ? (
+                <span className="animate-pulse">|</span>
+              ) : null}
             </motion.div>
           ))}
-          {loading ? <p className="text-sm text-muted">LUMIA đang lắng nghe...</p> : null}
+          {loading && messages[messages.length - 1]?.role === "user" ? <ThinkingOrbs /> : null}
           <div ref={bottomRef} />
         </div>
 
         {messages.length === 0 ? (
-          <div className="mobile-h-scroll border-t border-white/60 px-4 py-3 lg:hidden">
+          <div className="mobile-h-scroll shrink-0 border-t border-white/60 px-4 py-3 lg:hidden">
             {starters.map((text) => (
               <button
                 key={text}
@@ -156,7 +204,7 @@ export function AiStudio() {
         ) : null}
 
         {disabled ? (
-          <div className="mx-4 mb-2 rounded-[18px] border border-honey/50 bg-champagne/30 px-4 py-3 text-sm text-matcha-deep lg:mx-0 lg:mt-4">
+          <div className="mx-4 mb-2 shrink-0 rounded-[18px] border border-honey/50 bg-champagne/30 px-4 py-3 text-sm text-matcha-deep lg:mx-0 lg:mt-4">
             Đã hết lượt chat hôm nay.{" "}
             <Link href="/boxes" className="font-semibold underline">
               Khám phá gói LUMIA
@@ -172,7 +220,7 @@ export function AiStudio() {
         ) : null}
 
         <form
-          className="chat-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-4 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+          className="chat-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex shrink-0 gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage(input);
