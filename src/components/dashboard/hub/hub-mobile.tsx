@@ -5,6 +5,7 @@ import { Feather, MessageCircle, Music, Play, Wind } from "lucide-react";
 
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import { StatDisc } from "@/components/dashboard/shell/stat-disc";
+import { getTimeGreeting } from "@/lib/time-greeting";
 
 const MOODS = ["😔", "🙁", "😐", "🙂", "😌"];
 
@@ -31,7 +32,9 @@ export function HubMobile({
   return (
     <div className="-mx-1 space-y-4 pb-2">
       <div className="px-1">
-        <p className="text-[13px] text-[var(--muted)]">Chào buổi tối, {userName}</p>
+        <p className="text-[13px] text-[var(--muted)]">
+          {getTimeGreeting()}, {userName}
+        </p>
         <h1 className="mt-0.5 font-serif text-[27px] font-normal leading-[1.15] tracking-[-0.02em] text-[var(--foreground)]">
           Hãy để hôm nay <span className="italic text-[var(--matcha-deep)]">lắng lại</span>.
         </h1>

@@ -52,7 +52,7 @@ export function DashboardHome({
       <MoodCheckInModal onComplete={(score) => setTodayMood(score)} />
       <UpsellBanner show={isFree} />
 
-      <div className="hidden lg:block">
+      <div className="hidden md:block">
         <HubDesktop
           moodIndex={moodIndex}
           level={level}
@@ -63,7 +63,7 @@ export function DashboardHome({
         />
       </div>
 
-      <div className="lg:hidden">
+      <div className="md:hidden">
         <HubMobile
           userName={userName}
           pickedMood={pickedMood}

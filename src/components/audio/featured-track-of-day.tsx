@@ -38,7 +38,7 @@ export function FeaturedTrackOfDay() {
 
   if (loading) {
     return (
-      <section className="soft-card p-6">
+      <section className="dash-panel p-5 sm:p-6">
         <span className="eyebrow">Gợi ý hôm nay</span>
         <p className="mt-3 text-sm text-muted">Đang tải...</p>
       </section>
@@ -51,7 +51,7 @@ export function FeaturedTrackOfDay() {
 
   return (
     <>
-      <section className="soft-card p-6">
+      <section className="dash-panel h-full p-5 sm:p-6">
         <span className="eyebrow">Gợi ý hôm nay</span>
         <h2 className="mt-3 font-sans text-lg font-medium text-matcha-text">{track.title}</h2>
         <p className="mt-2 text-sm text-muted">{track.description ?? "Track miễn phí cho buổi tối của bạn."}</p>

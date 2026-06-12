@@ -6,6 +6,21 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
 
+const categories = [
+  {
+    href: "/audio/sleep",
+    emoji: "🌙",
+    title: "Giấc ngủ",
+    description: "Sleep sounds, sleep cast, wind down và sleep music",
+  },
+  {
+    href: "/audio/meditation",
+    emoji: "🧘",
+    title: "Thiền định",
+    description: "Guided, mini meditation và body scan",
+  },
+] as const;
+
 export default async function AudioPage() {
   const session = await requireSession();
   const subscription = await getSubscriptionSnapshot(session.id);
@@ -20,35 +35,32 @@ export default async function AudioPage() {
       isAdmin={session.role === "admin"}
     >
       <div className="space-y-5 lg:space-y-6">
-        <FeaturedTrackOfDay />
+        <div className="grid gap-5 lg:grid-cols-[1.05fr_1fr] lg:items-start lg:gap-6">
+          <FeaturedTrackOfDay />
 
-        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
-          <Link href="/audio/sleep" className="mobile-list-row lg:soft-card lg:block lg:p-6 lg:hover:shadow-[0_18px_44px_rgba(143,168,120,0.1)]">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-matcha-soft text-2xl lg:hidden">🌙</div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-sans text-base font-medium text-matcha-text lg:text-lg">Giấc ngủ</h2>
-              <p className="mt-0.5 text-[13px] text-muted lg:mt-2 lg:text-sm">
-                Sleep sounds, sleep cast, wind down và sleep music
-              </p>
-            </div>
-            <span className="shrink-0 text-[12px] text-matcha lg:mt-4 lg:inline-block">→</span>
-          </Link>
-          <Link
-            href="/audio/meditation"
-            className="mobile-list-row lg:soft-card lg:block lg:p-6 lg:hover:shadow-[0_18px_44px_rgba(143,168,120,0.1)]"
-          >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-matcha-soft text-2xl lg:hidden">🧘</div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-sans text-base font-medium text-matcha-text lg:text-lg">Thiền định</h2>
-              <p className="mt-0.5 text-[13px] text-muted lg:mt-2 lg:text-sm">Guided, mini meditation và body scan</p>
-            </div>
-            <span className="shrink-0 text-[12px] text-matcha lg:mt-4 lg:inline-block">→</span>
-          </Link>
+          <div className="audio-hub-categories grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            {categories.map((cat) => (
+              <Link
+                key={cat.href}
+                href={cat.href}
+                className="audio-hub-category mobile-list-row lg:!flex lg:min-h-[120px] lg:flex-col lg:items-start lg:justify-between lg:rounded-[26px] lg:border lg:border-[var(--border)] lg:bg-[var(--surface-card)]/90 lg:p-6 lg:shadow-[0_14px_34px_rgba(122,140,82,0.1)] lg:backdrop-blur-sm lg:hover:shadow-[0_18px_44px_rgba(122,140,82,0.14)]"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-matcha-soft text-2xl lg:h-14 lg:w-14 lg:text-3xl">
+                  {cat.emoji}
+                </div>
+                <div className="min-w-0 flex-1 lg:mt-4">
+                  <h2 className="font-sans text-base font-medium text-matcha-text lg:text-lg">{cat.title}</h2>
+                  <p className="mt-0.5 text-[13px] text-muted lg:mt-2 lg:text-sm">{cat.description}</p>
+                </div>
+                <span className="shrink-0 text-[12px] font-semibold text-matcha lg:mt-3">Khám phá →</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <AudioHubExtras isActive={subscription.isActive} />
 
-        <section className="soft-card p-6">
+        <section className="dash-panel p-5 sm:p-6">
           <span className="eyebrow">Mood test</span>
           <p className="mt-2 text-sm text-muted">Không chắc nên nghe gì? Làm quiz ngắn để được gợi ý.</p>
           <Link href="/mood-test" className="button-secondary mt-4 inline-flex text-[13px]">

@@ -34,7 +34,7 @@ export function MobileAppHeader({
 }) {
   if (variant === "hub") {
     return (
-      <header className="sticky top-0 z-40 px-[18px] pb-2.5 pt-[calc(var(--safe-top)+6px)] lg:hidden">
+      <header className="sticky top-0 z-40 px-[18px] pb-2.5 pt-[calc(var(--safe-top)+6px)] md:hidden">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -56,7 +56,7 @@ export function MobileAppHeader({
   }
 
   return (
-    <header className="mobile-app-header sticky top-0 z-40 lg:hidden">
+    <header className="mobile-app-header sticky top-0 z-40 md:hidden">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-serif text-xl font-medium text-matcha-text">{title}</h1>

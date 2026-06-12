@@ -51,7 +51,7 @@ export function DashboardShellLayout({
       <div className="dashboard-glow dashboard-glow--lime" aria-hidden />
       <div className="dashboard-glow dashboard-glow--honey" aria-hidden />
 
-      <div className="dashboard-shell-grid hidden lg:grid">
+      <div className="dashboard-shell-grid hidden md:grid">
         <Sidebar isAdmin={isAdmin} sessionName={sessionName} planLabel={planLabel} />
 
         <div className="dashboard-content-column">
@@ -73,7 +73,7 @@ export function DashboardShellLayout({
         </div>
       </div>
 
-      <div className="mobile-app-shell lg:hidden">
+      <div className="mobile-app-shell md:hidden">
         <MobileAppHeader
           title={mobileTitle}
           subtitle={isHub ? undefined : subtitle}

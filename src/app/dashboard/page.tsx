@@ -4,6 +4,7 @@ import { getLatestOrderForUser } from "@/lib/orders";
 import { getPlanDisplayLabel } from "@/lib/subscription-labels";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
+import { getDashboardGreeting } from "@/lib/time-greeting";
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
       sessionName={session.name}
       sessionEmail={session.email}
       subscription={subscription}
-      title={`Chào buổi tối, ${session.name} 👋`}
+      title={getDashboardGreeting(session.name)}
       subtitle="Hôm nay bạn muốn bắt đầu từ đâu?"
       isAdmin={session.role === "admin"}
     >

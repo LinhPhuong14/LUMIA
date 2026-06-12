@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Lock } from "lucide-react";
 
 import { AudioPlayerOverlay } from "@/components/audio/audio-player-overlay";
-import { BotanicalArtwork, CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
+import { CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
 import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
 import { EmptyState } from "@/components/ui/empty-state";
-import { UpsellOverlay } from "@/components/ui/upsell-overlay";
+import { PremiumSectionTeaser } from "@/components/ui/upsell-overlay";
 import { staggerContainer, staggerItem } from "@/lib/motion-variants";
 
 type Track = {
@@ -49,17 +50,16 @@ export function AudioCategoryPage({
     const stockQuery = AUDIO_STOCK_QUERIES[track.category] ?? "calm wellness";
     const accent = CATEGORY_ACCENT[track.category] ?? "#8d9d76";
 
+    const CardTag = locked ? motion.div : motion.button;
     const card = (
-      <motion.button
-        type="button"
+      <CardTag
+        type={locked ? undefined : "button"}
         variants={staggerItem}
-        onClick={() => !locked && setPlaying(track)}
-        disabled={locked}
+        onClick={locked ? undefined : () => setPlaying(track)}
         whileHover={locked ? undefined : { y: -2 }}
-        className={`glass-card group w-full overflow-hidden p-0 text-left transition ${locked ? "opacity-70" : ""}`}
+        className={`dash-panel group w-full overflow-hidden p-0 text-left transition ${locked ? "opacity-95" : ""}`}
       >
-        <div className="relative h-20 overflow-hidden">
-          {/* [REPLACE WITH CLIENT PHOTO: track artwork for {track.category}] */}
+        <div className="relative h-24 overflow-hidden sm:h-28">
           <PhotoImage
             stockQuery={stockQuery}
             alt={track.title}
@@ -77,24 +77,29 @@ export function AudioCategoryPage({
             }}
           />
           {track.duration_seconds ? (
-            <span className="glass-card absolute bottom-2 right-2 rounded-full px-2 py-0.5 text-[10px] text-white">
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/35 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
               {Math.round(track.duration_seconds / 60)} phút
             </span>
           ) : (
-            <span className="glass-card absolute bottom-2 right-2 rounded-full px-2 py-0.5 text-[10px] text-white">
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/35 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
               ∞ loop
             </span>
           )}
           {locked ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[2px]">
-              <BotanicalArtwork category={track.category} />
+            <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[10px] font-semibold text-matcha-deep backdrop-blur-sm">
+              <Lock className="h-3 w-3" />
+              Premium
             </div>
           ) : null}
           {isPlaying ? (
             <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-white/80">
               <span className="flex gap-0.5">
                 {[0, 1, 2].map((i) => (
-                  <span key={i} className="inline-block h-3 w-0.5 animate-waveform bg-white" style={{ animationDelay: `${i * 0.15}s` }} />
+                  <span
+                    key={i}
+                    className="inline-block h-3 w-0.5 animate-waveform bg-white"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
                 ))}
               </span>
             </div>
@@ -102,21 +107,20 @@ export function AudioCategoryPage({
         </div>
         <div className="p-4">
           <div className="font-medium text-matcha-deep">{track.title}</div>
-          <div className="mt-1 text-[12px] text-muted">{track.description ?? track.category}</div>
-          {locked ? <span className="mt-2 inline-block text-[11px] text-matcha">Cần hộp LUMIA</span> : null}
+          <div className="mt-1 line-clamp-2 text-[12px] text-muted">{track.description ?? track.category}</div>
+          {locked ? (
+            <Link
+              href="/boxes"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 inline-block text-[11px] font-semibold text-[var(--green)] underline-offset-2 hover:underline"
+            >
+              Xem gói LUMIA
+            </Link>
+          ) : null}
         </div>
-      </motion.button>
+      </CardTag>
     );
 
-    if (locked) {
-      return (
-        <div key={track.id} className="relative">
-          <UpsellOverlay featureName={track.title} locked>
-            {card}
-          </UpsellOverlay>
-        </div>
-      );
-    }
     return <div key={track.id}>{card}</div>;
   }
 
@@ -124,38 +128,42 @@ export function AudioCategoryPage({
     return <p className="text-sm text-muted">Đang tải thư viện...</p>;
   }
 
+  const hasPremiumSections = !isActive && sections.some((s) => s.activeOnly);
+
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="audio-library space-y-8">
+    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="audio-library space-y-6 lg:space-y-8">
+      {hasPremiumSections ? (
+        <PremiumSectionTeaser
+          title="Nội dung Premium"
+          description="Sleep Cast, Wind Down và nhiều track khác mở khóa khi bạn đăng ký gói LUMIA."
+        />
+      ) : null}
+
       {sections.map((section) => {
         const sectionTracks = tracks.filter((t) => t.category === section.category);
-        if (!sectionTracks.length && section.activeOnly && !isActive) {
-          return (
-            <UpsellOverlay key={section.title} featureName={section.title} locked={!isActive}>
-              <section className="glass-card p-6">
-                <h2 className="font-sans text-base font-medium text-matcha-text">{section.title}</h2>
-              </section>
-            </UpsellOverlay>
-          );
-        }
-        if (!sectionTracks.length) return null;
+        const isPremiumSection = section.activeOnly && !isActive;
 
-        const inner = (
-          <section className="space-y-4">
-            <h2 className="font-sans text-base font-medium text-matcha-text">{section.title}</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {sectionTracks.map(renderTrackCard)}
+        if (!sectionTracks.length) {
+          if (isPremiumSection) {
+            return <PremiumSectionTeaser key={section.title} title={section.title} />;
+          }
+          return null;
+        }
+
+        return (
+          <section key={section.title} className="space-y-3 sm:space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <h2 className="font-sans text-base font-medium text-matcha-text sm:text-lg">{section.title}</h2>
+              {isPremiumSection ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--green-wash)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--green-deep)]">
+                  <Lock className="h-3 w-3" />
+                  Premium
+                </span>
+              ) : null}
             </div>
+            <div className="audio-track-grid">{sectionTracks.map(renderTrackCard)}</div>
           </section>
         );
-
-        if (section.activeOnly && !isActive) {
-          return (
-            <UpsellOverlay key={section.title} featureName={section.title} locked>
-              {inner}
-            </UpsellOverlay>
-          );
-        }
-        return <div key={section.title}>{inner}</div>;
       })}
 
       {tracks.length === 0 ? (
@@ -173,9 +181,18 @@ export function AudioCategoryPage({
 }
 
 export function AudioHubExtras({ isActive }: { isActive: boolean }) {
-  const breathingSection = (
-    <section className="glass-card p-6">
-      <h2 className="font-sans text-base font-medium text-matcha-text">Breathing & Timer</h2>
+  if (!isActive) {
+    return (
+      <PremiumSectionTeaser
+        title="Breathing & Timer"
+        description="Bài tập thở và hẹn giờ thiền dành cho thành viên Premium."
+      />
+    );
+  }
+
+  return (
+    <section className="dash-panel p-5 sm:p-6">
+      <h2 className="font-sans text-base font-medium text-matcha-text sm:text-lg">Breathing & Timer</h2>
       <p className="mt-2 text-sm text-muted">Bài tập thở và hẹn giờ thiền.</p>
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href="/audio/breathing" className="button-secondary text-[13px]">
@@ -186,11 +203,5 @@ export function AudioHubExtras({ isActive }: { isActive: boolean }) {
         </Link>
       </div>
     </section>
-  );
-
-  return (
-    <UpsellOverlay featureName="Breathing & Timer" locked={!isActive}>
-      {breathingSection}
-    </UpsellOverlay>
   );
 }

@@ -56,7 +56,7 @@ export function Sidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="dash-sidebar hidden h-full min-h-0 w-full flex-col p-5 lg:flex">
+    <aside className="dash-sidebar hidden h-full min-h-0 w-full flex-col p-5 md:flex">
       <div className="flex shrink-0 items-center gap-2 px-2 pb-[18px] pt-1.5">
         <div
           className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px]"
