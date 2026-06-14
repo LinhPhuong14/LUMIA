@@ -1,3 +1,5 @@
+import "server-only";
+
 import { redirect } from "next/navigation";
 
 import type { OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";

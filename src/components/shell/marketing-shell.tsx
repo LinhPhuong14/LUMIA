@@ -2,14 +2,9 @@ import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteHeader } from "@/components/marketing/site-header";
+import { MarketingFooterGate } from "@/components/shell/marketing-footer-gate";
 
-export function MarketingShell({
-  children,
-  showFooter = true,
-}: {
-  children: ReactNode;
-  showFooter?: boolean;
-}) {
+export function MarketingShell({ children }: { children: ReactNode }) {
   return (
     <div
       className="marketing-page page-scroll-area flex h-full min-h-0 flex-col"
@@ -17,7 +12,9 @@ export function MarketingShell({
     >
       <SiteHeader />
       <main className="flex-1">{children}</main>
-      {showFooter ? <SiteFooter /> : null}
+      <MarketingFooterGate>
+        <SiteFooter />
+      </MarketingFooterGate>
     </div>
   );
 }

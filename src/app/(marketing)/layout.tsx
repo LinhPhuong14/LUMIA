@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { MarketingShellLayout } from "@/components/shell/marketing-shell-layout";
+import { MarketingShell } from "@/components/shell/marketing-shell";
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
-  return <MarketingShellLayout>{children}</MarketingShellLayout>;
+  return <MarketingShell>{children}</MarketingShell>;
 }
