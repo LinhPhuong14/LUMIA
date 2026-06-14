@@ -5,7 +5,7 @@ import { buildReflectSystem } from "@/lib/ai/prompts/journal-reflect";
 import { crisisResponse } from "@/lib/ai/safety/crisis-response";
 import { checkSafety } from "@/lib/ai/safety/service";
 
-/** Ported from lumia_service_ai/app/pipeline/journal_pipeline.py — reflect */
+/** Ported from lumia_service_ai/app/pipeline/journal_pipeline.py - reflect */
 export async function runReflect(params: { userName: string; text: string }) {
   const risk = await checkSafety(params.text);
 

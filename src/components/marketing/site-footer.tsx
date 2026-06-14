@@ -1,21 +1,49 @@
-import { LumiaLogo } from "@/components/ui/logo";
+import type { Route } from "next";
+import Link from "next/link";
+
+import { ThemeAwareLogo } from "@/components/ui/theme-aware-logo";
+import { footerColumns } from "@/lib/site-nav";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/75 bg-white/76 py-8 backdrop-blur">
-      <div className="shell flex flex-col gap-4 text-sm text-muted md:flex-row md:items-center md:justify-between">
-        <div>
-          <LumiaLogo />
-          <p className="mt-3 max-w-xl">
-            Một nghi thức dịu dàng cho những ngày bạn cần nhẹ lại và quay về với chính mình.
-          </p>
+    <footer
+      className="site-footer border-t py-10 backdrop-blur"
+      style={{
+        borderColor: "var(--border)",
+        background: "var(--surface-footer, var(--surface-warm))",
+      }}
+    >
+      <div className="shell">
+        <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-sm">
+            <ThemeAwareLogo />
+            <p className="site-footer-copy mt-3 text-sm leading-7">
+              Hệ sinh thái công nghệ thấu hiểu và tái tạo giấc ngủ — theo dõi cảm xúc, phân tích dữ liệu và AI
+              lắng nghe.
+            </p>
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-4 md:max-w-2xl">
+            {footerColumns.map((column) => (
+              <div key={column.title}>
+                <h3 className="site-footer-heading text-xs font-bold uppercase tracking-[0.14em]">
+                  {column.title}
+                </h3>
+                <ul className="mt-3 space-y-2">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href as Route} className="site-footer-link text-sm transition hover:opacity-90">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-5">
-          <span>Hộp LUMIA tinh tế</span>
-          <span>Ghi nhận cảm xúc</span>
-          <span>Nhật ký dịu nhẹ</span>
-          <span>Không gian lắng nghe riêng tư</span>
-        </div>
+        <p className="site-footer-copy text-xs">
+          © {new Date().getFullYear()} LUMIA · lumia.vn
+        </p>
       </div>
     </footer>
   );

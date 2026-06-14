@@ -7,7 +7,7 @@ import { getAppUrl } from "@/lib/app-url";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Vercel Cron — GET only. Runs weekly report generation for all active users. */
+/** Vercel Cron - GET only. Runs weekly report generation for all active users. */
 export async function GET(request: Request) {
   if (!isVercelCronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

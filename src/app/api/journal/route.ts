@@ -6,10 +6,24 @@ import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
+const stickerSchema = z.object({
+  id: z.string(),
+  emoji: z.string(),
+  x: z.number(),
+  y: z.number(),
+});
+
+const metaSchema = z.object({
+  fontFamily: z.enum(["serif", "sans", "hand"]).optional(),
+  textColor: z.string().optional(),
+  stickers: z.array(stickerSchema).optional(),
+});
+
 const schema = z.object({
   content: z.string().min(1),
   promptUsed: z.string().optional(),
   date: z.string().optional(),
+  meta: metaSchema.optional(),
 });
 
 export const runtime = "nodejs";
@@ -68,6 +82,7 @@ export async function POST(request: Request) {
         user_id: session.id,
         content: parsed.data.content,
         prompt_used: parsed.data.promptUsed ?? null,
+        meta: parsed.data.meta ?? {},
         date,
       },
       { onConflict: "user_id,date" },

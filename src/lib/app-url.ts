@@ -1,4 +1,4 @@
-/** Resolve public app URL — works on Vercel without manual NEXT_PUBLIC_APP_URL on preview deploys. */
+/** Resolve public app URL - works on Vercel without manual NEXT_PUBLIC_APP_URL on preview deploys. */
 export function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");

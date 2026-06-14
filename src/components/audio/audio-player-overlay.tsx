@@ -204,7 +204,7 @@ export function AudioPlayerOverlay({
           </div>
           <div className="mt-2 flex justify-between font-mono text-sm text-muted">
             <span>{formatTime(currentTime)}</span>
-            <span>{duration ? formatTime(duration) : track.duration_seconds ? formatTime(track.duration_seconds) : "—"}</span>
+            <span>{duration ? formatTime(duration) : track.duration_seconds ? formatTime(track.duration_seconds) : "-"}</span>
           </div>
         </div>
 

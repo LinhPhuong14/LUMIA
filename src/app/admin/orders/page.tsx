@@ -22,7 +22,7 @@ const statuses = ["paid", "preparing", "shipping", "delivered"] as const;
 
 function getTierLabel(tier: string | null | undefined) {
   if (!tier || !isValidTierCode(tier)) {
-    return "—";
+    return "-";
   }
   return getProductTier(tier).name;
 }
@@ -100,10 +100,10 @@ export default function AdminOrdersPage() {
               {filtered.map((order) => (
                 <tr key={order.id} className="border-t border-white/60 transition hover:bg-matcha-soft/30">
                   <td className="px-4 py-3 pr-4 font-mono text-[12px]">{order.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3 pr-4">{order.profiles?.email ?? "—"}</td>
+                  <td className="px-4 py-3 pr-4">{order.profiles?.email ?? "-"}</td>
                   <td className="px-4 py-3 pr-4">{getTierLabel(order.tier)}</td>
                   <td className="px-4 py-3 pr-4">
-                    {order.duration_months ? `${order.duration_months} tháng` : "—"}
+                    {order.duration_months ? `${order.duration_months} tháng` : "-"}
                   </td>
                   <td className="px-4 py-3 pr-4">{order.has_physical_box ? "Có" : "Không"}</td>
                   <td className="px-4 py-3 pr-4">{new Date(order.created_at).toLocaleDateString("vi-VN")}</td>

@@ -10,7 +10,7 @@ export function AiListeningSection() {
     <section id="lang-nghe" className="py-14">
       <div className="landing-frame grid items-stretch gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <motion.div {...fadeUp()} className="lumia-glass lumia-grain-soft rounded-[30px] p-8 md:p-9">
-          <span className="lumia-kicker">— LUMIA lắng nghe</span>
+          <span className="lumia-kicker">- LUMIA lắng nghe</span>
           <h2 className="lumia-h2 max-w-[460px]">Lắng nghe, không phán xét.</h2>
           <div className="mt-6 flex flex-col gap-3.5">
             <div className="max-w-[88%] self-start rounded-[22px] bg-white/80 px-4 py-3.5 text-sm leading-relaxed text-[var(--foreground)] shadow-[0_10px_26px_rgba(122,140,82,0.08)]">

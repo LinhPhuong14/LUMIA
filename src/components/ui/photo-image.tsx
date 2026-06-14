@@ -129,6 +129,10 @@ export function PhotoImage({
 export const PRODUCT_STOCK_QUERIES: Record<string, string> = {
   first_time: "small gift box herbs tea",
   standard: "woman meditation morning light",
+  plus: "green leaves morning dew season",
+  pro: "data analytics wellness dashboard",
+  premium: "candle tea silk sleep wellness",
+  ultimate: "luxury wellness gift set flat lay",
   saver: "green leaves morning dew season",
   sleep_well: "candle tea silk sleep wellness",
   master: "luxury wellness gift set flat lay",

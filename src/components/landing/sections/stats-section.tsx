@@ -11,10 +11,10 @@ export function StatsSection() {
     <section className="py-12">
       <div className="landing-frame grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
         <motion.div {...fadeUp()}>
-          <span className="lumia-kicker">— Sức mạnh của một nghi thức nhỏ</span>
+          <span className="lumia-kicker">- Sức mạnh của một nghi thức nhỏ</span>
           <h2 className="lumia-h2">Mỗi tối một chút, đủ để đổi cả giấc ngủ.</h2>
           <p className="mt-4 max-w-[420px] text-base leading-relaxed text-[var(--muted)]">
-            Không phải cố gắng nhiều hơn — chỉ là quay lại đều đặn. LUMIA giữ nhịp giúp bạn, dịu dàng và không phán xét.
+            Không phải cố gắng nhiều hơn - chỉ là quay lại đều đặn. LUMIA giữ nhịp giúp bạn, dịu dàng và không phán xét.
           </p>
           <Link
             href="/register?next=/dashboard"

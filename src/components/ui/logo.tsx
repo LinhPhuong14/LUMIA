@@ -9,13 +9,12 @@ export function LumiaLogo({
   compact = false,
 }: {
   className?: string;
+  /** dark = dark ink for light UI; light = cream wordmark for dark UI */
   variant?: "dark" | "light";
   compact?: boolean;
 }) {
   const src =
-    variant === "light"
-      ? "/brand/lumia-logo-light.png"
-      : "/brand/lumia-logo-dark.png";
+    variant === "light" ? "/brand/lumia-logo-light.png" : "/brand/lumia-logo-dark.png";
 
   return (
     <Link href="/" className={cn("inline-flex items-center", className)}>

@@ -38,7 +38,7 @@ export function getSubscriptionStatusLabel(status: string): string {
 export function getPhysicalBoxStatusLabel(status: string | null): string {
   switch (status) {
     case "paid":
-      return "Đã thanh toán — chờ chuẩn bị";
+      return "Đã thanh toán - chờ chuẩn bị";
     case "preparing":
       return "Đang chuẩn bị";
     case "shipping":

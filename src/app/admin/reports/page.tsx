@@ -58,7 +58,7 @@ export default function AdminReportsPage() {
           {reports.map((report) => (
             <article key={report.id} className="soft-card p-5">
               <div className="font-medium text-matcha-deep">
-                {report.type === "weekly" ? "Báo cáo tuần" : "Báo cáo 21 ngày"} — {report.user_id.slice(0, 8)}
+                {report.type === "weekly" ? "Báo cáo tuần" : "Báo cáo 21 ngày"} - {report.user_id.slice(0, 8)}
               </div>
               <div className="text-sm text-muted">
                 {report.period_start} → {report.period_end}

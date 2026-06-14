@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   }
 
   if (!hasLlmConfig()) {
-    const fallback = "Mình nghe thấy bạn. Hãy thử hít sâu ba lần — mình ở đây cùng bạn.";
+    const fallback = "Mình nghe thấy bạn. Hãy thử hít sâu ba lần - mình ở đây cùng bạn.";
     return NextResponse.json({ content: fallback, mode: env.DEMO_MODE ? "demo" : "unconfigured" });
   }
 

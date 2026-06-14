@@ -77,6 +77,13 @@ export async function createOrder(params: {
   payosOrderId: string;
   amount: number;
   tier: TierCode;
+  shipping?: {
+    name: string;
+    phone: string;
+    address: string;
+    city: string;
+    note?: string;
+  };
 }) {
   const admin = createAdminClient();
   if (!admin) {
@@ -96,6 +103,11 @@ export async function createOrder(params: {
       has_physical_box: product.hasPhysicalBox,
       physical_box_type: product.physicalBoxType,
       status: "pending_payment",
+      shipping_name: params.shipping?.name ?? null,
+      shipping_phone: params.shipping?.phone ?? null,
+      shipping_address: params.shipping?.address ?? null,
+      shipping_city: params.shipping?.city ?? null,
+      shipping_note: params.shipping?.note ?? null,
     })
     .select()
     .single();

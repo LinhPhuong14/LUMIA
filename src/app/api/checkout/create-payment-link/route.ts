@@ -20,20 +20,41 @@ export async function POST(request: Request) {
 
   let slug = "first-time-user";
   let tier: string | undefined;
+  let shipping: {
+    name: string;
+    phone: string;
+    address: string;
+    city: string;
+    note?: string;
+  } | undefined;
+
   try {
-    const body = (await request.json()) as { slug?: string; tier?: string };
+    const body = (await request.json()) as {
+      slug?: string;
+      tier?: string;
+      shipping?: {
+        name: string;
+        phone: string;
+        address: string;
+        city: string;
+        note?: string;
+      };
+    };
     if (body.tier && isValidTierCode(body.tier)) {
       tier = body.tier;
     }
     if (body.slug) {
       slug = body.slug;
     }
+    if (body.shipping) {
+      shipping = body.shipping;
+    }
   } catch {
     // default slug when body is empty
   }
 
   const product = tier
-    ? (await import("@/data/catalog")).lumiaBoxes.find((b) => b.tier === tier)
+    ? (await import("@/data/catalog")).getAllPurchasableProducts().find((b) => b.tier === tier)
     : getProductBySlug(slug);
 
   if (!product) {
@@ -45,6 +66,20 @@ export async function POST(request: Request) {
       { error: "Bạn đã sử dụng ưu đãi người dùng mới. Vui lòng chọn gói khác." },
       { status: 400 },
     );
+  }
+
+  if (product.physicalItems.length > 0) {
+    if (
+      !shipping?.name?.trim() ||
+      !shipping?.phone?.trim() ||
+      !shipping?.address?.trim() ||
+      !shipping?.city?.trim()
+    ) {
+      return NextResponse.json(
+        { error: "Gói này kèm sản phẩm vật lý - vui lòng điền đầy đủ thông tin giao hàng." },
+        { status: 400 },
+      );
+    }
   }
 
   if (!hasSupabaseConfig() || !hasPayOSConfig()) {
@@ -85,6 +120,7 @@ export async function POST(request: Request) {
       payosOrderId: String(paymentLink.orderCode),
       amount: product.price,
       tier: product.tier,
+      shipping: product.physicalItems.length > 0 ? shipping : undefined,
     });
 
     return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });

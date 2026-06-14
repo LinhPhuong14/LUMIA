@@ -91,7 +91,7 @@ export function MobileHubPreview() {
         </h3>
 
         <div className="relative mt-3 h-[168px] overflow-hidden rounded-[26px] shadow-[0_18px_40px_rgba(122,140,82,0.18)]">
-          <MistyScene variant="dawn" />
+          <MistyScene />
           <div className="absolute inset-0 flex flex-col justify-between p-4">
             <span className="self-start rounded-full bg-white/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--matcha-text)] backdrop-blur-md">
               Nghi thức tối

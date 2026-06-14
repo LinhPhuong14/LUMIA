@@ -1,7 +1,7 @@
 /* ── LUMIA Design Tokens (type, spacing, motion) ── */
 
 :root {
-  /* Glass levels — 4 tiers */
+  /* Glass levels - 4 tiers */
   --glass-blur-sm: blur(12px) saturate(160%);
   --glass-blur-md: blur(20px) saturate(180%);
   --glass-blur-lg: blur(32px) saturate(200%);
@@ -19,7 +19,7 @@
   --shadow-lg: 0 16px 48px rgba(80, 100, 60, 0.14), 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-xl: 0 32px 80px rgba(80, 100, 60, 0.18), 0 8px 24px rgba(0, 0, 0, 0.08);
 
-  /* Fresh-green (matcha/pastel) — landing primary family */
+  /* Fresh-green (matcha/pastel) - landing primary family */
   --green: #8aab63;
   --green-bright: #a9c987;
   --green-deep: #5f7a45;
@@ -42,7 +42,7 @@
   --aura-3: rgba(214, 235, 158, 0.34);
   --aura-4: rgba(240, 216, 138, 0.26);
 
-  /* Page background — Matcha Fog / landing cream */
+  /* Page background - Matcha Fog / landing cream */
   --background: #fdf8ec;
   --surface-warm: #f4eedd;
   --surface-card: #fffefa;

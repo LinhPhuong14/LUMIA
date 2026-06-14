@@ -12,7 +12,7 @@ import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
 import { cn } from "@/lib/utils";
 
-export function DashboardShellLayout({
+function DashboardShellInner({
   sessionName,
   sessionEmail,
   planLabel,
@@ -47,60 +47,69 @@ export function DashboardShellLayout({
 
   return (
     <div className="dashboard-shell lumia-aura-dashboard lumia-grain-soft relative h-dvh max-h-dvh overflow-hidden">
-      <div className="dashboard-glow dashboard-glow--mint" aria-hidden />
-      <div className="dashboard-glow dashboard-glow--lime" aria-hidden />
-      <div className="dashboard-glow dashboard-glow--honey" aria-hidden />
-
-      <div className="dashboard-shell-grid hidden md:grid">
+      <div className="dashboard-shell-grid dashboard-shell-unified">
         <Sidebar isAdmin={isAdmin} sessionName={sessionName} planLabel={planLabel} />
 
-        <div className="dashboard-content-column">
-          <TopBar
-            title={title}
-            subtitle={subtitle}
+        <div className="dashboard-content-column max-md:col-span-full max-md:h-dvh">
+          <div className="hidden md:block">
+            <TopBar
+              title={title}
+              subtitle={subtitle}
+              planLabel={planLabel}
+              badgeVariant={badgeVariant}
+              sessionName={sessionName}
+            />
+          </div>
+
+          <div className="md:hidden">
+            <MobileAppHeader
+            title={mobileTitle}
+            subtitle={isHub ? undefined : subtitle}
             planLabel={planLabel}
             badgeVariant={badgeVariant}
             sessionName={sessionName}
-          />
+            variant={isHub ? "hub" : "default"}
+            onMoreOpen={() => setMoreOpen(true)}
+            />
+          </div>
+
           <div
             className={cn(
-              "dashboard-scroll-area lumia-scroll dashboard-page-root pr-1",
-              isChat && "dashboard-scroll-area--locked",
+              "dashboard-scroll-area lumia-scroll dashboard-page-root md:pr-1",
+              "max-md:mobile-app-content max-md:px-4 max-md:pt-2",
+              isChat && "dashboard-scroll-area--locked max-md:overflow-hidden",
             )}
           >
             {children}
           </div>
+
+          <div className="md:hidden">
+            <MobileTabBar />
+          </div>
         </div>
       </div>
 
-      <div className="mobile-app-shell md:hidden">
-        <MobileAppHeader
-          title={mobileTitle}
-          subtitle={isHub ? undefined : subtitle}
-          planLabel={planLabel}
-          badgeVariant={badgeVariant}
-          sessionName={sessionName}
-          variant={isHub ? "hub" : "default"}
-          onMoreOpen={() => setMoreOpen(true)}
-        />
-        <main
-          className={cn(
-            "mobile-app-content lumia-scroll dashboard-page-root px-4 pt-2",
-            isChat && "overflow-hidden",
-          )}
-        >
-          {children}
-        </main>
-        <MobileTabBar />
-        <MobileMoreSheet
-          open={moreOpen}
-          onClose={() => setMoreOpen(false)}
-          isAdmin={isAdmin}
-          onLogout={handleLogout}
-          userName={sessionName}
-          userEmail={sessionEmail}
-        />
-      </div>
+      <MobileMoreSheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        userName={sessionName}
+        userEmail={sessionEmail}
+      />
     </div>
   );
+}
+
+export function DashboardShellLayout(props: {
+  sessionName: string;
+  sessionEmail?: string;
+  planLabel: string;
+  badgeVariant: PlanBadgeVariant;
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  isAdmin?: boolean;
+}) {
+  return <DashboardShellInner {...props} />;
 }

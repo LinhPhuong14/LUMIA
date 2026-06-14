@@ -23,7 +23,7 @@ export function TestimonialsSection() {
 
       <div className="landing-frame relative py-16">
         <div className="mb-9 text-center">
-          <span className="lumia-kicker">— Câu chuyện</span>
+          <span className="lumia-kicker">- Câu chuyện</span>
           <h2 className="lumia-h2 mx-auto max-w-none">Được yêu mến bởi những LUMIERs.</h2>
         </div>
 

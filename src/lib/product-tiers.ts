@@ -1,6 +1,13 @@
-export type TierCode = "first_time" | "standard" | "saver" | "sleep_well" | "master";
+export type TierCode = "first_time" | "standard" | "plus" | "pro" | "premium" | "ultimate";
 
-export type PhysicalBoxType = "mini_wellcome" | "sleep_well" | "master";
+export type PhysicalBoxType = "mini_wellcome" | "sleep_box" | "master_box";
+
+/** Legacy tier IDs stored in older orders/subscriptions */
+const LEGACY_TIER_ALIASES: Record<string, TierCode> = {
+  saver: "plus",
+  sleep_well: "premium",
+  master: "ultimate",
+};
 
 export type ProductTier = {
   id: TierCode;
@@ -16,7 +23,13 @@ export type ProductTier = {
   isFirstTimeOnly: boolean;
   discountPercent: number;
   sortOrder: number;
+  group: "digital" | "hybrid" | "promo";
 };
+
+const premiumFeatures = [
+  "Truy cập toàn bộ tính năng Premium",
+  "AI cá nhân hóa không giới hạn",
+] as const;
 
 export const PRODUCT_TIERS: ProductTier[] = [
   {
@@ -28,11 +41,12 @@ export const PRODUCT_TIERS: ProductTier[] = [
     hasPhysicalBox: true,
     physicalBoxType: "mini_wellcome",
     boxContents: ["1 Hộp trà thảo mộc", "1 Xịt gối mini"],
-    features: ["Truy cập toàn bộ tính năng Premium", "AI cá nhân hóa không giới hạn"],
+    features: [...premiumFeatures, "Welcome Kit: trà thảo mộc + xịt gối mini"],
     isFeatured: false,
     isFirstTimeOnly: true,
     discountPercent: 0,
-    sortOrder: 1,
+    sortOrder: 0,
+    group: "promo",
   },
   {
     id: "standard",
@@ -43,58 +57,69 @@ export const PRODUCT_TIERS: ProductTier[] = [
     hasPhysicalBox: false,
     physicalBoxType: null,
     boxContents: [],
-    features: [
-      "Truy cập toàn bộ tính năng Premium",
-      "AI cá nhân hóa không giới hạn",
-      "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
-    ],
+    features: [...premiumFeatures],
     isFeatured: false,
     isFirstTimeOnly: false,
-    discountPercent: 10,
-    sortOrder: 2,
+    discountPercent: 0,
+    sortOrder: 1,
+    group: "digital",
   },
   {
-    id: "saver",
-    name: "LUMIA SAVER",
-    slug: "saver",
+    id: "plus",
+    name: "LUMIA PLUS",
+    slug: "plus",
     durationMonths: 3,
     priceVnd: 349_000,
     hasPhysicalBox: false,
     physicalBoxType: null,
     boxContents: [],
-    features: [
-      "Truy cập toàn bộ tính năng Premium",
-      "AI cá nhân hóa không giới hạn",
-      "Ưu đãi 10% khi mua lẻ sản phẩm vật lý trên Website",
-    ],
+    features: [...premiumFeatures, "Gia hạn tự động"],
     isFeatured: true,
     isFirstTimeOnly: false,
     discountPercent: 10,
-    sortOrder: 3,
+    sortOrder: 2,
+    group: "digital",
   },
   {
-    id: "sleep_well",
-    name: "LUMIA SLEEP WELL",
-    slug: "sleep-well",
+    id: "pro",
+    name: "LUMIA PRO",
+    slug: "pro",
+    durationMonths: 6,
+    priceVnd: 599_000,
+    hasPhysicalBox: false,
+    physicalBoxType: null,
+    boxContents: [],
+    features: [...premiumFeatures, "Phân tích dữ liệu chuyên sâu dài hạn"],
+    isFeatured: false,
+    isFirstTimeOnly: false,
+    discountPercent: 22,
+    sortOrder: 3,
+    group: "digital",
+  },
+  {
+    id: "premium",
+    name: "LUMIA PREMIUM",
+    slug: "premium",
     durationMonths: 3,
     priceVnd: 699_000,
     hasPhysicalBox: true,
-    physicalBoxType: "sleep_well",
+    physicalBoxType: "sleep_box",
     boxContents: ["1 Hũ nến thơm", "1 Hộp trà thảo mộc", "1 Bịt mắt lụa"],
-    features: ["Truy cập toàn bộ tính năng Premium", "AI cá nhân hóa không giới hạn"],
+    features: [...premiumFeatures, "Tặng kèm đặc quyền Sleep Box"],
     isFeatured: false,
     isFirstTimeOnly: false,
-    discountPercent: 0,
+    discountPercent: 15,
     sortOrder: 4,
+    group: "hybrid",
   },
   {
-    id: "master",
-    name: "LUMIA SLEEP MASTER",
-    slug: "sleep-master",
+    id: "ultimate",
+    name: "LUMIA ULTIMATE",
+    slug: "ultimate",
     durationMonths: 6,
     priceVnd: 1_199_000,
     hasPhysicalBox: true,
-    physicalBoxType: "master",
+    physicalBoxType: "master_box",
     boxContents: [
       "1 Hũ nến thơm",
       "1 Hộp trà thảo mộc",
@@ -102,16 +127,25 @@ export const PRODUCT_TIERS: ProductTier[] = [
       "1 Bộ tinh dầu",
       "1 Xịt gối",
     ],
-    features: ["Truy cập toàn bộ tính năng Premium", "AI cá nhân hóa không giới hạn"],
+    features: [...premiumFeatures, "Tặng kèm đặc quyền Master Box"],
     isFeatured: false,
     isFirstTimeOnly: false,
-    discountPercent: 0,
+    discountPercent: 20,
     sortOrder: 5,
+    group: "hybrid",
   },
 ];
 
-export function getProductTier(code: TierCode): ProductTier {
-  const tier = PRODUCT_TIERS.find((t) => t.id === code);
+export function resolveTierCode(value: string): TierCode | undefined {
+  if (PRODUCT_TIERS.some((t) => t.id === value)) {
+    return value as TierCode;
+  }
+  return LEGACY_TIER_ALIASES[value];
+}
+
+export function getProductTier(code: string): ProductTier {
+  const resolved = resolveTierCode(code);
+  const tier = resolved ? PRODUCT_TIERS.find((t) => t.id === resolved) : undefined;
   if (!tier) {
     throw new Error(`Unknown tier: ${code}`);
   }
@@ -127,7 +161,15 @@ export function slugToTierCode(slug: string): TierCode | undefined {
 }
 
 export function isValidTierCode(value: string): value is TierCode {
-  return PRODUCT_TIERS.some((t) => t.id === value);
+  return resolveTierCode(value) !== undefined;
+}
+
+export function getDigitalTiers(): ProductTier[] {
+  return PRODUCT_TIERS.filter((t) => t.group === "digital");
+}
+
+export function getHybridTiers(): ProductTier[] {
+  return PRODUCT_TIERS.filter((t) => t.group === "hybrid");
 }
 
 export function addMonths(date: Date, months: number): Date {
@@ -149,4 +191,11 @@ export function formatPricePerMonth(priceVnd: number, months: number): string | 
   }
   const perMonth = Math.round(priceVnd / months);
   return `chỉ ${perMonth.toLocaleString("vi-VN")} đ/tháng`;
+}
+
+export function formatSavingsLabel(discountPercent: number): string | undefined {
+  if (discountPercent <= 0) {
+    return undefined;
+  }
+  return `Tiết kiệm hơn ${discountPercent}%`;
 }

@@ -1,7 +1,7 @@
 # LUMIA Web — Design Contract
 
 > Tài liệu tóm tắt hợp đồng thiết kế UI/UX hiện tại của nền tảng LUMIA.  
-> Phiên bản: 2026-06-11 · Phạm vi: `lumia-web` (Next.js frontend)
+> Phiên bản: 2026-06-13 · Phạm vi: `lumia-web` (Next.js frontend)
 
 ---
 
@@ -31,44 +31,43 @@ LUMIA hướng tới **wellness / sleep care** — ấm, dịu, không áp lực
 
 ### 2.2 Token hệ thống
 
-Nguồn: `src/app/globals.css`, `src/styles/fonts.css`, `src/styles/theme.css`
+Nguồn: `src/styles/lumia-tokens.css`, `src/app/globals.css`, `src/styles/fonts.css`
 
-| Token | Giá trị | Vai trò |
-|-------|---------|---------|
-| `--foreground` | `#2f2b25` | Chữ chính |
-| `--muted` | `#746d63` | Chữ phụ |
-| `--matcha-soft` / `--matcha` / `--matcha-deep` | `#eef2e5` / `#d7dfc3` / `#8d9d76` | Màu thương hiệu xanh trà |
-| `--champagne` / `--honey` / `--clay` | `#fff1ba` / `#f4d878` / `#f4ead2` | Accent ấm, upsell, highlight |
-| `--background` | `#fffefc` | Nền trang |
+- **Theme:** `data-theme="light" | "dark"` trên `<html>` — user toggle (`LumiaThemeProvider`, `ThemeInitScript`)
+- **Ambient:** `--site-ambient` (landing/marketing), `--dash-ambient` (app shell)
+- **Legacy map:** `--matcha-deep` → `--green-deep`, `--lumia-text` → `--foreground`
+
+| Token | Vai trò |
+|-------|---------|
+| `--background` / `--foreground` / `--muted` | Canvas & chữ |
+| `--green-*` / `--glass-*` | Thương hiệu & chrome kính |
+| `--marketing-header-height` / `--landing-nav-offset` | Layout public |
 
 **Typography**
 
-| Vai trò | Font | Class |
-|---------|------|-------|
-| Display / headline | Cormorant Garamond | `font-serif` |
-| Body / UI | Manrope | `font-sans` (mặc định) |
-| Section label | Uppercase, tracking rộng | `.eyebrow` |
+| Vai trò | Font |
+|---------|------|
+| Display / headline | Noto Serif Display (`--font-display`) |
+| Body / UI | Manrope (`--font-body`) |
+| Section label | `.eyebrow` |
 
 **Spacing & container**
 
 | Class | Quy ước |
 |-------|---------|
 | `.shell` | `max-w-7xl`, padding ngang responsive |
-| `.landing-frame` | `min(70vw, 1280px)` — chỉ landing |
-| Dashboard | `max-w-[1640px]`, sidebar `262px` |
+| `.landing-frame` | `max-w-[1280px]` — landing sections |
+| App shell | Grid `250px \| 1fr`, gap 16, padding 16, `100dvh` |
 
 ### 2.3 Primitives (component classes)
 
 | Class | Dùng cho |
 |-------|----------|
-| `.soft-card` | Card nội dung chuẩn (dashboard, settings, admin hub) |
-| `.hero-card` | Card auth, onboarding, checkout success |
-| `.liquid-panel` / `.liquid-glass` | Panel landing, checkout illustration |
-| `.dashboard-glass` | Sidebar, header dashboard |
-| `.button-primary` | CTA chính — nền `matcha-deep`, pill |
-| `.button-secondary` | CTA phụ — viền/honey nhạt |
+| `.dash-panel` | Panel app (glass, token-driven) |
+| `.soft-card` / `.hero-card` | Card marketing/auth (glass tokens) |
+| `.button-primary` / `.button-secondary` | CTA pill |
 
-**UI kit React:** tối thiểu — chỉ `Logo`, `UpsellOverlay` trong `src/components/ui/`. Phần lớn UI dựa trên CSS classes + feature components.
+**Navigation config:** `src/lib/site-nav.ts` (marketing links, footer columns, `?next=` defaults)
 
 ---
 

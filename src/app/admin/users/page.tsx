@@ -67,18 +67,18 @@ export default function AdminUsersPage() {
                   onClick={() => setSelected(user)}
                 >
                   <td className="px-4 py-3 pr-4">{user.email}</td>
-                  <td className="px-4 py-3 pr-4">{user.full_name || "—"}</td>
+                  <td className="px-4 py-3 pr-4">{user.full_name || "-"}</td>
                   <td className="px-4 py-3 pr-4">{user.role}</td>
                   <td className="px-4 py-3 pr-4">{getSubscriptionStatusLabel(user.subscription?.status ?? "free")}</td>
                   <td className="px-4 py-3 pr-4">
                     {user.subscription?.started_at
                       ? new Date(user.subscription.started_at).toLocaleDateString("vi-VN")
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 pr-4">
                     {user.subscription?.expires_at
                       ? new Date(user.subscription.expires_at).toLocaleDateString("vi-VN")
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="px-4 py-3">{user.streak?.current_streak ?? 0}</td>
                 </tr>

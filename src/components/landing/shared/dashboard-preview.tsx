@@ -19,7 +19,7 @@ const PAGE_NAV: Record<WebappPage, string> = {
 const PAGE_TITLES: Record<WebappPage, { title: string; subtitle: string }> = {
   hub: { title: "Chào buổi tối, Linh 👋", subtitle: "Hôm nay bạn muốn bắt đầu từ đâu?" },
   listen: { title: "LUMIA lắng nghe bạn.", subtitle: "Một không gian riêng tư để bạn được nói ra điều đang ở trong lòng." },
-  journal: { title: "Nhật ký", subtitle: "Viết ra — không cần đúng, chỉ cần thật." },
+  journal: { title: "Nhật ký", subtitle: "Viết ra - không cần đúng, chỉ cần thật." },
   audio: { title: "Âm thanh", subtitle: "Soundscape, thiền và nhịp thở cho buổi tối." },
   streak: { title: "Hành trình của bạn", subtitle: "Nhìn lại mood, streak và báo cáo tuần." },
 };
@@ -123,7 +123,7 @@ function HubPreview() {
   return (
     <div className="flex flex-col gap-[18px]">
       <div className="relative h-[168px] overflow-hidden rounded-[24px] shadow-[0_14px_34px_rgba(122,140,82,0.14)]">
-        <MistyScene variant="dawn" />
+        <MistyScene />
         <div className="absolute inset-0 flex items-center justify-between px-[30px]">
           <div>
             <span className="inline-flex rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--matcha-text)] backdrop-blur-sm">

@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { EmptyState } from "@/components/ui/empty-state";
-
 type Message = { role: "user" | "assistant"; content: string };
 
 const starters = [
@@ -20,7 +18,7 @@ function ThinkingOrbs() {
       {[0, 0.3, 0.6].map((delay, i) => (
         <motion.span
           key={i}
-          className="inline-block h-2 w-2 rounded-full bg-matcha-deep"
+          className="inline-block h-2 w-2 rounded-full bg-[var(--green)]"
           animate={{ scale: [0.8, 1.2, 0.8] }}
           transition={{ duration: 1, delay, repeat: Infinity, type: "spring", stiffness: 300, damping: 20 }}
         />
@@ -29,11 +27,41 @@ function ThinkingOrbs() {
   );
 }
 
-function LeafAccent() {
+function ListenWelcome({
+  onPick,
+  disabled,
+  loading,
+}: {
+  onPick: (text: string) => void;
+  disabled: boolean;
+  loading: boolean;
+}) {
   return (
-    <svg className="absolute left-3 top-3 h-3 w-3 opacity-40" viewBox="0 0 12 12" aria-hidden>
-      <path d="M6 1C4 4 3 6 2 9c2-1 3-1 4 0 1-2 2-4 4-7-2 2-3 3-3 5s1 4 3 6c-1-3-1-5 0-8z" fill="#7d8f68" />
-    </svg>
+    <div className="flex min-h-[min(420px,55vh)] flex-1 flex-col items-center justify-center px-4 py-8 text-center md:px-8">
+      <div className="listen-welcome-glow mb-7" aria-hidden />
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+        LUMIA lắng nghe
+      </p>
+      <h2 className="mt-3 font-serif text-[1.65rem] font-medium tracking-[-0.02em] text-[var(--foreground)] md:text-[1.85rem]">
+        LUMIA đang lắng nghe
+      </h2>
+      <p className="mt-3 max-w-md text-sm leading-7 text-[var(--muted)]">
+        Hôm nay bạn muốn chia sẻ điều gì? Chọn một gợi ý hoặc viết trực tiếp bên dưới.
+      </p>
+      <div className="mt-7 flex max-w-xl flex-wrap justify-center gap-2.5">
+        {starters.map((text) => (
+          <button
+            key={text}
+            type="button"
+            onClick={() => onPick(text)}
+            disabled={disabled || loading}
+            className="listen-starter-chip disabled:opacity-50"
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -41,7 +69,10 @@ export function AiStudio() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [usage, setUsage] = useState<{ remaining: number | null; limit: number | null }>({ remaining: null, limit: null });
+  const [usage, setUsage] = useState<{ remaining: number | null; limit: number | null }>({
+    remaining: null,
+    limit: null,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -109,104 +140,90 @@ export function AiStudio() {
   }
 
   const disabled = usage.remaining === 0;
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="chat-container h-full min-h-0 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
-      <section className="dash-panel hidden shrink-0 p-5 xl:block">
-        <span className="eyebrow">Bắt đầu nhanh</span>
-        <div className="mt-4 space-y-2">
+    <div className="chat-container h-full min-h-0 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-4 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)] xl:gap-5">
+      <section className="dash-panel hidden shrink-0 flex-col p-5 lg:flex">
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+          Bắt đầu nhanh
+        </span>
+        <div className="mt-4 flex flex-col gap-2">
           {starters.map((text) => (
             <button
               key={text}
               type="button"
               onClick={() => sendMessage(text)}
               disabled={disabled || loading}
-              className="w-full rounded-[20px] border border-white/70 bg-white px-4 py-3 text-left text-sm text-matcha-deep disabled:opacity-50"
+              className="listen-starter-chip w-full rounded-[18px] px-4 py-3 text-left disabled:opacity-50"
             >
               {text}
             </button>
           ))}
         </div>
         {usage.limit !== null ? (
-          <p className="mt-4 text-xs text-muted">Còn {usage.remaining}/{usage.limit} lượt hôm nay</p>
+          <p className="mt-auto pt-4 text-xs text-[var(--muted)]">
+            Còn {usage.remaining}/{usage.limit} lượt hôm nay
+          </p>
         ) : null}
       </section>
 
-      <section className="dash-panel lumia-grain-soft relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0 lg:p-7">
+      <section className="dash-panel relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0">
         <AnimatePresence>
           {loading ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="pointer-events-none absolute inset-0 z-10 bg-matcha/5"
+              className="pointer-events-none absolute inset-0 z-10 bg-[var(--green-wash)]/30"
             />
           ) : null}
         </AnimatePresence>
 
-        <div className="hidden shrink-0 border-b border-white/60 px-5 py-4 lg:block">
-          <span className="eyebrow">LUMIA lắng nghe</span>
-          <p className="mt-2 text-xs text-muted">
+        <div className="shrink-0 border-b border-[var(--border)] px-5 py-4 text-center lg:px-7">
+          <span className="inline-flex rounded-full border border-[var(--border)] bg-[var(--glass-control)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+            LUMIA lắng nghe
+          </span>
+          <p className="mx-auto mt-3 max-w-lg text-xs leading-6 text-[var(--muted)]">
             LUMIA không thay thế chuyên gia y tế hoặc chuyên gia tâm lý.
           </p>
         </div>
 
-        <div className="chat-messages lumia-scroll space-y-3 px-4 py-4 pb-24 lg:mt-6 lg:px-0 lg:py-0 lg:pb-0">
-          {messages.length === 0 ? (
-            <EmptyState
-              scene="chat"
-              title="LUMIA đang lắng nghe"
-              description="Hôm nay bạn muốn chia sẻ điều gì?"
-            />
-          ) : null}
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.95, x: msg.role === "user" ? 12 : -12 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25, duration: 0.2 }}
-              className={`relative max-w-[75%] rounded-[20px] px-4 py-3 text-[15px] leading-7 ${
-                msg.role === "user"
-                  ? "ml-auto bg-matcha-deep text-white"
-                  : "glass-card max-w-[85%] text-matcha-deep"
-              }`}
-              style={
-                msg.role === "user"
-                  ? { borderRadius: "20px 20px 4px 20px" }
-                  : { borderRadius: "20px 20px 20px 4px" }
-              }
-            >
-              {msg.role === "assistant" ? <LeafAccent /> : null}
-              {msg.content}
-              {msg.role === "assistant" && loading && i === messages.length - 1 && msg.content ? (
-                <span className="animate-pulse">|</span>
-              ) : null}
-            </motion.div>
-          ))}
-          {loading && messages[messages.length - 1]?.role === "user" ? <ThinkingOrbs /> : null}
+        <div
+          className={`chat-messages lumia-scroll flex min-h-0 flex-1 flex-col px-4 py-4 lg:px-7 lg:py-5 ${
+            isEmpty ? "justify-center" : "space-y-3"
+          }`}
+        >
+          {isEmpty ? (
+            <ListenWelcome onPick={sendMessage} disabled={disabled} loading={loading} />
+          ) : (
+            <>
+              {messages.map((msg, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95, x: msg.role === "user" ? 12 : -12 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25, duration: 0.2 }}
+                  className={`px-4 py-3 text-[15px] leading-7 ${
+                    msg.role === "user" ? "listen-msg-user" : "listen-msg-assistant"
+                  }`}
+                >
+                  {msg.content}
+                  {msg.role === "assistant" && loading && i === messages.length - 1 && msg.content ? (
+                    <span className="animate-pulse">|</span>
+                  ) : null}
+                </motion.div>
+              ))}
+              {loading && messages[messages.length - 1]?.role === "user" ? <ThinkingOrbs /> : null}
+            </>
+          )}
           <div ref={bottomRef} />
         </div>
 
-        {messages.length === 0 ? (
-          <div className="mobile-h-scroll shrink-0 border-t border-white/60 px-4 py-3 lg:hidden">
-            {starters.map((text) => (
-              <button
-                key={text}
-                type="button"
-                onClick={() => sendMessage(text)}
-                disabled={disabled || loading}
-                className="rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-[13px] text-matcha-deep disabled:opacity-50"
-              >
-                {text}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
         {disabled ? (
-          <div className="mx-4 mb-2 shrink-0 rounded-[18px] border border-honey/50 bg-champagne/30 px-4 py-3 text-sm text-matcha-deep lg:mx-0 lg:mt-4">
+          <div className="mx-4 mb-2 shrink-0 rounded-[18px] border border-[var(--border)] bg-[var(--green-wash)] px-4 py-3 text-sm text-[var(--foreground)] lg:mx-7">
             Đã hết lượt chat hôm nay.{" "}
-            <Link href="/boxes" className="font-semibold underline">
+            <Link href="/boxes" className="font-semibold text-[var(--green-deep)] underline">
               Khám phá gói LUMIA
             </Link>{" "}
             để tiếp tục không giới hạn.
@@ -214,13 +231,13 @@ export function AiStudio() {
         ) : null}
 
         {usage.limit !== null ? (
-          <p className="px-4 pb-1 text-center text-[11px] text-muted lg:hidden">
+          <p className="px-4 pb-1 text-center text-[11px] text-[var(--muted)] lg:hidden">
             Còn {usage.remaining}/{usage.limit} lượt hôm nay
           </p>
         ) : null}
 
         <form
-          className="chat-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex shrink-0 gap-2 border-t border-white/60 bg-white/92 px-4 py-3 backdrop-blur-md lg:static lg:z-auto lg:mt-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+          className="chat-input-bar listen-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex shrink-0 gap-2 px-4 py-3 lg:static lg:z-auto lg:px-7 lg:py-5"
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage(input);
@@ -231,13 +248,13 @@ export function AiStudio() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={disabled || loading}
-            className="min-h-[44px] flex-1 rounded-full border border-matcha-soft bg-white px-4 py-3 text-[15px] outline-none disabled:opacity-50"
+            className="min-h-[44px] flex-1 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[15px] text-[var(--foreground)] outline-none ring-[var(--green)]/20 focus:ring-4 disabled:opacity-50"
             placeholder="Viết điều đang ở trong lòng bạn…"
           />
           <button
             type="submit"
             disabled={disabled || loading}
-            className="button-primary min-h-[44px] shrink-0 rounded-full px-5 disabled:opacity-50"
+            className="dash-accent-btn min-h-[44px] shrink-0 px-5 disabled:opacity-50"
           >
             Gửi
           </button>

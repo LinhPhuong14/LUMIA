@@ -133,7 +133,7 @@ export function BoxShowcaseCard({
       <div className="flex flex-1 flex-col p-5 pt-4 md:p-6">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="font-serif text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--foreground)] md:text-[24px]">
+            <h3 className="font-serif text-[22px] font-bold leading-tight tracking-[-0.02em] text-[var(--title-primary)] md:text-[24px]">
               {box.name}
             </h3>
             <p className="mt-1 text-[12px] font-medium text-[var(--green)]">{box.tagline}</p>

@@ -36,16 +36,16 @@ export function TopBar({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          className="flex h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface-card)]"
+          className="dash-control-btn h-[42px] w-[42px]"
           aria-label="Thông báo"
         >
           <Bell className="h-[18px] w-[18px] text-[var(--muted)]" />
         </button>
-        <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-card)] py-1.5 pl-3.5 pr-1.5">
+        <div className="dash-plan-pill py-1.5 pl-3.5 pr-1.5">
           <Crown className="h-3.5 w-3.5 text-[var(--honey-dark)]" />
           <span className="text-[12.5px] font-semibold text-[var(--green-deep)]">{planLabel}</span>
           <div
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-[12px] font-bold text-white"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-[12px] font-bold dash-ink-on-light"
             style={{ background: "var(--gradient-jade)" }}
           >
             {getInitials(sessionName)}

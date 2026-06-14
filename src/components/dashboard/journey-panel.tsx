@@ -139,13 +139,13 @@ export function JourneyPanel({
   const avgMood =
     moods.length > 0
       ? (moods.reduce((sum, m) => sum + m.score, 0) / moods.length).toFixed(1)
-      : "—";
+      : "-";
 
   const activityCounts = activities.reduce<Record<string, number>>((acc, a) => {
     acc[a.activity_type] = (acc[a.activity_type] ?? 0) + 1;
     return acc;
   }, {});
-  const topActivity = Object.entries(activityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+  const topActivity = Object.entries(activityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
 
   const days = buildCalendarDays(calendarDays);
   const today = new Date().toISOString().slice(0, 10);
@@ -225,7 +225,7 @@ export function JourneyPanel({
                       >
                         <div className="font-medium text-matcha-deep">{date}</div>
                         <div className="mt-1 text-muted">
-                          Mood: {moodEntry?.score ?? "—"}/5
+                          Mood: {moodEntry?.score ?? "-"}/5
                         </div>
                         <div className="text-muted">{dayActivities.length} hoạt động</div>
                         {moodEntry?.note ? (

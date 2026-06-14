@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { LumiaThemeProvider } from "@/components/theme/lumia-theme-provider";
+import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import "./globals.css";
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   viewportFit: "cover" as const,
-  themeColor: "#8d9d76",
+  themeColor: "#5f7a45",
 };
 
 export const metadata: Metadata = {
   title: {
-    default: "LUMIA | Nghi thức dịu lành cho buổi tối",
+    default: "LUMIA | Hệ sinh thái tái tạo giấc ngủ",
     template: "%s | LUMIA",
   },
   description:
-    "LUMIA là không gian dịu lành cho những buổi tối cần được ôm lại bằng chăm sóc, cảm xúc và những nhịp nghỉ ngơi mềm hơn.",
+    "LUMIA là hệ sinh thái công nghệ thấu hiểu và tái tạo giấc ngủ - theo dõi cảm xúc, phân tích dữ liệu và AI lắng nghe.",
   metadataBase: new URL("https://lumia.vn"),
 };
 
@@ -26,8 +29,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="h-full antialiased">
-      <body className="h-full overflow-hidden font-sans text-foreground">{children}</body>
+    <html lang="vi" className="h-full antialiased" suppressHydrationWarning>
+      <body className="h-full overflow-hidden font-sans text-foreground">
+        <ThemeInitScript />
+        <LumiaThemeProvider>
+          <GoogleAnalytics />
+          {children}
+        </LumiaThemeProvider>
+      </body>
     </html>
   );
 }

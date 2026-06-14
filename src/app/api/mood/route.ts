@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/streak";
+import { localDateString } from "@/lib/local-date";
 import { ensureUserProfile } from "@/lib/supabase/ensure-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: profile.error }, { status: 500 });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateString();
   const { data, error } = await supabase
     .from("mood_checkins")
     .upsert(

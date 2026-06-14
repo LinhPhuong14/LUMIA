@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 
 export function MobileNavDrawer({
@@ -78,6 +79,9 @@ export function MobileNavDrawer({
                 </>
               )}
             </nav>
+            <div className="mt-4 flex justify-center">
+              <ThemeToggle />
+            </div>
           </div>
         </>
       ) : null}

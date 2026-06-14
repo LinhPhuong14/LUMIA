@@ -252,9 +252,9 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
         >
           <div className="font-serif text-2xl text-matcha-deep">{techniques[key].label}</div>
           <p className="mt-2 text-sm text-muted">
-            {key === "4-7-8" && "Hít 4s — Giữ 7s — Thở 8s"}
-            {key === "box" && "Hít 4s — Giữ 4s — Thở 4s — Giữ 4s"}
-            {key === "coherent" && "Hít 5s — Thở 5s"}
+            {key === "4-7-8" && "Hít 4s - Giữ 7s - Thở 8s"}
+            {key === "box" && "Hít 4s - Giữ 4s - Thở 4s - Giữ 4s"}
+            {key === "coherent" && "Hít 5s - Thở 5s"}
           </p>
         </button>
       ))}

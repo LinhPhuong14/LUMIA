@@ -28,7 +28,7 @@ export function UpsellOverlay({
           </div>
           <div className="min-w-0">
             <h3 className="font-sans text-sm font-semibold text-matcha-text sm:text-base">
-              {featureName} — LUMIA Premium
+              {featureName} - LUMIA Premium
             </h3>
             {description ? (
               <p className="mt-1 text-[12px] leading-relaxed text-muted sm:text-[13px]">{description}</p>

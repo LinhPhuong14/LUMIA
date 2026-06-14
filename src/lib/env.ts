@@ -12,20 +12,20 @@ export const env = {
   DEMO_MODE: resolveDemoMode(),
   VERCEL_ENV: process.env.VERCEL_ENV,
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
-  /** Publishable key — `sb_publishable_...` (thay anon key cũ) */
+  /** Publishable key - `sb_publishable_...` (thay anon key cũ) */
   SUPABASE_PUBLISHABLE_KEY:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     process.env.SUPABASE_ANON_KEY,
-  /** Legacy only — project Supabase mới thường không có; app chạy được chỉ với publishable key */
+  /** Legacy only - project Supabase mới thường không có; app chạy được chỉ với publishable key */
   SUPABASE_SECRET_KEY:
     process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-  /** @deprecated alias — dùng SUPABASE_PUBLISHABLE_KEY */
+  /** @deprecated alias - dùng SUPABASE_PUBLISHABLE_KEY */
   SUPABASE_ANON_KEY:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     process.env.SUPABASE_ANON_KEY,
-  /** @deprecated alias — dùng SUPABASE_SECRET_KEY */
+  /** @deprecated alias - dùng SUPABASE_SECRET_KEY */
   SUPABASE_SERVICE_ROLE_KEY:
     process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID,
@@ -41,6 +41,7 @@ export const env = {
   SAFETY_CLASSIFIER_ENABLED: (process.env.SAFETY_CLASSIFIER_ENABLED ?? "true") === "true",
   CRON_SECRET: process.env.CRON_SECRET,
   SEED_SECRET: process.env.SEED_SECRET,
+  NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
 };
 
 export function hasSupabaseConfig() {
@@ -64,7 +65,7 @@ export function hasLlmConfig() {
   return Boolean(env.LLM_API_KEY);
 }
 
-/** @deprecated use hasLlmConfig — AI runs in-process, no separate service URL */
+/** @deprecated use hasLlmConfig - AI runs in-process, no separate service URL */
 export function hasLumiaServiceConfig() {
   return hasLlmConfig();
 }

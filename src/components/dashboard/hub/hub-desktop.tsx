@@ -1,154 +1,99 @@
 "use client";
 
 import Link from "next/link";
-import { Feather, Flame, Moon, Music, Play, TrendingUp } from "lucide-react";
+import { Feather, Music, Play } from "lucide-react";
 
+import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
+import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
+import { HubInsightsRow, HubSuggestionCard } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
+import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
+import type { MoodScore } from "@/lib/mood-constants";
 
-const HUB_MOODS = [
-  { e: "🙂", l: "Bình yên" },
-  { e: "😮‍💨", l: "Mệt" },
-  { e: "😟", l: "Lo" },
-  { e: "🙁", l: "Buồn" },
-  { e: "😣", l: "Căng" },
-  { e: "😶", l: "Trống rỗng" },
-];
+type HubProps = {
+  insights: DashboardInsights | null;
+  chartDays: ChartPoint[];
+  chartAverage: number | null;
+  suggestion: string;
+  selectedScore: MoodScore | null;
+  savedScore: number | null;
+  savedNote?: string | null;
+  onSelectScore: (score: MoodScore) => void;
+  onCheckIn: (score: MoodScore, note?: string) => Promise<void>;
+  submitting: boolean;
+};
 
 export function HubDesktop({
-  moodIndex,
-  level,
-  streak,
-  todayMood,
-  onMoodChange,
-  onLevelChange,
-}: {
-  moodIndex: number;
-  level: number;
-  streak: number;
-  todayMood: number | null;
-  onMoodChange: (index: number) => void;
-  onLevelChange: (level: number) => void;
-}) {
+  insights,
+  chartDays,
+  chartAverage,
+  suggestion,
+  selectedScore,
+  savedScore,
+  savedNote,
+  onSelectScore,
+  onCheckIn,
+  submitting,
+}: HubProps) {
   return (
-    <div className="flex flex-col gap-[18px]">
-      <div className="lumia-grain relative h-[168px] overflow-hidden rounded-[24px] shadow-[0_14px_34px_rgba(122,140,82,0.14)]">
-        <MistyScene variant="dawn" />
-        <div className="absolute inset-0 flex items-center justify-between px-[30px]">
-          <div>
-            <span className="inline-flex rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--matcha-text)] backdrop-blur-sm">
+    <div className="space-y-[18px]">
+      <div className="hub-bento-grid gap-[18px]">
+        <div className="hub-bento-ritual lumia-grain relative min-h-[240px] overflow-hidden rounded-[24px] shadow-[var(--shadow-ritual)]">
+          <MistyScene />
+          <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-7">
+            <span className="dash-scene-chip inline-flex w-fit rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] backdrop-blur-sm">
               Nghi thức tối nay
             </span>
-            <h2 className="mt-3 font-serif text-[27px] font-medium tracking-[-0.02em] text-[#42361f]">
-              Thung lũng sương · 18 phút
-            </h2>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="font-serif text-[24px] font-medium leading-tight tracking-[-0.02em] text-white xl:text-[27px]">
+                  Thung lũng sương
+                </h2>
+                <p className="mt-1 text-[13px] text-[var(--scene-ink-muted)]">Soundscape · 18 phút</p>
+              </div>
+              <Link href="/audio/sleep" className="dash-accent-btn shrink-0">
+                <Play className="h-4 w-4" fill="currentColor" />
+                Bắt đầu
+              </Link>
+            </div>
           </div>
+        </div>
+
+        <Panel className="hub-bento-mood h-auto" pad="p-6 sm:p-7">
+          <MoodTrendChart data={chartDays} average={chartAverage} className="mb-5" />
+          <MoodCheckInPanel
+            selectedScore={selectedScore}
+            savedScore={savedScore}
+            savedNote={savedNote}
+            onSelectScore={onSelectScore}
+            onSubmit={onCheckIn}
+            submitting={submitting}
+          />
+        </Panel>
+      </div>
+
+      {insights ? <HubInsightsRow insights={insights} /> : null}
+
+      <Panel title="Gợi ý cho hôm nay" className="h-auto">
+        <HubSuggestionCard suggestion={suggestion} />
+        <div className="mt-3 flex gap-2 sm:gap-2.5">
           <Link
-            href="/audio/sleep"
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--green)] px-[26px] py-3.5 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(122,140,82,0.3)]"
+            href="/audio/meditation"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[12px] font-semibold text-[var(--green-deep)] sm:text-[13px]"
           >
-            <Play className="h-4 w-4" fill="currentColor" />
-            Bắt đầu
+            <Music className="h-[15px] w-[15px]" />
+            Nghe thiền
+          </Link>
+          <Link
+            href="/journal"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[12px] font-semibold text-[var(--green-deep)] sm:text-[13px]"
+          >
+            <Feather className="h-[15px] w-[15px]" />
+            Viết journal
           </Link>
         </div>
-      </div>
-
-      <div className="grid gap-[18px] lg:grid-cols-[1.15fr_1fr] lg:items-start">
-        <Panel title="Bạn đang cảm thấy thế nào?" className="h-auto">
-          <div className="grid grid-cols-6 gap-2">
-            {HUB_MOODS.map((m, i) => (
-              <button
-                key={m.l}
-                type="button"
-                onClick={() => onMoodChange(i)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 text-center transition"
-                style={{
-                  borderColor: moodIndex === i ? "var(--green)" : "var(--border)",
-                  background: moodIndex === i ? "var(--green-wash)" : "var(--surface)",
-                }}
-              >
-                <span className="text-[22px]">{m.e}</span>
-                <span className="text-[10.5px] text-[var(--muted)]">{m.l}</span>
-              </button>
-            ))}
-          </div>
-          <div className="mt-[18px]">
-            <div className="mb-2 flex justify-between text-xs text-[var(--muted)]">
-              <span>Mức độ (1–5)</span>
-              <span className="font-bold text-[var(--green-deep)]">{level}</span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={level}
-              onChange={(e) => onLevelChange(Number(e.target.value))}
-              className="w-full accent-[var(--green)]"
-            />
-          </div>
-          <button type="button" className="mt-5 w-full rounded-full bg-[var(--green)] py-3.5 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(122,140,82,0.28)]">
-            Check-in nhẹ nhàng
-          </button>
-        </Panel>
-
-        <Panel title="Gợi ý cho hôm nay" className="h-auto">
-          <div
-            className="lumia-grain relative mb-4 rounded-[18px] p-[18px]"
-            style={{ background: "var(--gradient-honeyjade)" }}
-          >
-            <p className="relative max-w-[340px] text-sm leading-relaxed text-[var(--lumia-text)]">
-              Bạn vẻ cần một routine nhẹ. Thử mở 2 phút, viết đôi dòng journal và Thiền ngủ 5 phút.
-            </p>
-          </div>
-          <Link
-            href="/audio/sleep"
-            className="block w-full rounded-full bg-[var(--green)] py-3.5 text-center text-sm font-semibold text-white shadow-[0_12px_26px_rgba(122,140,82,0.28)]"
-          >
-            Bắt đầu routine
-          </Link>
-          <div className="mt-3 flex gap-2.5">
-            <Link
-              href="/audio/meditation"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[13px] font-semibold text-[var(--green-deep)]"
-            >
-              <Music className="h-[15px] w-[15px]" />
-              Nghe thiền
-            </Link>
-            <Link
-              href="/journal"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[13px] font-semibold text-[var(--green-deep)]"
-            >
-              <Feather className="h-[15px] w-[15px]" />
-              Viết journal
-            </Link>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
-        {[
-          { icon: Flame, t: "Streak", v: streak > 0 ? `${streak} ngày` : "Soft Week", s: "7 ngày liên tiếp", c: "var(--honey-dark)" },
-          { icon: Moon, t: "Sleep", v: "Wind-down", s: "Thường ngủ lúc 22:15", c: "var(--green-deep)" },
-          {
-            icon: TrendingUp,
-            t: "Mood trend",
-            v: todayMood ? `${todayMood}/5` : "Ổn định hơn",
-            s: "+12% so với tuần trước",
-            c: "var(--rose-deep, #c9847d)",
-          },
-        ].map((st) => (
-          <Panel key={st.t} pad="p-5">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-[var(--green-wash)]">
-                <st.icon className="h-[18px] w-[18px]" style={{ color: st.c }} />
-              </div>
-              <span className="text-[12.5px] font-semibold text-[var(--muted)]">{st.t}</span>
-            </div>
-            <div className="mt-3.5 font-serif text-2xl font-semibold text-[var(--foreground)]">{st.v}</div>
-            <div className="mt-1 text-[12.5px] text-[var(--muted)]">{st.s}</div>
-          </Panel>
-        ))}
-      </div>
+      </Panel>
     </div>
   );
 }

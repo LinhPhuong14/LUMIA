@@ -12,7 +12,7 @@ export function RitualAccordionSection() {
     <section id="nghi-thuc" className="py-14">
       <div className="landing-frame">
         <div className="mb-8">
-          <span className="lumia-kicker">— Nghi thức mỗi tối</span>
+          <span className="lumia-kicker">- Nghi thức mỗi tối</span>
           <h2 className="lumia-h2">Năm bước nhỏ, dẫn bạn vào giấc ngủ.</h2>
         </div>
 

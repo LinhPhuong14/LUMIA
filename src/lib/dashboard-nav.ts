@@ -7,6 +7,7 @@ import {
   Music,
   Package,
   Route as RouteIcon,
+  Settings,
   Sun,
   User,
   type LucideIcon,
@@ -27,8 +28,9 @@ export const desktopNav: DashboardNavItem[] = [
   { id: "journal", href: "/journal", label: "Nhật ký", icon: Feather },
   { id: "audio", href: "/audio", label: "Âm thanh", icon: Music },
   { id: "coach", href: "/audio/sleep", label: "Sleep Coach", icon: Moon },
-  { id: "streak", href: "/journey", label: "Streak & huy hiệu", icon: Flame },
-  { id: "plan", href: "/account", label: "Gói của tôi", icon: Package },
+  { id: "streak", href: "/journey", label: "Streak", icon: Flame },
+  { id: "plan", href: "/account", label: "Gói", icon: Package },
+  { id: "settings", href: "/settings", label: "Cài đặt", icon: Settings },
 ];
 
 export const mobileTabs: DashboardNavItem[] = [

@@ -30,7 +30,6 @@ export function ProductCard({
       )}
     >
       <div className="relative h-40 overflow-hidden md:h-[200px]">
-        {/* [REPLACE WITH CLIENT PHOTO: product artwork for tier {product.tier}] */}
         <PhotoImage
           stockQuery={stockQuery}
           alt={product.name}
@@ -41,22 +40,32 @@ export function ProductCard({
         />
         {highlighted ? (
           <span className="badge-featured absolute left-4 top-4 z-10">GÓI TIẾT KIỆM</span>
+        ) : product.physicalItems.length > 0 ? (
+          <span className="badge-featured absolute left-4 top-4 z-10 bg-[var(--lumia-green-mid)]">
+            + ĐẶC QUYỀN VẬT LÝ
+          </span>
         ) : null}
       </div>
 
       <div className="flex flex-1 flex-col p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--lumia-text)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--lumia-green)]">
+          {product.badge}
+        </p>
+        <h2 className="mt-2 font-serif text-xl font-bold text-[var(--title-primary)] md:text-2xl">
           {product.name}
         </h2>
 
         <div className="my-4 h-px bg-[var(--lumia-green-soft)]" />
 
-        <p className="text-base text-[var(--lumia-text-soft)]">{product.duration}</p>
+        <p className="text-base font-medium text-[var(--lumia-text-mid)]">{product.duration}</p>
 
         <div className="mt-4">
           <div className="price-amount">{formatCurrency(product.price)}</div>
           {product.priceNote ? (
             <p className="price-per-month mt-1">({product.priceNote})</p>
+          ) : null}
+          {product.savingsNote ? (
+            <p className="mt-1 text-sm font-semibold text-[var(--lumia-green)]">{product.savingsNote}</p>
           ) : null}
         </div>
 
@@ -65,12 +74,6 @@ export function ProductCard({
             <li key={feature} className="flex gap-2">
               <span className="feature-check">✓</span>
               <span>{feature}</span>
-            </li>
-          ))}
-          {product.physicalItems.map((item) => (
-            <li key={item} className="flex gap-2 font-semibold">
-              <span className="feature-check">✓</span>
-              <span>{item}</span>
             </li>
           ))}
         </ul>

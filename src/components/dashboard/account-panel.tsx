@@ -28,7 +28,7 @@ const featureMatrix = [
   { name: "Streak", free: false, active: true },
 ];
 
-const upsellSlugs = ["standard", "saver", "sleep-well"] as const;
+const upsellSlugs = ["standard", "plus", "premium"] as const;
 
 export function AccountPanel({
   subscription,
@@ -70,7 +70,7 @@ export function AccountPanel({
       />
 
       {tab === "box" ? (
-        <section className="soft-card p-6">
+        <section className="dash-panel p-6">
           <span className="eyebrow">Gói đang dùng</span>
           <h2 className="mt-4 font-sans text-xl font-medium text-matcha-text">{planName}</h2>
           <p className="mt-3 text-sm text-muted">Trạng thái: {getSubscriptionStatusLabel(subscription.status)}</p>
@@ -99,7 +99,7 @@ export function AccountPanel({
                 {getPhysicalBoxStatusLabel(subscription.physicalBoxStatus)}
               </p>
               <p className="mt-2 text-[12px] text-muted">
-                Truy cập app không phụ thuộc vào việc nhận hộp — bạn có thể dùng LUMIA ngay sau thanh toán.
+                Truy cập app không phụ thuộc vào việc nhận hộp - bạn có thể dùng LUMIA ngay sau thanh toán.
               </p>
             </div>
           ) : null}
@@ -144,7 +144,7 @@ export function AccountPanel({
       ) : null}
 
       {tab === "orders" ? (
-        <section className="soft-card p-6">
+        <section className="dash-panel p-6">
           <span className="eyebrow">Lịch sử đơn hàng</span>
           {orders.length ? (
             <div className="mt-5 space-y-3">
@@ -176,7 +176,7 @@ export function AccountPanel({
       ) : null}
 
       {tab === "access" ? (
-        <section className="soft-card p-6">
+        <section className="dash-panel p-6">
           <span className="eyebrow">Quyền của tôi</span>
           <p className="mt-2 text-sm text-muted">
             Gói hiện tại: <strong>{planName}</strong>
@@ -199,10 +199,10 @@ export function AccountPanel({
                   <tr key={row.name} className="border-t border-white/60">
                     <td className="py-3 pr-4 text-matcha-deep">{row.name}</td>
                     <td className="py-3 pr-4 text-muted">
-                      {typeof row.free === "boolean" ? (row.free ? "✓" : "—") : row.free}
+                      {typeof row.free === "boolean" ? (row.free ? "✓" : "-") : row.free}
                     </td>
                     <td className="py-3 text-muted">
-                      {typeof row.active === "boolean" ? (row.active ? "✓" : "—") : row.active}
+                      {typeof row.active === "boolean" ? (row.active ? "✓" : "-") : row.active}
                     </td>
                   </tr>
                 ))}

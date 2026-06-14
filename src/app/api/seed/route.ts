@@ -11,12 +11,12 @@ const sampleAudioTracks = [
   { title: "Nhạc ngủ dịu", category: "sleep_music", duration_seconds: 1200, is_free: false, sort_order: 5 },
   { title: "Thiền hướng dẫn 10 phút", category: "guided_meditation", duration_seconds: 600, is_free: false, sort_order: 6 },
   { title: "Thiền mini 5 phút", category: "mini_meditation", duration_seconds: 300, is_free: true, sort_order: 7 },
-  { title: "Timer — Mưa", category: "timer_ambient", description: "slug:rain", duration_seconds: null, is_free: false, sort_order: 20 },
-  { title: "Timer — Sóng biển", category: "timer_ambient", description: "slug:ocean", duration_seconds: null, is_free: false, sort_order: 21 },
-  { title: "Timer — Rừng", category: "timer_ambient", description: "slug:forest", duration_seconds: null, is_free: false, sort_order: 22 },
-  { title: "Timer — White noise", category: "timer_ambient", description: "slug:white-noise", duration_seconds: null, is_free: false, sort_order: 23 },
-  { title: "Timer bell — bắt đầu", category: "timer_ambient", description: "tag:bell-start", duration_seconds: 3, is_free: false, sort_order: 24 },
-  { title: "Timer bell — kết thúc", category: "timer_ambient", description: "tag:bell-end", duration_seconds: 3, is_free: false, sort_order: 25 },
+  { title: "Timer - Mưa", category: "timer_ambient", description: "slug:rain", duration_seconds: null, is_free: false, sort_order: 20 },
+  { title: "Timer - Sóng biển", category: "timer_ambient", description: "slug:ocean", duration_seconds: null, is_free: false, sort_order: 21 },
+  { title: "Timer - Rừng", category: "timer_ambient", description: "slug:forest", duration_seconds: null, is_free: false, sort_order: 22 },
+  { title: "Timer - White noise", category: "timer_ambient", description: "slug:white-noise", duration_seconds: null, is_free: false, sort_order: 23 },
+  { title: "Timer bell - bắt đầu", category: "timer_ambient", description: "tag:bell-start", duration_seconds: 3, is_free: false, sort_order: 24 },
+  { title: "Timer bell - kết thúc", category: "timer_ambient", description: "tag:bell-end", duration_seconds: 3, is_free: false, sort_order: 25 },
 ] ;
 
 export const runtime = "nodejs";

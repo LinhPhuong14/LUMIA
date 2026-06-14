@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { env, hasSupabaseConfig } from "@/lib/env";
 
-/** Supabase quickstart pattern — refresh session cookies on each matched request. */
+/** Supabase quickstart pattern - refresh session cookies on each matched request. */
 export function createClientFromRequest(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 

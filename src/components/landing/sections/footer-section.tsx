@@ -4,7 +4,7 @@ import { footerColumns } from "@/components/landing/data/landing-content";
 
 export function FooterSection() {
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--surface-warm)]">
+    <footer className="site-footer border-t border-[var(--border)] bg-[var(--surface-warm)]">
       <div className="landing-frame py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
           <div>
@@ -17,7 +17,7 @@ export function FooterSection() {
                 <button
                   key={label}
                   type="button"
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/80 bg-white/72 text-xs font-medium text-[var(--muted)] shadow-[0_12px_26px_rgba(95,111,82,0.08)]"
+                  className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-[var(--border)] bg-surface-card text-xs font-medium text-[var(--muted)] shadow-[0_12px_26px_rgba(95,111,82,0.08)]"
                 >
                   {label}
                 </button>

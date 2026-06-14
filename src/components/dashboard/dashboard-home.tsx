@@ -1,15 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { HubDesktop } from "@/components/dashboard/hub/hub-desktop";
 import { HubMobile } from "@/components/dashboard/hub/hub-mobile";
-import { MoodCheckInModal } from "@/components/dashboard/mood-check-in-modal";
 import { UpsellBanner } from "@/components/dashboard/upsell-banner";
+import {
+  buildSuggestion,
+  type ChartPoint,
+  type DashboardInsights,
+} from "@/lib/dashboard-insights";
+import type { MoodScore } from "@/lib/mood-constants";
+import { localDateString } from "@/lib/local-date";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
+import { useMediaQuery } from "@/lib/use-media-query";
+
+function chartAverage(days: ChartPoint[]): number | null {
+  const scores = days.map((d) => d.score).filter((s): s is number => s != null);
+  if (!scores.length) return null;
+  return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+}
 
 export function DashboardHome({
   planLabel,
@@ -24,59 +37,113 @@ export function DashboardHome({
   userName?: string;
   userId?: string;
 }) {
-  const [todayMood, setTodayMood] = useState<number | null>(null);
-  const [streak, setStreak] = useState(0);
-  const [moodIndex, setMoodIndex] = useState(0);
-  const [level, setLevel] = useState(3);
-  const [pickedMood, setPickedMood] = useState<number | null>(null);
+  const [insights, setInsights] = useState<DashboardInsights | null>(null);
+  const [selectedScore, setSelectedScore] = useState<MoodScore | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const isFree = !subscription.isActive;
 
-  useEffect(() => {
-    fetch("/api/streak")
-      .then((r) => r.json())
-      .then((data: { current_streak?: number }) => setStreak(data.current_streak ?? 0))
-      .catch(() => null);
-
-    const today = new Date().toISOString().slice(0, 10);
-    fetch("/api/mood/history?days=1")
-      .then((r) => r.json())
-      .then((data: { date: string; score: number }[]) => {
-        const entry = Array.isArray(data) ? data.find((e) => e.date === today) : null;
-        if (entry) setTodayMood(entry.score);
-      })
-      .catch(() => null);
+  const loadInsights = useCallback(async () => {
+    const response = await fetch("/api/dashboard/insights");
+    if (!response.ok) return;
+    const data = (await response.json()) as DashboardInsights;
+    setInsights(data);
   }, []);
+
+  useEffect(() => {
+    loadInsights().catch(() => null);
+  }, [loadInsights]);
+
+  const savedScore = insights?.today?.score ?? null;
+  const savedNote = insights?.today?.note ?? null;
+
+  const chartDays = useMemo(() => insights?.chartDays ?? [], [insights]);
+  const chartAvg = useMemo(() => chartAverage(chartDays), [chartDays]);
+
+  const suggestion = useMemo(() => {
+    if (!insights) return "Đang tải gợi ý…";
+    return buildSuggestion(
+      insights.today?.score ?? null,
+      insights.week.checkInDays,
+      insights.streak.current,
+    );
+  }, [insights]);
+
+  async function handleCheckIn(score: MoodScore, note?: string) {
+    const today = localDateString();
+    setSelectedScore(null);
+
+    setInsights((prev) => {
+      if (!prev) return prev;
+      const nextChartDays = prev.chartDays.map((d) =>
+        d.date === today ? { ...d, score } : d,
+      );
+      const weekScores = nextChartDays
+        .map((d) => d.score)
+        .filter((s): s is number => s != null);
+      const weekAvg =
+        weekScores.length > 0
+          ? weekScores.reduce((sum, s) => sum + s, 0) / weekScores.length
+          : null;
+
+      return {
+        ...prev,
+        today: { date: today, score, note: note ?? null },
+        chartDays: nextChartDays,
+        week: {
+          ...prev.week,
+          average: weekAvg,
+          checkInDays: weekScores.length,
+        },
+        suggestion: buildSuggestion(score, weekScores.length, prev.streak.current),
+      };
+    });
+
+    setSubmitting(true);
+    const response = await fetch("/api/mood", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score, note }),
+    });
+    setSubmitting(false);
+
+    if (response.ok) {
+      await loadInsights();
+    }
+  }
+
+  function handleSelectScore(score: MoodScore) {
+    setSelectedScore(score);
+  }
+
+  const hubProps = {
+    insights,
+    chartDays,
+    chartAverage: chartAvg,
+    suggestion,
+    selectedScore,
+    savedScore,
+    savedNote,
+    onSelectScore: handleSelectScore,
+    onCheckIn: handleCheckIn,
+    submitting,
+  };
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <MoodCheckInModal onComplete={(score) => setTodayMood(score)} />
       <UpsellBanner show={isFree} />
 
-      <div className="hidden md:block">
-        <HubDesktop
-          moodIndex={moodIndex}
-          level={level}
-          streak={streak}
-          todayMood={todayMood}
-          onMoodChange={setMoodIndex}
-          onLevelChange={setLevel}
-        />
-      </div>
-
-      <div className="md:hidden">
-        <HubMobile
-          userName={userName}
-          pickedMood={pickedMood}
-          streak={streak}
-          todayMood={todayMood}
-          onMoodPick={setPickedMood}
-        />
-      </div>
+      {isDesktop ? (
+        <HubDesktop {...hubProps} />
+      ) : (
+        <HubMobile userName={userName} {...hubProps} />
+      )}
 
       {latestOrder?.hasPhysicalBox && subscription.isActive ? (
         <div className="dash-panel mt-4 rounded-[24px] px-4 py-3 text-[13px] text-[var(--muted)] lg:mt-[18px]">
           Hộp quà: {getOrderStatusLabel(latestOrder.status)}
-          {latestOrder.status === "paid" && " — đang chuẩn bị giao hàng."}
+          {latestOrder.status === "paid" && " - đang chuẩn bị giao hàng."}
         </div>
       ) : null}
 

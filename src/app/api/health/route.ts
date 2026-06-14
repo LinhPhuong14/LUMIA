@@ -12,7 +12,7 @@ export async function GET() {
     demoMode: env.DEMO_MODE,
     supabase: {
       client: hasSupabaseConfig(),
-      /** legacy optional — app không yêu cầu secret key */
+      /** legacy optional - app không yêu cầu secret key */
       legacyAdminKey: hasSupabaseSecretKey(),
     },
     payos: hasPayOSConfig(),

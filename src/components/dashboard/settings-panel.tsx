@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import { useLumiaTheme } from "@/components/theme/lumia-theme-provider";
 import type { OnboardingGoal } from "@/lib/supabase/types";
+import type { LumiaTheme } from "@/lib/lumia-theme";
 
 const goalOptions: { id: OnboardingGoal; label: string }[] = [
   { id: "sleep", label: "Ngủ tốt hơn" },
@@ -61,6 +63,7 @@ export function SettingsPanel({
   userName: string;
   userEmail: string;
 }) {
+  const { theme, setTheme } = useLumiaTheme();
   const [state, setState] = useState(initialState);
   const [saved, setSaved] = useState("Đã đồng bộ thiết lập gần nhất.");
   const [responseStyle, setResponseStyle] = useState<(typeof responseOptions)[number]>(responseOptions[0]);
@@ -117,7 +120,30 @@ export function SettingsPanel({
 
   return (
     <div className="relative space-y-6">
-      <section className="soft-card p-6">
+      <section className="dash-panel p-6">
+        <span className="eyebrow">Giao diện</span>
+        <p className="mt-3 text-sm text-matcha-deep">
+          Chọn chế độ sáng hoặc Midnight Blue. Lựa chọn của bạn được lưu trên thiết bị này.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {(["light", "dark"] as LumiaTheme[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setTheme(option)}
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                theme === option
+                  ? "bg-matcha text-white"
+                  : "border border-matcha-soft bg-white text-matcha-deep"
+              }`}
+            >
+              {option === "dark" ? "Midnight Blue (Tối)" : "Light Mode (Sáng)"}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="dash-panel p-6">
         <span className="eyebrow">Mục tiêu của tôi</span>
         {!editingGoal ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
@@ -156,7 +182,7 @@ export function SettingsPanel({
         )}
       </section>
 
-      <section className="soft-card p-6">
+      <section className="dash-panel p-6">
         <span className="eyebrow">Thông tin cá nhân</span>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <input
@@ -171,7 +197,7 @@ export function SettingsPanel({
       </section>
 
       {sections.map((section) => (
-        <section key={section.title} className="soft-card p-6">
+        <section key={section.title} className="dash-panel p-6">
           <span className="eyebrow">{section.title}</span>
           <div className="mt-5 space-y-3">
             {section.items.map((item) => (
@@ -181,7 +207,7 @@ export function SettingsPanel({
         </section>
       ))}
 
-      <section className="soft-card p-6">
+      <section className="dash-panel p-6">
         <span className="eyebrow">Cá nhân hóa</span>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <input
@@ -211,7 +237,7 @@ export function SettingsPanel({
         </div>
       </section>
 
-      <section className="soft-card p-6">
+      <section className="dash-panel p-6">
         <span className="eyebrow">Vùng cần xác nhận</span>
         <div className="mt-5 flex flex-wrap gap-3">
           <button type="button" onClick={() => setShowDanger("data")} className="button-secondary">
