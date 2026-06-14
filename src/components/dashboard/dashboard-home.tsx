@@ -16,6 +16,7 @@ import { localDateString } from "@/lib/local-date";
 import type { OrderEntry } from "@/lib/orders";
 import { getOrderStatusLabel } from "@/lib/orders";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
+import { desktopShellMediaQuery } from "@/lib/breakpoints";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 function chartAverage(days: ChartPoint[]): number | null {
@@ -128,7 +129,7 @@ export function DashboardHome({
     submitting,
   };
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery(desktopShellMediaQuery);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

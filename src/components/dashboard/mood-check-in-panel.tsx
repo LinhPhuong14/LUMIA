@@ -58,7 +58,7 @@ export function MoodCheckInPanel({
         </p>
       </div>
 
-      <div className="flex justify-between gap-1.5 sm:gap-2">
+      <div className={compact ? "flex gap-2" : "flex justify-between gap-1.5 sm:gap-2"}>
         {MOOD_OPTIONS.map((mood) => {
           const isActive = activeScore === mood.score;
           return (
@@ -66,15 +66,29 @@ export function MoodCheckInPanel({
               key={mood.score}
               type="button"
               onClick={() => onSelectScore(mood.score)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl border px-1 py-2 transition sm:py-2.5 ${
-                isActive
-                  ? "border-[var(--green)] bg-[var(--green-wash)]"
-                  : "border-[var(--border)] bg-[var(--surface)]"
-              }`}
+              className={
+                compact
+                  ? `flex aspect-square min-h-[44px] flex-1 items-center justify-center rounded-2xl border text-[22px] transition ${
+                      isActive
+                        ? "border-[var(--matcha-deep)] bg-[var(--mood-high)]"
+                        : "border-[var(--matcha-soft)] bg-[var(--surface-warm)]"
+                    }`
+                  : `flex flex-1 flex-col items-center gap-1 rounded-2xl border px-1 py-2 transition sm:py-2.5 ${
+                      isActive
+                        ? "border-[var(--green)] bg-[var(--green-wash)]"
+                        : "border-[var(--border)] bg-[var(--surface)]"
+                    }`
+              }
               title={mood.label}
             >
-              <MoodFace score={mood.score} selected={isActive} size={compact ? 40 : 44} />
-              <span className="hidden text-[9px] text-[var(--muted)] sm:block">{mood.shortLabel}</span>
+              {compact ? (
+                <MoodFace score={mood.score} selected={isActive} size={32} />
+              ) : (
+                <>
+                  <MoodFace score={mood.score} selected={isActive} size={44} />
+                  <span className="hidden text-[9px] text-[var(--muted)] sm:block">{mood.shortLabel}</span>
+                </>
+              )}
             </button>
           );
         })}

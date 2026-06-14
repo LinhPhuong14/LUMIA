@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Activity, Flame, TrendingUp } from "lucide-react";
 
+import { StatDisc } from "@/components/dashboard/shell/stat-disc";
 import type { DashboardInsights } from "@/lib/dashboard-insights";
 
 function formatTrend(trend: number | null): string {
@@ -10,6 +11,61 @@ function formatTrend(trend: number | null): string {
   if (trend > 0) return `+${trend}% so với tuần trước`;
   if (trend < 0) return `${trend}% so với tuần trước`;
   return "Ổn định so với tuần trước";
+}
+
+function buildInsightCards(insights: DashboardInsights) {
+  return [
+    {
+      title: "Streak",
+      value: insights.streak.current > 0 ? String(insights.streak.current) : "0",
+      unit: insights.streak.current > 0 ? "ngày" : undefined,
+      sub:
+        insights.streak.longest > 0
+          ? `Kỷ lục ${insights.streak.longest} ngày`
+          : "Check-in để giữ nhịp",
+      accent: "var(--honey-dark)",
+    },
+    {
+      title: "Cảm xúc",
+      value:
+        insights.week.average != null
+          ? insights.week.average.toFixed(1)
+          : String(insights.week.checkInDays),
+      unit: insights.week.average != null ? "/5" : "/7 ngày",
+      sub: formatTrend(insights.week.trendPercent),
+      accent: "var(--green-deep)",
+    },
+    {
+      title: "Hoạt động",
+      value: String(insights.activity.totalThisWeek),
+      unit: "lần",
+      sub: insights.activity.topTypeLabel
+        ? `Nhiều nhất: ${insights.activity.topTypeLabel}`
+        : "Chưa có hoạt động tuần này",
+      accent: "var(--rose-deep)",
+    },
+  ] as const;
+}
+
+export function HubInsightsStatRow({ insights }: { insights: DashboardInsights }) {
+  const cards = buildInsightCards(insights);
+
+  return (
+    <div className="mobile-app-card">
+      <h3 className="font-serif text-[17px] font-medium text-[var(--foreground)]">Nhịp của bạn</h3>
+      <div className="mt-4 flex gap-1">
+        {cards.map((card) => (
+          <StatDisc
+            key={card.title}
+            value={card.value}
+            unit={card.unit}
+            label={card.title}
+            accent={card.accent}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function HubInsightsRow({ insights }: { insights: DashboardInsights }) {

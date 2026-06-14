@@ -50,8 +50,8 @@ function DashboardShellInner({
       <div className="dashboard-shell-grid dashboard-shell-unified">
         <Sidebar isAdmin={isAdmin} sessionName={sessionName} planLabel={planLabel} />
 
-        <div className="dashboard-content-column max-md:col-span-full max-md:h-dvh">
-          <div className="hidden md:block">
+        <div className="dashboard-content-column max-lg:col-span-full max-lg:h-dvh">
+          <div className="hidden lg:block">
             <TopBar
               title={title}
               subtitle={subtitle}
@@ -61,7 +61,7 @@ function DashboardShellInner({
             />
           </div>
 
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <MobileAppHeader
             title={mobileTitle}
             subtitle={isHub ? undefined : subtitle}
@@ -75,15 +75,15 @@ function DashboardShellInner({
 
           <div
             className={cn(
-              "dashboard-scroll-area lumia-scroll dashboard-page-root md:pr-1",
-              "max-md:mobile-app-content max-md:px-4 max-md:pt-2",
-              isChat && "dashboard-scroll-area--locked max-md:overflow-hidden",
+              "dashboard-scroll-area lumia-scroll dashboard-page-root lg:pr-1",
+              "max-lg:mobile-app-content max-lg:px-4 max-lg:pt-2",
+              isChat && "dashboard-scroll-area--locked max-lg:overflow-hidden",
             )}
           >
             {children}
           </div>
 
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <MobileTabBar />
           </div>
         </div>

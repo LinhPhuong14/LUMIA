@@ -12,14 +12,14 @@ export function StatDisc({
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <div
-        className="flex h-[66px] w-[66px] flex-col items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--surface-card)]"
+        className="stat-disc flex h-[66px] w-[66px] flex-col items-center justify-center rounded-full border border-[var(--glass-border)]"
         style={{
-          boxShadow: "var(--glass-shadow)",
+          background: "linear-gradient(150deg, var(--surface-strong), var(--green-wash))",
         }}
       >
         <span
           className="font-serif text-[22px] font-medium leading-none"
-          style={{ color: accent ?? "var(--green-deep)" }}
+          style={{ color: accent ?? "var(--matcha-deep)" }}
         >
           {value}
         </span>

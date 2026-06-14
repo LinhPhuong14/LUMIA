@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useVisualViewportOffset } from "@/lib/use-visual-viewport-offset";
+
 type Message = { role: "user" | "assistant"; content: string };
 
 const starters = [
@@ -75,6 +77,7 @@ export function AiStudio() {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const keyboardOffset = useVisualViewportOffset();
 
   useEffect(() => {
     fetch("/api/chat/usage")
@@ -190,7 +193,7 @@ export function AiStudio() {
         </div>
 
         <div
-          className={`chat-messages lumia-scroll flex min-h-0 flex-1 flex-col px-4 py-4 lg:px-7 lg:py-5 ${
+          className={`chat-messages lumia-scroll flex min-h-0 flex-1 flex-col px-4 py-4 pb-[calc(var(--mobile-tab-bar-offset)+5rem)] lg:px-7 lg:py-5 lg:pb-5 ${
             isEmpty ? "justify-center" : "space-y-3"
           }`}
         >
@@ -237,7 +240,10 @@ export function AiStudio() {
         ) : null}
 
         <form
-          className="chat-input-bar listen-input-bar fixed inset-x-0 bottom-[calc(var(--mobile-tab-bar-height)+var(--safe-bottom))] z-30 flex shrink-0 gap-2 px-4 py-3 lg:static lg:z-auto lg:px-7 lg:py-5"
+          className="chat-input-bar listen-input-bar fixed inset-x-0 z-30 flex shrink-0 gap-2 px-4 py-3 lg:static lg:z-auto lg:px-7 lg:py-5"
+          style={{
+            bottom: `calc(var(--mobile-tab-bar-offset) + var(--safe-bottom) + ${keyboardOffset}px)`,
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage(input);

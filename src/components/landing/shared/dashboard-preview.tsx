@@ -129,7 +129,7 @@ function HubPreview() {
             <span className="inline-flex rounded-full bg-white/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--matcha-text)] backdrop-blur-sm">
               Nghi thức tối nay
             </span>
-            <h2 className="mt-3 font-serif text-[27px] font-medium tracking-[-0.02em] text-[#42361f]">
+            <h2 className="mt-3 font-serif text-[27px] font-medium tracking-[-0.02em] text-[var(--green-900)]">
               Thung lũng sương · 18 phút
             </h2>
           </div>

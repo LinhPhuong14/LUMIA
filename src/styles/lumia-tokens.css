@@ -10,12 +10,15 @@
   --surface-card: #fffefa;
   --surface-strong: #ffffff;
   --surface-glass: rgba(255, 255, 255, 0.9);
-  --foreground: #383328;
-  --title-primary: #383328;
-  --muted: #837e72;
+  --foreground: var(--green-900);
+  --title-primary: var(--green-900);
+  --muted: #5f7464;
   --border: rgba(216, 199, 163, 0.4);
 
   /* Green family */
+  --green-900: #1e3b2d;
+  --green-800: #2d4a35;
+  --green-700: #3d5232;
   --green: #8aab63;
   --green-bright: #a9c987;
   --green-deep: #5f7a45;
@@ -29,11 +32,11 @@
   --matcha-soft: var(--green-wash);
   --matcha: #d2dcba;
   --matcha-deep: var(--green-deep);
-  --matcha-text: #3d5232;
+  --matcha-text: var(--green-700);
   --matcha-hover: #607b4f;
-  --lumia-text: var(--foreground);
-  --lumia-text-mid: #4a5a45;
-  --lumia-text-soft: #6a7a65;
+  --lumia-text: var(--green-900);
+  --lumia-text-mid: var(--green-800);
+  --lumia-text-soft: #5f7464;
   --lumia-green: var(--green-deep);
   --lumia-green-mid: var(--green);
   --lumia-green-soft: var(--green-jade);
@@ -94,9 +97,9 @@
   --safe-right: env(safe-area-inset-right, 0px);
 
   /* Ink & scene */
-  --ink-on-light: #383328;
-  --scene-ink: #42361f;
-  --scene-ink-muted: #6a5a44;
+  --ink-on-light: var(--green-900);
+  --scene-ink: var(--green-900);
+  --scene-ink-muted: #5a6d57;
   --scene-chip-bg: rgba(255, 255, 255, 0.6);
   --scene-sky: linear-gradient(180deg, #fbe7c4 0%, #f7d9b0 32%, #f3cfa6 52%, #efe4cf 100%);
   --scene-glow: radial-gradient(60% 42% at 62% 30%, rgba(255, 228, 168, 0.95) 0%, rgba(247, 205, 150, 0.4) 45%, rgba(247, 205, 150, 0) 75%);

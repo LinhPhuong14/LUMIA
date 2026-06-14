@@ -37,8 +37,8 @@ export function HeroSection() {
           </p>
           <h1
             className={cn(
-              "font-sans text-[1.65rem] font-bold not-italic leading-snug tracking-[-0.02em] md:text-4xl lg:text-[2.65rem] lg:leading-tight",
-              isDark ? "text-white" : "text-[var(--title-primary)]",
+              "font-serif text-[1.65rem] font-bold not-italic leading-snug tracking-[-0.02em] md:text-4xl lg:text-[2.65rem] lg:leading-tight",
+              isDark ? "text-white" : "text-[var(--matcha-deep)]",
             )}
           >
             LUMIA - Hệ sinh thái công nghệ thấu hiểu và tái tạo giấc ngủ của bạn.

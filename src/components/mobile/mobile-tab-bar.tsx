@@ -16,7 +16,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="mobile-tab-bar-floating md:hidden" aria-label="Điều hướng chính">
+    <nav className="mobile-tab-bar-floating lg:hidden" aria-label="Điều hướng chính">
       {mobileTabs.map((item) => {
         const active = isNavActive(pathname, item.href);
         const Icon = item.icon;

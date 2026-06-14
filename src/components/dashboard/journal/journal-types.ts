@@ -24,7 +24,7 @@ export type JournalEntry = {
 
 export const DEFAULT_JOURNAL_META: JournalMeta = {
   fontFamily: "serif",
-  textColor: "#383328",
+  textColor: "#1e3b2d",
   stickers: [],
 };
 
@@ -35,7 +35,7 @@ export const JOURNAL_FONTS: { id: JournalFontId; label: string; className: strin
 ];
 
 export const JOURNAL_COLORS = [
-  { id: "ink", value: "#383328", label: "Mực" },
+  { id: "ink", value: "#1e3b2d", label: "Mực" },
   { id: "leaf", value: "#5f7a45", label: "Lá" },
   { id: "honey", value: "#9a7b2e", label: "Mật" },
   { id: "rose", value: "#a86b6b", label: "Hồng" },

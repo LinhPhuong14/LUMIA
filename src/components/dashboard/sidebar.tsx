@@ -63,7 +63,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="dash-sidebar hidden h-full min-h-0 w-full flex-col p-5 md:flex">
+    <aside className="dash-sidebar hidden h-full min-h-0 w-full flex-col p-5 lg:flex">
       <div className="flex shrink-0 px-2 pb-[18px] pt-1.5">
         <ThemeAwareLogo compact />
       </div>
