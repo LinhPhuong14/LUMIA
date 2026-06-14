@@ -10,10 +10,10 @@
   </g>
   <g filter="url(#soft)">
     <rect x="796" y="250" width="212" height="244" rx="38" fill="white" fill-opacity="0.82"/>
-    <text x="830" y="320" fill="#8E8478" font-family="Fraunces, serif" font-size="18" letter-spacing="0.24em">SOFT NOTE</text>
-    <text x="830" y="394" fill="#3B3328" font-family="Fraunces, serif" font-size="46">Bạn sắp</text>
-    <text x="830" y="450" fill="#3B3328" font-family="Fraunces, serif" font-size="46">được</text>
-    <text x="830" y="506" fill="#3B3328" font-family="Fraunces, serif" font-size="46">ôm lại.</text>
+    <text x="830" y="320" fill="#8E8478" font-family="Noto Serif Display, serif" font-size="18" letter-spacing="0.24em">SOFT NOTE</text>
+    <text x="830" y="394" fill="#3B3328" font-family="Noto Serif Display, serif" font-size="46">Bạn sắp</text>
+    <text x="830" y="450" fill="#3B3328" font-family="Noto Serif Display, serif" font-size="46">được</text>
+    <text x="830" y="506" fill="#3B3328" font-family="Noto Serif Display, serif" font-size="46">ôm lại.</text>
   </g>
   <g filter="url(#soft)">
     <rect x="160" y="268" width="150" height="170" rx="34" fill="white" fill-opacity="0.82"/>

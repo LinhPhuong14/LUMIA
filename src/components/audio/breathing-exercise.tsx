@@ -228,7 +228,7 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
           <div className="relative z-10 flex flex-col items-center text-center text-white">
             <CenterLeaf phase={phase} />
             <span className="mt-4 font-serif text-2xl">{phaseLabel}</span>
-            <div className="mt-2 font-mono text-sm text-white/70">{secondsInPhase}s</div>
+            <div className="mt-2 font-sans text-sm tabular-nums text-white/70">{secondsInPhase}s</div>
           </div>
         </div>
       </div>

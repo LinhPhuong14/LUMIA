@@ -80,8 +80,17 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-body), sans-serif;
+    font-family: var(--font-body);
     position: relative;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
   }
 
   body::before {
@@ -414,7 +423,8 @@
   }
 
   .font-journal-hand {
-    font-family: var(--font-hand), cursive;
+    font-family: var(--font-display);
+    font-style: italic;
   }
 
   .journal-studio-layout {
@@ -1170,7 +1180,7 @@
     font-size: var(--text-3xl);
     font-weight: 800;
     color: var(--title-primary);
-    font-family: var(--font-body), sans-serif;
+    font-family: var(--font-body);
   }
 
   .price-per-month {
@@ -1659,7 +1669,7 @@
   }
 
   .lumia-h2 {
-    font-family: var(--font-display), serif;
+    font-family: var(--font-display);
     font-size: clamp(28px, 3.4vw, 40px);
     font-weight: 800;
     line-height: 1.12;

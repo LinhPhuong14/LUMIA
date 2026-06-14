@@ -202,7 +202,7 @@ export function AudioPlayerOverlay({
               style={{ width: `${progress}%`, background: accentColor, height: 6 }}
             />
           </div>
-          <div className="mt-2 flex justify-between font-mono text-sm text-muted">
+          <div className="mt-2 flex justify-between font-sans text-sm tabular-nums text-muted">
             <span>{formatTime(currentTime)}</span>
             <span>{duration ? formatTime(duration) : track.duration_seconds ? formatTime(track.duration_seconds) : "-"}</span>
           </div>

@@ -112,10 +112,12 @@
   --scene-float: rgba(255, 255, 255, 0.5);
   --scene-stars: none;
 
-  /* Typography */
+  /* Typography — display + body only; aliases map to the same two families */
   --font-display: "Noto Serif Display", serif;
-  --font-body: "Manrope", sans-serif;
-  --font-hand: "Caveat", cursive;
+  --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-body);
   --dash-font-display: var(--font-display);
   --dash-font-body: var(--font-body);
 

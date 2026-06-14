@@ -31,7 +31,7 @@ export const DEFAULT_JOURNAL_META: JournalMeta = {
 export const JOURNAL_FONTS: { id: JournalFontId; label: string; className: string }[] = [
   { id: "serif", label: "Trang trí", className: "font-serif" },
   { id: "sans", label: "Tin cậy", className: "font-sans" },
-  { id: "hand", label: "Tay viết", className: "font-journal-hand" },
+  { id: "hand", label: "Nghiêng", className: "font-journal-hand" },
 ];
 
 export const JOURNAL_COLORS = [

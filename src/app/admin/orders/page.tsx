@@ -99,7 +99,7 @@ export default function AdminOrdersPage() {
             <tbody>
               {filtered.map((order) => (
                 <tr key={order.id} className="border-t border-white/60 transition hover:bg-matcha-soft/30">
-                  <td className="px-4 py-3 pr-4 font-mono text-[12px]">{order.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 pr-4 font-sans text-[12px] tabular-nums">{order.id.slice(0, 8)}</td>
                   <td className="px-4 py-3 pr-4">{order.profiles?.email ?? "-"}</td>
                   <td className="px-4 py-3 pr-4">{getTierLabel(order.tier)}</td>
                   <td className="px-4 py-3 pr-4">
