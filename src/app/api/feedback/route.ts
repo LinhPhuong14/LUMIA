@@ -13,6 +13,8 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 });
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -49,6 +51,8 @@ export async function POST(request: Request) {
 
 export async function GET() {
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ feedback: [] });
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
