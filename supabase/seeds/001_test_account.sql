@@ -1,5 +1,6 @@
 -- Seed: upgrade hello@lumia.com to admin + active SAVER subscription
 -- Run in Supabase SQL Editor
+-- Note: Run AFTER migration 009 (which adds nickname column) is applied.
 
 DO $$
 DECLARE
@@ -15,13 +16,11 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Upsert profile: admin role
-  INSERT INTO public.profiles (id, email, full_name, role, nickname, onboarding_goal)
-  VALUES (v_user_id, 'hello@lumia.com', 'LUMIA Test', 'admin', 'Linh', 'sleep')
+  -- Upsert profile: set admin role
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (v_user_id, 'hello@lumia.com', 'LUMIA Test', 'admin')
   ON CONFLICT (id) DO UPDATE
-    SET role            = 'admin',
-        nickname        = COALESCE(profiles.nickname, 'Linh'),
-        onboarding_goal = COALESCE(profiles.onboarding_goal, 'sleep');
+    SET role = 'admin';
 
   -- Upsert subscription: active SAVER, 3 months
   INSERT INTO public.subscriptions (user_id, status, tier, duration_months, has_physical_box, started_at, expires_at)

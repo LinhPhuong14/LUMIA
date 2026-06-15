@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { useLumiaTheme } from "@/components/theme/lumia-theme-provider";
+import { NotificationSettingsSection } from "@/components/dashboard/notification-settings-section";
 import type { OnboardingGoal } from "@/lib/supabase/types";
 import type { LumiaTheme } from "@/lib/lumia-theme";
 
@@ -194,6 +195,14 @@ export function SettingsPanel({
             className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
           />
         </div>
+      </section>
+
+      <section className="dash-panel p-6">
+        <span className="eyebrow">Báo thức thông minh</span>
+        <p className="mb-5 mt-2 text-[13px] text-[var(--muted)]">
+          LUMIA nhắc bạn theo routine — giờ ngủ, check-in sáng và bảo vệ streak.
+        </p>
+        <NotificationSettingsSection />
       </section>
 
       {sections.map((section) => (
