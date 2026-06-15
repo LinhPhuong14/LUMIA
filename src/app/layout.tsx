@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { LumiaThemeProvider } from "@/components/theme/lumia-theme-provider";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const viewport = {
@@ -34,7 +35,9 @@ export default function RootLayout({
         <ThemeInitScript />
         <LumiaThemeProvider>
           <GoogleAnalytics />
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </LumiaThemeProvider>
       </body>
     </html>

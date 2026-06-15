@@ -3,6 +3,7 @@ import {
   Feather,
   Flame,
   MessageCircle,
+  MessageSquareHeart,
   Moon,
   Music,
   Package,
@@ -30,6 +31,7 @@ export const desktopNav: DashboardNavItem[] = [
   { id: "coach", href: "/audio/sleep", label: "Sleep Coach", icon: Moon },
   { id: "streak", href: "/journey", label: "Streak", icon: Flame },
   { id: "plan", href: "/account", label: "Gói", icon: Package },
+  { id: "feedback", href: "/feedback", label: "Góp ý", icon: MessageSquareHeart },
   { id: "settings", href: "/settings", label: "Cài đặt", icon: Settings },
 ];
 
