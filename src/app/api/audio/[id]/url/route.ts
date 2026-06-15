@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 
@@ -13,12 +14,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
+
+  // Use admin client when available; fall back to session client (RLS allows select on audio_tracks)
   const admin = createAdminClient();
-  if (!admin) {
+  const db = admin ?? await createClient();
+  if (!db) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  const { data: track } = await admin.from("audio_tracks").select("*").eq("id", id).single();
+  const { data: track } = await db.from("audio_tracks").select("*").eq("id", id).single();
   if (!track) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -34,6 +38,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (track.file_url.startsWith("http")) {
     return NextResponse.json({ url: track.file_url, title: track.title });
+  }
+
+  // Signed URLs require the admin (service role) client
+  if (!admin) {
+    return NextResponse.json({ error: "Storage signing unavailable — set SUPABASE_SECRET_KEY" }, { status: 503 });
   }
 
   const { data, error } = await admin.storage.from("audio").createSignedUrl(track.file_url, 3600);
