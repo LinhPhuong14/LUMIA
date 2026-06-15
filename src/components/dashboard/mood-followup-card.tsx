@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
+import type { Route } from "next";
 
 export type FollowUp = {
   message: string;
@@ -24,7 +25,7 @@ export function MoodFollowUpCard({ followUp }: { followUp: FollowUp }) {
         <div className="flex-1">
           <p className="text-[13.5px] leading-relaxed text-[var(--green-deep)]">{followUp.message}</p>
           <Link
-            href={followUp.cta.href}
+            href={followUp.cta.href as Route}
             className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--green)] px-4 py-2 text-[12.5px] font-semibold text-white shadow-[0_4px_12px_rgba(95,111,82,0.25)] transition hover:opacity-90"
           >
             {followUp.cta.label}
