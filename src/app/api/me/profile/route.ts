@@ -10,7 +10,7 @@ const profileSchema = z.object({
   onboardingGoal: z.string().optional(),
   nickname: z.string().min(1).optional(),
   // Full onboarding answers stored as arbitrary JSON
-  onboardingData: z.record(z.unknown()).optional(),
+  onboardingData: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const runtime = "nodejs";

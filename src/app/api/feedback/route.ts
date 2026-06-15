@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   category: z.enum(["bug", "feature", "content", "ux", "other"]),
@@ -12,7 +12,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const supabase = await createServerClient();
+  const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Unavailable" }, { status: 503 });
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -48,7 +50,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  const supabase = await createServerClient();
+  const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ feedback: [] });
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
