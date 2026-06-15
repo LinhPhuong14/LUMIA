@@ -1,4 +1,5 @@
 import { AudioCategoryPage } from "@/components/audio/audio-category-page";
+import { SleepCoach } from "@/components/audio/sleep-coach";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
@@ -17,6 +18,7 @@ export default async function AudioSleepPage() {
       isAdmin={session.role === "admin"}
     >
       <div className="flex min-h-0 flex-1 flex-col">
+        <SleepCoach />
         <AudioCategoryPage
         isActive={subscription.isActive}
         categories={["sleep_sound", "sleep_cast", "wind_down", "sleep_music"]}
