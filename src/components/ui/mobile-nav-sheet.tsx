@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -39,7 +40,9 @@ export function MobileNavSheet({
 
   if (!open) return null;
 
-  return (
+  // Portal renders directly into document.body, bypassing any ancestor
+  // transform / stacking-context that would break fixed positioning.
+  return createPortal(
     <>
       <button
         type="button"
@@ -68,6 +71,7 @@ export function MobileNavSheet({
         <div className="mobile-nav-sheet-body lumia-scroll">{children}</div>
         {footer ? <div className="mobile-nav-sheet-footer shrink-0">{footer}</div> : null}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
