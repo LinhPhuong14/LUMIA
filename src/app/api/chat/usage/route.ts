@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { localDateString } from "@/lib/local-date";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
@@ -24,7 +25,8 @@ export async function GET() {
     return NextResponse.json({ limit: FREE_DAILY_LIMIT, used: 0, remaining: FREE_DAILY_LIMIT, isActive: false });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Use Vietnam timezone so quota resets at midnight VN time (#004)
+  const today = localDateString();
   const { data } = await supabase
     .from("chat_daily_usage")
     .select("count")

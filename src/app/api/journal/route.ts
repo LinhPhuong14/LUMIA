@@ -31,12 +31,18 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
+  }
+
+  // (#007) Journal read also requires active subscription for consistency
+  const snapshot = await getSubscriptionSnapshot(session.id);
+  if (!snapshot.isActive) {
+    return NextResponse.json({ error: "Cần hành trình active để xem nhật ký." }, { status: 403 });
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
   const { data, error } = await supabase
@@ -55,12 +61,12 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
   }
 
   const snapshot = await getSubscriptionSnapshot(session.id);
   if (!snapshot.isActive) {
-    return NextResponse.json({ error: "Cần hành trình active để viết journal." }, { status: 403 });
+    return NextResponse.json({ error: "Cần hành trình active để viết nhật ký." }, { status: 403 });
   }
 
   const body = await request.json();

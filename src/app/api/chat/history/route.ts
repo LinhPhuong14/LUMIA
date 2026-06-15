@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { localDateString } from "@/lib/local-date";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
@@ -16,8 +17,9 @@ export async function GET() {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const startOfDay = `${today}T00:00:00.000Z`;
+  // Use Vietnam timezone so "today" aligns with user's local date (#004)
+  const today = localDateString();
+  const startOfDay = `${today}T00:00:00+07:00`;
 
   const { data, error } = await supabase
     .from("chat_messages")

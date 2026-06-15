@@ -38,7 +38,15 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    // (#009) Don't leak Supabase internal error messages to the client
+    const isEmailTaken =
+      error.message.toLowerCase().includes("already registered") ||
+      error.message.toLowerCase().includes("already exists") ||
+      error.message.toLowerCase().includes("duplicate");
+    const message = isEmailTaken
+      ? "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác."
+      : "Không thể tạo tài khoản lúc này. Vui lòng thử lại.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   if (!data.user) {

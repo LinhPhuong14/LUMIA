@@ -7,7 +7,7 @@ import { isValidTierCode } from "@/lib/product-tiers";
 import { getPayOSClient } from "@/lib/payos";
 import { hasUserBoughtFirstTime } from "@/lib/subscriptions";
 import { getSession } from "@/lib/supabase/auth";
-import { buildAbsoluteUrl, toOrderCode } from "@/lib/utils";
+import { buildAbsoluteUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -92,7 +92,8 @@ export async function POST(request: Request) {
     });
   }
 
-  const orderCode = toOrderCode(Math.floor(Math.random() * 900) + 100);
+  // (#002) Use timestamp-based unique order code to prevent collisions
+  const orderCode = Date.now();
   const returnUrl = buildAbsoluteUrl("/checkout/success");
   const cancelUrl = buildAbsoluteUrl("/checkout/cancel");
 
@@ -102,6 +103,20 @@ export async function POST(request: Request) {
   }
 
   const description = `${product.name} - ${product.duration}`;
+
+  // (#002) Create DB order record FIRST so webhook can always find it
+  let dbOrder: Awaited<ReturnType<typeof createOrder>>;
+  try {
+    dbOrder = await createOrder({
+      userId: session.id,
+      payosOrderId: String(orderCode),
+      amount: product.price,
+      tier: product.tier,
+      shipping: product.physicalItems.length > 0 ? shipping : undefined,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: "Không thể tạo đơn hàng. Vui lòng thử lại.", detail: String(error) }, { status: 500 });
+  }
 
   try {
     const paymentLink = await payos.paymentRequests.create({
@@ -115,16 +130,13 @@ export async function POST(request: Request) {
       items: [{ name: product.name.slice(0, 25), quantity: 1, price: product.price }],
     });
 
-    await createOrder({
-      userId: session.id,
-      payosOrderId: String(paymentLink.orderCode),
-      amount: product.price,
-      tier: product.tier,
-      shipping: product.physicalItems.length > 0 ? shipping : undefined,
-    });
-
     return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });
   } catch (error) {
-    return NextResponse.json({ error: "Không thể tạo liên kết thanh toán.", detail: String(error) }, { status: 500 });
+    // DB order was created but PayOS failed — order stays as pending_payment
+    // Admin can review and clean up orphan orders
+    return NextResponse.json(
+      { error: "Không thể tạo liên kết thanh toán.", detail: String(error), orderId: dbOrder.id },
+      { status: 500 },
+    );
   }
 }
