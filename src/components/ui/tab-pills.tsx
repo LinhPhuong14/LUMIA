@@ -24,7 +24,7 @@ export function TabPills({
   return (
     <div
       className={cn(
-        fullWidth ? "mobile-segmented w-full" : "inline-flex rounded-full border border-white/70 bg-white/84 p-1 shadow-sm",
+        fullWidth ? "mobile-segmented w-full" : "inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-card)] p-1 shadow-sm",
         className,
       )}
       role="tablist"

@@ -129,7 +129,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
               type="button"
               onClick={() => handleOAuth("google")}
               disabled={loading || oauthLoading !== null}
-              className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-[18px] border border-[var(--border)] bg-white px-4 py-2.5 text-[14px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface)] disabled:opacity-50"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-[14px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface)] disabled:opacity-50"
             >
               {oauthLoading === "google" ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
