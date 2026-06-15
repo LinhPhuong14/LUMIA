@@ -106,7 +106,7 @@ export function AccountPanel({
 
           <div className="mt-6 flex flex-wrap gap-3">
             {!subscription.isActive ? (
-              <Link href="/boxes" className="button-primary">
+              <Link href="/store" className="button-primary">
                 {subscription.status === "expired" ? "Gia hạn gói" : "Xem các gói LUMIA"}
               </Link>
             ) : null}

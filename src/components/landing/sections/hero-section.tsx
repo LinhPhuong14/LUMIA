@@ -55,7 +55,7 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-4 md:mt-9">
-            <Link href="/boxes" className="button-primary px-8 py-4 text-[13px]">
+            <Link href="/store" className="button-primary px-8 py-4 text-[13px]">
               Khám phá Hệ sinh thái LUMIA
             </Link>
             <Link

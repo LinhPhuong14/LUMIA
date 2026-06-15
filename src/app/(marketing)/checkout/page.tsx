@@ -19,7 +19,7 @@ export default async function CheckoutPage({
   const product = getProductBySlug(params.slug ?? "first-time-user");
 
   if (!product) {
-    redirect("/boxes");
+    redirect("/store");
   }
 
   return (

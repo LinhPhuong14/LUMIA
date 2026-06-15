@@ -152,7 +152,7 @@ export function DashboardHome({
           <p className="text-[13px] text-[var(--green-deep)]">
             Gói LUMIA đã hết hạn. Bạn vẫn có thể xem lại trong Hành trình.
           </p>
-          <Link href="/boxes" className="button-primary mt-3 inline-flex text-[13px]">
+          <Link href="/store" className="button-primary mt-3 inline-flex text-[13px]">
             Gia hạn gói LUMIA
           </Link>
         </div>
@@ -166,7 +166,7 @@ export function DashboardHome({
           <p className="mt-3 text-[13px] leading-6 text-[var(--muted)]">
             Bạn vẫn có thể check-in, viết ra và trò chuyện cùng LUMIA. Khi muốn đi sâu hơn, đăng ký một gói LUMIA.
           </p>
-          <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px]">
+          <Link href="/store" className="button-primary mt-4 inline-flex text-[13px]">
             Xem các gói
           </Link>
         </div>

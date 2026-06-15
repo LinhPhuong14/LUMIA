@@ -8,7 +8,6 @@ export type SiteNavLink = {
 };
 
 export const marketingNavLinks: SiteNavLink[] = [
-  { id: "packages", label: "Gói LUMIA", href: "/boxes" },
   { id: "store", label: "Cửa hàng", href: "/store" },
   { id: "quiz", label: "Tìm gói phù hợp", href: "/quiz" },
 ];
@@ -25,10 +24,9 @@ export const footerColumns = [
   {
     title: "Sản phẩm",
     links: [
-      { label: "Gói thành viên", href: "/boxes" as Route },
-      { label: "Cửa hàng vật lý", href: "/store" as Route },
+      { label: "Cửa hàng", href: "/store" as Route },
       { label: "Tìm gói phù hợp", href: "/quiz" as Route },
-      { label: "Sleep Box", href: "/boxes/sleep-well" as Route },
+      { label: "Gói Premium", href: "/boxes/premium" as Route },
     ],
   },
   {
@@ -50,8 +48,8 @@ export const footerColumns = [
   {
     title: "Pháp lý",
     links: [
-      { label: "Điều khoản", href: "/boxes" as Route },
-      { label: "Quyền riêng tư", href: "/boxes" as Route },
+      { label: "Điều khoản", href: "/store" as Route },
+      { label: "Quyền riêng tư", href: "/store" as Route },
     ],
   },
 ] as const;

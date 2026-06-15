@@ -10,7 +10,7 @@ const adminCards: { title: string; href: Route; icon: typeof CreditCard; copy: s
   { title: "Đơn hàng", href: "/admin/orders", icon: CreditCard, copy: "Theo dõi thanh toán và trạng thái giao hàng." },
   { title: "Người dùng", href: "/admin/users", icon: Users, copy: "Xem subscription, streak và thông tin tài khoản." },
   { title: "Báo cáo", href: "/admin/reports", icon: FileText, copy: "Xem báo cáo đã generate." },
-  { title: "Shop", href: "/boxes", icon: Boxes, copy: "Xem trang mua hộp như user." },
+  { title: "Shop", href: "/store", icon: Boxes, copy: "Xem trang mua hộp như user." },
   { title: "Cửa hàng", href: "/admin/store", icon: ShoppingBag, copy: "Quản lý sản phẩm, tồn kho và đơn hàng." },
 ];
 

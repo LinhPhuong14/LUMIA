@@ -110,7 +110,7 @@ export function AudioCategoryPage({
           <div className="mt-1 line-clamp-2 text-[12px] text-muted">{track.description ?? track.category}</div>
           {locked ? (
             <Link
-              href="/boxes"
+              href="/store"
               onClick={(e) => e.stopPropagation()}
               className="mt-2 inline-block text-[11px] font-semibold text-[var(--green)] underline-offset-2 hover:underline"
             >
