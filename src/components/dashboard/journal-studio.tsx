@@ -31,6 +31,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stickerMode, setStickerMode] = useState(false);
 
@@ -76,6 +77,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   }, [isActive]);
 
   function flashSaved() {
+    setSaveError(null);
     setShowSaved(true);
     window.setTimeout(() => setShowSaved(false), 2200);
   }
@@ -83,6 +85,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   async function savePage() {
     if (!content.trim()) return;
     setSaving(true);
+    setSaveError(null);
     const response = await fetch("/api/journal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -94,7 +97,11 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       }),
     });
     setSaving(false);
-    if (!response.ok) return;
+    if (!response.ok) {
+      const j = await response.json().catch(() => ({})) as { error?: string };
+      setSaveError(j.error ?? "Lưu thất bại, vui lòng thử lại.");
+      return;
+    }
 
     await fetch("/api/streak/log", {
       method: "POST",
@@ -127,12 +134,17 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       ...m,
       stickers: [
         ...m.stickers,
-        {
-          id: newStickerId(),
-          emoji,
-          x: 12 + Math.random() * 76,
-          y: 18 + Math.random() * 55,
-        },
+        { id: newStickerId(), emoji, x: 12 + Math.random() * 76, y: 18 + Math.random() * 55 },
+      ],
+    }));
+  }
+
+  function addImageSticker(dataUrl: string) {
+    setMeta((m) => ({
+      ...m,
+      stickers: [
+        ...m.stickers,
+        { id: newStickerId(), emoji: "", imageUrl: dataUrl, x: 30 + Math.random() * 40, y: 20 + Math.random() * 40, size: 18 },
       ],
     }));
   }
@@ -181,8 +193,13 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
             meta={meta}
             onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
             onAddSticker={addSticker}
+            onAddImageSticker={addImageSticker}
             stickerMode={stickerMode}
             onToggleStickerMode={() => setStickerMode((v) => !v)}
+            onSave={savePage}
+            saving={saving}
+            saved={showSaved}
+            canSave={!!content.trim()}
           />
 
           {loading ? (
@@ -225,23 +242,16 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)]/50 pt-4">
-            <p className="hidden text-[12px] text-[var(--muted)] lg:block">{charCount} ký tự</p>
-            <div className="ml-auto flex gap-2">
-              {activeDate !== today ? (
-                <button type="button" onClick={startToday} className="button-secondary text-[13px]">
-                  Về hôm nay
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={savePage}
-                disabled={saving || !content.trim()}
-                className="button-primary min-h-[44px] px-6 disabled:opacity-50"
-              >
-                {saving ? "Đang lưu…" : "Lưu trang"}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <p className="text-[12px] text-[var(--muted)]">{charCount} ký tự</p>
+            {saveError ? (
+              <p className="text-[12px] text-red-500">{saveError}</p>
+            ) : null}
+            {activeDate !== today ? (
+              <button type="button" onClick={startToday} className="button-secondary text-[13px]">
+                Về hôm nay
               </button>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>

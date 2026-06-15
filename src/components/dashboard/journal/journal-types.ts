@@ -2,9 +2,11 @@ export type JournalFontId = "serif" | "sans" | "hand";
 
 export type JournalSticker = {
   id: string;
-  emoji: string;
+  emoji: string;     // emoji char OR "" when imageUrl is set
+  imageUrl?: string; // base64 data URL for image stickers
   x: number;
   y: number;
+  size?: number;     // percentage of page width, default 8
 };
 
 export type JournalMeta = {

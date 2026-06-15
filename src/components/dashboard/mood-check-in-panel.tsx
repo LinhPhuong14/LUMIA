@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import Link from "next/link";
 
 import { getMoodPlaceholder, MoodFace } from "@/components/ui/mood-faces";
 import { MOOD_OPTIONS, type MoodScore } from "@/lib/mood-constants";
+import { buildFollowUp, type FollowUp } from "@/lib/mood-followup";
 
 export function MoodCheckInPanel({
   selectedScore,
@@ -23,6 +27,8 @@ export function MoodCheckInPanel({
   compact?: boolean;
 }) {
   const [note, setNote] = useState(savedNote ?? "");
+  const [followUp, setFollowUp] = useState<FollowUp | null>(null);
+  const [prevScore, setPrevScore] = useState<MoodScore | null>(savedScore as MoodScore | null);
   const activeScore = selectedScore ?? (savedScore as MoodScore | null);
 
   useEffect(() => {
@@ -30,12 +36,25 @@ export function MoodCheckInPanel({
       setNote(savedNote ?? "");
     }
   }, [savedNote, selectedScore]);
+
+  // Track prev score for mood-change detection
+  useEffect(() => {
+    if (savedScore != null && selectedScore == null) {
+      setPrevScore(savedScore as MoodScore);
+    }
+  }, [savedScore, selectedScore]);
+
   const hasChanges =
     selectedScore != null && (selectedScore !== savedScore || note.trim() !== (savedNote ?? "").trim());
 
   async function handleSubmit() {
     if (!activeScore || !hasChanges) return;
-    await onSubmit(activeScore, note.trim() || undefined);
+    const trimmedNote = note.trim() || undefined;
+    // Build followup before clearing selection (using old prevScore for delta)
+    const fu = buildFollowUp(activeScore, trimmedNote, prevScore);
+    await onSubmit(activeScore, trimmedNote);
+    setPrevScore(activeScore);
+    setFollowUp(fu);
   }
 
   return (
@@ -65,7 +84,7 @@ export function MoodCheckInPanel({
             <button
               key={mood.score}
               type="button"
-              onClick={() => onSelectScore(mood.score)}
+              onClick={() => { onSelectScore(mood.score); setFollowUp(null); }}
               className={
                 compact
                   ? `flex aspect-square min-h-[44px] flex-1 items-center justify-center rounded-2xl border text-[22px] transition ${
@@ -100,6 +119,7 @@ export function MoodCheckInPanel({
           onChange={(e) => setNote(e.target.value)}
           placeholder={getMoodPlaceholder(activeScore)}
           rows={compact ? 2 : 3}
+          maxLength={300}
           className="w-full resize-none rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--foreground)] outline-none ring-[var(--green)]/15 focus:ring-4"
         />
       ) : null}
@@ -112,6 +132,33 @@ export function MoodCheckInPanel({
       >
         {submitting ? "Đang lưu…" : savedScore == null ? "Lưu check-in hôm nay" : "Cập nhật check-in"}
       </button>
+
+      {/* Inline followup — appears immediately after submit */}
+      <AnimatePresence>
+        {followUp && !submitting ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="rounded-[18px] border border-[var(--green)]/25 bg-[var(--green-wash)] px-4 py-4"
+          >
+            <div className="mb-2 flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--green-deep)]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--green-deep)]">
+                LUMIA gợi ý
+              </span>
+            </div>
+            <p className="text-[13.5px] leading-[1.65] text-[var(--foreground)]">{followUp.message}</p>
+            <Link
+              href={followUp.cta.href}
+              className="mt-3 inline-flex items-center rounded-full bg-[var(--green)] px-4 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
+            >
+              {followUp.cta.label}
+            </Link>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

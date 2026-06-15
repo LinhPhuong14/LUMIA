@@ -55,7 +55,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
       <main className="shell py-10">
         {/* Back link */}
         <Link
-          href="/store"
+          href={"/store" as string}
           className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition"
         >
           <ArrowLeft className="h-4 w-4" />

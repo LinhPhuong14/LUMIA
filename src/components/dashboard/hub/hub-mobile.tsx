@@ -5,7 +5,7 @@ import { Feather, MessageCircle, Music, Play, Wind } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
-import { HubInsightsStatRow, HubSuggestionCard } from "@/components/dashboard/hub/hub-insights";
+import { HubInsightsStatRow } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
@@ -27,7 +27,7 @@ type HubProps = {
   insights: DashboardInsights | null;
   chartDays: ChartPoint[];
   chartAverage: number | null;
-  suggestion: string;
+  suggestion?: string;
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
@@ -41,7 +41,6 @@ export function HubMobile({
   insights,
   chartDays,
   chartAverage,
-  suggestion,
   selectedScore,
   savedScore,
   savedNote,
@@ -116,12 +115,6 @@ export function HubMobile({
         ))}
       </div>
 
-      <div className="mobile-app-card">
-        <h3 className="font-serif text-[17px] text-[var(--foreground)]">Gợi ý cho hôm nay</h3>
-        <div className="mt-3">
-          <HubSuggestionCard suggestion={suggestion} />
-        </div>
-      </div>
     </div>
   );
 }
