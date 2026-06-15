@@ -4,11 +4,13 @@ import Link from "next/link";
 import { Feather, MessageCircle, Music, Play, Wind } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
+import { MoodFollowUpCard } from "@/components/dashboard/mood-followup-card";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
 import { HubInsightsStatRow, HubSuggestionCard } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
+import type { FollowUp } from "@/lib/mood-followup";
 import { getTimeGreeting } from "@/lib/time-greeting";
 
 const quickActions = [
@@ -31,6 +33,7 @@ type HubProps = {
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
+  followUp?: FollowUp | null;
   onSelectScore: (score: MoodScore) => void;
   onCheckIn: (score: MoodScore, note?: string) => Promise<void>;
   submitting: boolean;
@@ -45,6 +48,7 @@ export function HubMobile({
   selectedScore,
   savedScore,
   savedNote,
+  followUp,
   onSelectScore,
   onCheckIn,
   submitting,
@@ -95,6 +99,7 @@ export function HubMobile({
           submitting={submitting}
           compact
         />
+        {followUp ? <div className="mt-4"><MoodFollowUpCard followUp={followUp} /></div> : null}
       </div>
 
       {insights ? <HubInsightsStatRow insights={insights} /> : null}

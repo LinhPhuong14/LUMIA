@@ -75,7 +75,7 @@ export function Sidebar({
             href={item.href}
             label={item.label}
             icon={item.icon}
-            active={isNavActive(pathname, item.href)}
+            active={isNavActive(pathname, item.href, desktopNav.map((n) => n.href as string))}
           />
         ))}
         {isAdmin ? (

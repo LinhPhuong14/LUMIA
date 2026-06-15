@@ -9,17 +9,17 @@ export function AiListeningSection() {
   return (
     <section id="lang-nghe" className="py-14">
       <div className="landing-frame grid items-stretch gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <motion.div {...fadeUp()} className="lumia-glass lumia-grain-soft rounded-[30px] p-8 md:p-9">
+        <motion.div {...fadeUp()} className="lumia-glass rounded-[30px] p-8 md:p-9">
           <span className="lumia-kicker">- LUMIA lắng nghe</span>
           <h2 className="lumia-h2 max-w-[460px]">Lắng nghe, không phán xét.</h2>
           <div className="mt-6 flex flex-col gap-3.5">
-            <div className="max-w-[88%] self-start rounded-[22px] bg-white/80 px-4 py-3.5 text-sm leading-relaxed text-[var(--foreground)] shadow-[0_10px_26px_rgba(122,140,82,0.08)]">
+            <div className="max-w-[88%] self-start rounded-[22px] bg-[var(--surface-card)] px-4 py-3.5 text-sm leading-relaxed text-[var(--fg,var(--foreground))] shadow-[0_10px_26px_rgba(122,140,82,0.08)]">
               Hôm nay bạn muốn LUMIA lắng nghe điều gì?
             </div>
-            <div className="max-w-[84%] self-end rounded-[22px] bg-[var(--green-wash)] px-4 py-3.5 text-sm leading-relaxed text-[var(--green-deep)]">
+            <div className="max-w-[84%] self-end rounded-[22px] bg-[var(--green)] px-4 py-3.5 text-sm leading-relaxed text-white">
               Mình thấy hơi quá tải nhưng không biết nên bắt đầu từ đâu.
             </div>
-            <div className="max-w-[92%] self-start rounded-[22px] bg-white/90 px-4 py-3.5 text-sm leading-relaxed text-[var(--foreground)] shadow-[0_18px_40px_rgba(143,168,120,0.12)]">
+            <div className="max-w-[92%] self-start rounded-[22px] bg-[var(--surface-card)] px-4 py-3.5 text-sm leading-relaxed text-[var(--fg,var(--foreground))] shadow-[0_18px_40px_rgba(143,168,120,0.12)]">
               Mình nghe thấy hôm nay bạn đang phải giữ khá nhiều thứ trong lòng. Bạn muốn kể thêm một chút về điều nặng nhất không?
             </div>
           </div>
@@ -37,7 +37,7 @@ export function AiListeningSection() {
 
           <motion.article
             {...fadeUp(0.1)}
-            className="lumia-grain flex flex-col justify-end rounded-[24px] p-6 shadow-[0_16px_38px_rgba(95,111,82,0.14)]"
+            className="flex flex-col justify-end rounded-[24px] p-6 shadow-[0_16px_38px_rgba(95,111,82,0.14)]"
             style={{ background: "var(--gradient-honeyjade)" }}
           >
             <h3

@@ -43,7 +43,14 @@ export const mobileTabs: DashboardNavItem[] = [
   { id: "you", href: "/account", label: "Bạn", mobileLabel: "Bạn", icon: User, mobileTab: true },
 ];
 
-export function isNavActive(pathname: string, href: string) {
+export function isNavActive(pathname: string, href: string, allHrefs?: string[]) {
   if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // Don't highlight a parent if a more specific sibling matches exactly
+  if (allHrefs) {
+    const moreSpecific = allHrefs.some((h) => h !== href && h.startsWith(`${href}/`) && pathname === h);
+    if (moreSpecific) return false;
+  }
+  return true;
 }
