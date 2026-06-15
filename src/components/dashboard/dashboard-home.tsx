@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { HubDesktop } from "@/components/dashboard/hub/hub-desktop";
 import { HubMobile } from "@/components/dashboard/hub/hub-mobile";
 import { UpsellBanner } from "@/components/dashboard/upsell-banner";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { useToast } from "@/components/ui/toast";
 import {
   buildSuggestion,
   type ChartPoint,
