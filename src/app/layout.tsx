@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { LumiaThemeProvider } from "@/components/theme/lumia-theme-provider";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
-import { ToastProvider } from "@/components/ui/toast";
+import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
 
 export const viewport = {
@@ -34,10 +34,10 @@ export default function RootLayout({
       <body className="h-full overflow-hidden font-sans text-foreground">
         <ThemeInitScript />
         <LumiaThemeProvider>
-          <GoogleAnalytics />
-          <ToastProvider>
+          <CartProvider>
+            <GoogleAnalytics />
             {children}
-          </ToastProvider>
+          </CartProvider>
         </LumiaThemeProvider>
       </body>
     </html>

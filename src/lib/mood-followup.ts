@@ -1,16 +1,45 @@
 import type { MoodScore } from "@/lib/mood-constants";
 
-type FollowUp = {
+export type FollowUp = {
   message: string;
   cta: { label: string; href: string };
 };
 
-// Short note excerpt for inline reference (first 30 chars)
 function excerpt(note: string | undefined): string {
   if (!note) return "";
   const clean = note.trim();
   if (clean.length <= 32) return `"${clean}"`;
   return `"${clean.slice(0, 30).trimEnd()}…"`;
+}
+
+// Mood-change aware followup (when user updates mood after a previous check-in)
+function buildChangeFollowUp(prev: MoodScore, next: MoodScore, note?: string): FollowUp | null {
+  const delta = next - prev;
+  if (delta >= 2) {
+    return {
+      message: note
+        ? `Thật vui khi nghe bạn cảm thấy tốt hơn! ${excerpt(note)} — hãy tiếp tục giữ năng lượng đó bằng một bản thiền dịu nhẹ.`
+        : `Bạn đã cảm thấy tốt hơn rồi — từ ${prev}/5 lên ${next}/5. Thật tốt! Kết thúc ngày bằng một buổi thiền để giữ mãi cảm giác này.`,
+      cta: { label: "Nghe thiền", href: "/audio/meditation" },
+    };
+  }
+  if (delta === 1) {
+    return {
+      message: note
+        ? `Đã nhỉnh hơn một chút rồi — ${excerpt(note)}. Tiếp tục với một âm thanh nhẹ nhàng nhé.`
+        : `Cảm xúc đang nhích lên — từ ${prev}/5 lên ${next}/5. Một âm thanh dịu sẽ giúp bạn duy trì đà này.`,
+      cta: { label: "Nghe soundscape", href: "/audio/sleep" },
+    };
+  }
+  if (delta <= -2) {
+    return {
+      message: note
+        ? `Mình nhận ra bạn đang cảm thấy khó hơn so với lúc trước. ${excerpt(note)} — không sao cả, LUMIA ở đây với bạn.`
+        : `Có vẻ tâm trạng đã nặng hơn — từ ${prev}/5 xuống ${next}/5. Đôi khi cảm xúc lên xuống là điều bình thường. Hãy để LUMIA lắng nghe.`,
+      cta: { label: "Tâm sự với LUMIA", href: "/ai" },
+    };
+  }
+  return null; // small change — use standard followup
 }
 
 const POOLS: Record<MoodScore, ((note?: string) => FollowUp)[]> = {
@@ -85,7 +114,12 @@ const POOLS: Record<MoodScore, ((note?: string) => FollowUp)[]> = {
   ],
 };
 
-export function buildFollowUp(score: MoodScore, note?: string): FollowUp {
+export function buildFollowUp(score: MoodScore, note?: string, prevScore?: MoodScore | null): FollowUp {
+  // If there was a previous score this session and it changed, use the change-aware message
+  if (prevScore != null && prevScore !== score) {
+    const changeFollowUp = buildChangeFollowUp(prevScore, score, note);
+    if (changeFollowUp) return changeFollowUp;
+  }
   const pool = POOLS[score];
   const idx = Math.floor(Math.random() * pool.length);
   return pool[idx]!(note);

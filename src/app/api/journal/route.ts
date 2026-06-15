@@ -10,8 +10,10 @@ import { getSession } from "@/lib/supabase/auth";
 const stickerSchema = z.object({
   id: z.string(),
   emoji: z.string(),
+  imageUrl: z.string().optional(),
   x: z.number(),
   y: z.number(),
+  size: z.number().optional(),
 });
 
 const metaSchema = z.object({

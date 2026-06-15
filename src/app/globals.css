@@ -1808,74 +1808,20 @@
     color: var(--green-bright);
   }
 
-  /* ── Dark mode: components missing overrides ─────────────────────── */
-
-  [data-theme="dark"] .glass-overlay {
-    background: rgba(18, 28, 48, 0.88);
-    border-color: rgba(100, 140, 200, 0.2);
-  }
-
-  [data-theme="dark"] .lumia-glass {
-    background: linear-gradient(155deg, rgba(25, 40, 68, 0.82), rgba(20, 32, 58, 0.72), rgba(30, 50, 80, 0.4));
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.25),
-      0 18px 48px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(100, 140, 200, 0.18);
-    border-color: rgba(100, 140, 200, 0.2);
-  }
-
-  [data-theme="dark"] .lumia-iris::before {
-    background: radial-gradient(60% 50% at 30% 22%, rgba(100, 140, 200, 0.25), transparent 60%);
-  }
-
-  [data-theme="dark"] .mobile-app-header {
-    background: linear-gradient(
-      180deg,
-      rgba(18, 28, 48, 0.92) 0%,
-      rgba(18, 28, 48, 0.78) 100%
-    );
-    border-bottom-color: rgba(100, 140, 200, 0.15);
-  }
-
-  [data-theme="dark"] .mobile-tab-bar {
-    background: linear-gradient(
-      0deg,
-      rgba(16, 25, 44, 0.97) 0%,
-      rgba(18, 28, 48, 0.92) 100%
-    );
-    border-top-color: rgba(100, 140, 200, 0.15);
-  }
-
-  [data-theme="dark"] .mobile-tab-item-active .mobile-tab-icon-wrap {
-    background: linear-gradient(
-      145deg,
-      rgba(40, 60, 100, 0.9),
-      rgba(50, 80, 120, 0.7)
-    );
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  [data-theme="dark"] .mobile-segmented-item-active {
-    background: rgba(40, 60, 100, 0.85);
-    color: var(--foreground);
-  }
-
+  /* ── Journal dark mode ── */
   [data-theme="dark"] .journal-page {
-    background: linear-gradient(180deg, rgba(18, 28, 50, 0.95) 0%, rgba(16, 25, 44, 0.98) 100%);
-    border-color: rgba(100, 140, 200, 0.18);
-    color: var(--foreground);
+    background: linear-gradient(180deg, rgba(18, 28, 50, 0.97) 0%, rgba(14, 22, 40, 0.99) 100%);
+    border-color: rgba(80, 110, 160, 0.2);
   }
 
   [data-theme="dark"] .journal-page-lines {
     background-image: repeating-linear-gradient(
       transparent,
       transparent 31px,
-      rgba(100, 140, 200, 0.12) 31px,
-      rgba(100, 140, 200, 0.12) 32px
+      rgba(100, 140, 200, 0.1) 31px,
+      rgba(100, 140, 200, 0.1) 32px
     );
   }
-
-  /* ─────────────────────────────────────────────────────────────────── */
 
   .lumia-magnetic {
     transition: transform 220ms ease, box-shadow 220ms ease;

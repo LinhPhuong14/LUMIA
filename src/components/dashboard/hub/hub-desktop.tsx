@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Feather, Music, Play } from "lucide-react";
+import { Play } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
 import { MoodFollowUpCard } from "@/components/dashboard/mood-followup-card";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
-import { HubInsightsRow, HubSuggestionCard } from "@/components/dashboard/hub/hub-insights";
+import { HubInsightsRow } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
@@ -17,7 +17,7 @@ type HubProps = {
   insights: DashboardInsights | null;
   chartDays: ChartPoint[];
   chartAverage: number | null;
-  suggestion: string;
+  suggestion?: string;
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
@@ -31,7 +31,7 @@ export function HubDesktop({
   insights,
   chartDays,
   chartAverage,
-  suggestion,
+
   selectedScore,
   savedScore,
   savedNote,
@@ -79,26 +79,6 @@ export function HubDesktop({
       </div>
 
       {insights ? <HubInsightsRow insights={insights} /> : null}
-
-      <Panel title="Gợi ý cho hôm nay" className="h-auto">
-        <HubSuggestionCard suggestion={suggestion} />
-        <div className="mt-3 flex gap-2 sm:gap-2.5">
-          <Link
-            href="/audio/meditation"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[12px] font-semibold text-[var(--green-deep)] sm:text-[13px]"
-          >
-            <Music className="h-[15px] w-[15px]" />
-            Nghe thiền
-          </Link>
-          <Link
-            href="/journal"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-2.5 text-[12px] font-semibold text-[var(--green-deep)] sm:text-[13px]"
-          >
-            <Feather className="h-[15px] w-[15px]" />
-            Viết journal
-          </Link>
-        </div>
-      </Panel>
     </div>
   );
 }

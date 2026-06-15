@@ -15,10 +15,46 @@ type UserRow = {
   streak?: { current_streak: number };
 };
 
+type UpgradeForm = {
+  tier: string;
+  duration_months: number;
+  has_physical_box: boolean;
+};
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UserRow | null>(null);
+  const [upgradeForm, setUpgradeForm] = useState<UpgradeForm>({
+    tier: "premium",
+    duration_months: 1,
+    has_physical_box: false,
+  });
+  const [upgradeStatus, setUpgradeStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
+
+  async function handleUpgrade() {
+    if (!selected) return;
+    setUpgrading(true);
+    setUpgradeStatus(null);
+    try {
+      const res = await fetch(`/api/admin/users/${selected.id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(upgradeForm),
+      });
+      if (res.ok) {
+        setUpgradeStatus({ ok: true, msg: "Nâng cấp thành công!" });
+      } else {
+        const data = await res.json();
+        setUpgradeStatus({ ok: false, msg: data.error ?? "Lỗi không xác định" });
+      }
+    } catch {
+      setUpgradeStatus({ ok: false, msg: "Lỗi kết nối" });
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   useEffect(() => {
     fetch("/api/admin/users")
@@ -102,7 +138,69 @@ export default function AdminUsersPage() {
                   <dd>{selected.streak?.current_streak ?? 0}</dd>
                 </div>
               </dl>
-              <button type="button" onClick={() => setSelected(null)} className="button-secondary mt-6">
+              {/* Upgrade section */}
+              <div className="mt-8 border-t border-[var(--border)] pt-6">
+                <h3 className="mb-4 font-semibold text-matcha-deep">Nâng cấp Premium</h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <label className="mb-1 block text-muted">Gói</label>
+                    <select
+                      value={upgradeForm.tier}
+                      onChange={(e) => setUpgradeForm((f) => ({ ...f, tier: e.target.value }))}
+                      className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--green)]"
+                    >
+                      <option value="saver">Saver</option>
+                      <option value="premium">Premium</option>
+                      <option value="gift">Gift</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-muted">Thời gian</label>
+                    <select
+                      value={upgradeForm.duration_months}
+                      onChange={(e) => setUpgradeForm((f) => ({ ...f, duration_months: Number(e.target.value) }))}
+                      className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--green)]"
+                    >
+                      <option value={1}>1 tháng</option>
+                      <option value={3}>3 tháng</option>
+                      <option value={6}>6 tháng</option>
+                      <option value={12}>12 tháng</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="physical-box"
+                      type="checkbox"
+                      checked={upgradeForm.has_physical_box}
+                      onChange={(e) => setUpgradeForm((f) => ({ ...f, has_physical_box: e.target.checked }))}
+                      className="h-4 w-4 cursor-pointer accent-[var(--green)]"
+                    />
+                    <label htmlFor="physical-box" className="cursor-pointer text-muted">Hộp vật lý</label>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="button-primary mt-4 w-full disabled:opacity-60"
+                >
+                  {upgrading ? "Đang xử lý..." : "Nâng cấp"}
+                </button>
+                {upgradeStatus && (
+                  <p
+                    className={[
+                      "mt-3 rounded-lg px-3 py-2 text-sm",
+                      upgradeStatus.ok
+                        ? "bg-[var(--green-wash)] text-[var(--green-deep)]"
+                        : "bg-red-50 text-red-600",
+                    ].join(" ")}
+                  >
+                    {upgradeStatus.msg}
+                  </p>
+                )}
+              </div>
+
+              <button type="button" onClick={() => { setSelected(null); setUpgradeStatus(null); }} className="button-secondary mt-6">
                 Đóng
               </button>
             </div>

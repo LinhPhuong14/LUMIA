@@ -184,18 +184,11 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
 
     return (
       <div
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-        style={{ background: "rgba(60, 75, 45, 0.85)" }}
+        className="fixed inset-0 z-50 flex flex-col"
+        style={{ background: "rgba(38, 52, 30, 0.97)" }}
       >
-        <GenerativeVisual
-          seed={technique}
-          variant="wave"
-          size={400}
-          animated
-          breathingPhase={phase}
-          className="absolute inset-0 opacity-30"
-        />
-        <div className="pointer-events-none absolute inset-0 opacity-20" aria-hidden>
+        {/* Ambient particles */}
+        <div className="pointer-events-none absolute inset-0 opacity-15" aria-hidden>
           {Array.from({ length: 40 }).map((_, i) => (
             <span
               key={i}
@@ -204,32 +197,61 @@ export function BreathingExercise({ enabled = true }: { enabled?: boolean }) {
             />
           ))}
         </div>
+        {/* Ambient glow behind ring */}
         <motion.div
-          animate={{ scale: phase === "inhale" ? 1.15 : phase === "exhale" ? 0.9 : 1.05 }}
+          animate={{ scale: phase === "inhale" ? 1.15 : phase === "exhale" ? 0.9 : 1.05, opacity: phase === "inhale" ? 0.22 : 0.12 }}
           transition={{ duration: phaseDuration || 1, ease: "easeInOut" }}
-          className="pointer-events-none absolute h-64 w-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(141,157,118,0.2) 0%, transparent 70%)" }}
+          className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(141,157,118,0.5) 0%, transparent 70%)" }}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setTechnique(null)}
-          className="fixed right-6 top-6 z-10 min-h-[44px] min-w-[44px] rounded-full p-2 text-white"
-          aria-label="Dừng"
-        >
-          <X className="h-5 w-5" />
-        </Button>
-        <div className="absolute bottom-8 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
-          Vòng {round}/{config.rounds}
-        </div>
-        <div className="relative flex h-72 w-72 items-center justify-center">
-          <BreathingParticleRing phase={phase} />
-          <div className="relative z-10 flex flex-col items-center text-center text-white">
-            <CenterLeaf phase={phase} />
-            <span className="mt-4 font-serif text-2xl">{phaseLabel}</span>
-            <div className="mt-2 font-sans text-sm tabular-nums text-white/70">{secondsInPhase}s</div>
+
+        {/* Header */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6 pb-2 sm:px-8 sm:pt-8">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">{config.label}</p>
+            <p className="mt-0.5 text-lg font-serif text-white/80">Thở cùng LUMIA</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setTechnique(null)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition"
+            aria-label="Dừng"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Main centered content */}
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6">
+          {/* Ring + center content */}
+          <div className="relative flex h-72 w-72 items-center justify-center">
+            <BreathingParticleRing phase={phase} />
+            <div className="relative z-10 flex flex-col items-center text-center text-white">
+              <CenterLeaf phase={phase} />
+              <span className="mt-4 font-serif text-2xl tracking-wide">{phaseLabel}</span>
+              <div className="mt-1.5 font-sans text-sm tabular-nums text-white/60">{secondsInPhase}s</div>
+            </div>
+          </div>
+
+          {/* Round indicator */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: config.rounds }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  i < round - 1 ? "w-6 bg-white/60" : i === round - 1 ? "w-8 bg-white" : "w-4 bg-white/20"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="text-[13px] text-white/40">Vòng {round}/{config.rounds}</p>
+        </div>
+
+        {/* Bottom hint */}
+        <div className="relative z-10 pb-8 text-center">
+          <p className="text-[12px] text-white/30">
+            {phase === "inhale" ? "Hít thật chậm và sâu" : phase === "exhale" ? "Thở ra nhẹ nhàng" : "Giữ và cảm nhận"}
+          </p>
         </div>
       </div>
     );

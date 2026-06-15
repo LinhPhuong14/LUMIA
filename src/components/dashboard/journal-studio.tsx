@@ -31,6 +31,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [stickerMode, setStickerMode] = useState(false);
 
@@ -77,6 +78,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   }, [isActive]);
 
   function flashSaved() {
+    setSaveError(null);
     setShowSaved(true);
     window.setTimeout(() => setShowSaved(false), 2200);
   }
@@ -84,6 +86,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   async function savePage() {
     if (!content.trim()) return;
     setSaving(true);
+    setSaveError(null);
     const response = await fetch("/api/journal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,7 +98,11 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       }),
     });
     setSaving(false);
-    if (!response.ok) return;
+    if (!response.ok) {
+      const j = await response.json().catch(() => ({})) as { error?: string };
+      setSaveError(j.error ?? "Lưu thất bại, vui lòng thử lại.");
+      return;
+    }
 
     const saved = (await response.json()) as JournalEntry;
 
@@ -141,12 +148,17 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       ...m,
       stickers: [
         ...m.stickers,
-        {
-          id: newStickerId(),
-          emoji,
-          x: 12 + Math.random() * 76,
-          y: 18 + Math.random() * 55,
-        },
+        { id: newStickerId(), emoji, x: 12 + Math.random() * 76, y: 18 + Math.random() * 55 },
+      ],
+    }));
+  }
+
+  function addImageSticker(dataUrl: string) {
+    setMeta((m) => ({
+      ...m,
+      stickers: [
+        ...m.stickers,
+        { id: newStickerId(), emoji: "", imageUrl: dataUrl, x: 30 + Math.random() * 40, y: 20 + Math.random() * 40, size: 18 },
       ],
     }));
   }
@@ -172,7 +184,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
         >
           <History className="h-4 w-4" />
           {loading ? "Lịch sử" : `Lịch sử (${entries.length})`}
@@ -195,8 +207,13 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
             meta={meta}
             onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
             onAddSticker={addSticker}
+            onAddImageSticker={addImageSticker}
             stickerMode={stickerMode}
             onToggleStickerMode={() => setStickerMode((v) => !v)}
+            onSave={savePage}
+            saving={saving}
+            saved={showSaved}
+            canSave={!!content.trim()}
           />
 
           {loading ? (
@@ -230,7 +247,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                     "rounded-full border px-3 py-1.5 text-[12px] transition hover:border-[var(--green)]/40 hover:bg-[var(--green-wash)]",
                     promptUsed === prompt
                       ? "border-[var(--green)] bg-[var(--green-wash)] text-[var(--green-deep)]"
-                      : "border-[var(--border)] bg-white/70 text-[var(--muted)]",
+                      : "border-[var(--border)] bg-[var(--surface-card)] text-[var(--muted)]",
                   )}
                 >
                   {prompt.length > 42 ? `${prompt.slice(0, 42)}…` : prompt}
@@ -239,23 +256,16 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)]/50 pt-4">
-            <p className="hidden text-[12px] text-[var(--muted)] lg:block">{charCount} ký tự</p>
-            <div className="ml-auto flex gap-2">
-              {activeDate !== today ? (
-                <button type="button" onClick={startToday} className="button-secondary text-[13px]">
-                  Về hôm nay
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={savePage}
-                disabled={saving || !content.trim()}
-                className="button-primary min-h-[44px] px-6 disabled:opacity-50"
-              >
-                {saving ? "Đang lưu…" : "Lưu trang"}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <p className="text-[12px] text-[var(--muted)]">{charCount} ký tự</p>
+            {saveError ? (
+              <p className="text-[12px] text-red-500">{saveError}</p>
+            ) : null}
+            {activeDate !== today ? (
+              <button type="button" onClick={startToday} className="button-secondary text-[13px]">
+                Về hôm nay
               </button>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -277,7 +287,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-[70] flex w-[min(88vw,320px)] flex-col border-r border-[var(--border)] bg-[#fefdfb] p-5 shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[70] flex w-[min(88vw,320px)] flex-col border-r border-[var(--border)] bg-[var(--bg)] p-5 shadow-2xl lg:hidden"
             >
               <div className="mb-4 flex items-center justify-between">
                 <span className="font-serif text-lg text-[var(--foreground)]">Lịch sử</span>
