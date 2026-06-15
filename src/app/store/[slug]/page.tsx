@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Route } from "next";
 
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { StoreProductTabs } from "@/components/store/store-product-tabs";
@@ -55,7 +56,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
       <main className="shell py-10">
         {/* Back link */}
         <Link
-          href={"/store" as string}
+          href={"/store" as Route}
           className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition"
         >
           <ArrowLeft className="h-4 w-4" />
