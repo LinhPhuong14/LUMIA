@@ -4,6 +4,7 @@ import { llmStream } from "@/lib/ai/llm";
 import { buildChatbotSystem } from "@/lib/ai/prompts/chatbot";
 import { crisisResponse } from "@/lib/ai/safety/crisis-response";
 import { checkSafety } from "@/lib/ai/safety/service";
+import type { UserContext } from "@/lib/ai/user-context";
 
 export type ChatHistoryMessage = { role: "user" | "assistant"; content: string };
 
@@ -14,6 +15,7 @@ export async function* runChat(params: {
   userName: string;
   message: string;
   history?: ChatHistoryMessage[];
+  userContext?: UserContext;
 }): AsyncGenerator<
   | { type: "meta"; safety_flag: boolean; risk_level: string }
   | { type: "token"; text: string }
@@ -32,7 +34,7 @@ export async function* runChat(params: {
   yield { type: "meta", safety_flag: false, risk_level: "none" };
 
   const injection = detectInjection(params.message);
-  const system = buildChatbotSystem(params.userName, injection);
+  const system = buildChatbotSystem(params.userName, injection, params.userContext);
   const history = (params.history ?? []).slice(-HISTORY_MAX);
 
   const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
