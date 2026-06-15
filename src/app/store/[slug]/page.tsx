@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { StoreProductTabs } from "@/components/store/store-product-tabs";
 import { createClient } from "@/lib/supabase/server";
 
@@ -138,16 +139,17 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
             {/* Add to cart */}
             <div className="mt-8">
-              <Link
-                href="/store"
-                className={[
-                  "button-primary inline-flex items-center gap-2",
-                  product.stock_quantity === 0 ? "pointer-events-none opacity-50" : "",
-                ].join(" ")}
-                aria-disabled={product.stock_quantity === 0}
-              >
-                {product.stock_quantity === 0 ? "Hết hàng" : "Thêm vào giỏ"}
-              </Link>
+              <AddToCartButton
+                product={{
+                  id: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  subtitle: product.subtitle,
+                  price_vnd: product.price_vnd,
+                  image_url: product.image_url,
+                }}
+                disabled={product.stock_quantity === 0}
+              />
             </div>
           </div>
         </div>

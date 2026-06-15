@@ -4,6 +4,7 @@ import type { Route } from "next";
 import Link from "next/link";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { CartButton } from "@/components/store/cart-button";
 import { defaultRegisterNext } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ export function SiteHeaderActions({
 }) {
   return (
     <div className="flex items-center gap-2 md:gap-3">
+      <CartButton />
       <ThemeToggle className="hidden sm:flex" />
       {session ? (
         <Link href="/dashboard" className="button-secondary hidden md:inline-flex">
