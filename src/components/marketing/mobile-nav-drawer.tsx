@@ -33,7 +33,7 @@ export function MobileNavDrawer({
       <MobileNavSheet
         open={open}
         onClose={() => setOpen(false)}
-        title="Thực đơn"
+        title="Menu"
         footer={
           <div className="flex justify-center pb-1">
             <ThemeToggle />
