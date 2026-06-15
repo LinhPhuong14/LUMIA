@@ -59,7 +59,7 @@ export function AccountPanel({
     <div className="space-y-6">
       <TabPills
         fullWidth
-        className="lg:!inline-flex lg:!w-auto lg:rounded-full lg:border lg:border-white/70 lg:bg-white/84 lg:p-1 lg:shadow-sm"
+        className="lg:!inline-flex lg:!w-auto lg:rounded-full lg:border lg:border-[var(--border)] lg:bg-[var(--surface-card)] lg:p-1 lg:shadow-sm"
         tabs={[
           { id: "box", label: "Hộp của tôi" },
           { id: "orders", label: "Đơn hàng" },
@@ -93,7 +93,7 @@ export function AccountPanel({
           ) : null}
 
           {subscription.hasPhysicalBox ? (
-            <div className="mt-8 rounded-[24px] border border-white/70 bg-white/78 p-5">
+            <div className="mt-8 rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5">
               <p className="text-sm font-medium text-matcha-deep">Hộp quà của bạn</p>
               <p className="mt-2 text-sm text-muted">
                 {getPhysicalBoxStatusLabel(subscription.physicalBoxStatus)}
@@ -121,10 +121,10 @@ export function AccountPanel({
                   <Link
                     key={box.slug}
                     href={`/boxes/${box.slug}`}
-                    className={`block rounded-[24px] border p-5 transition hover:bg-white/90 ${
+                    className={`block rounded-[24px] border p-5 transition hover:bg-[var(--surface)] ${
                       box.featured
                         ? "border-matcha-highlight/80 bg-matcha-highlight-bg/50"
-                        : "border-white/70 bg-white/78"
+                        : "border-[var(--border)] bg-[var(--surface-card)]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -151,7 +151,7 @@ export function AccountPanel({
               {orders.map((order) => (
                 <article
                   key={order.id}
-                  className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-white/70 bg-white/78 px-4 py-4"
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4"
                 >
                   <div>
                     <div className="text-sm font-medium text-matcha-deep">
@@ -196,7 +196,7 @@ export function AccountPanel({
               </thead>
               <tbody>
                 {featureMatrix.map((row) => (
-                  <tr key={row.name} className="border-t border-white/60">
+                  <tr key={row.name} className="border-t border-[var(--border)]">
                     <td className="py-3 pr-4 text-matcha-deep">{row.name}</td>
                     <td className="py-3 pr-4 text-muted">
                       {typeof row.free === "boolean" ? (row.free ? "✓" : "-") : row.free}

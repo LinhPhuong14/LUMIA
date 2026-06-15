@@ -650,14 +650,10 @@
   }
 
   .mobile-app-header {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.92) 0%,
-      rgba(255, 255, 255, 0.78) 100%
-    );
-    border-bottom: 1px solid rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px) saturate(1.12);
-    -webkit-backdrop-filter: blur(20px) saturate(1.12);
+    background: color-mix(in srgb, var(--bg, #fff) 88%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    backdrop-filter: blur(40px) saturate(1.4);
+    -webkit-backdrop-filter: blur(40px) saturate(1.4);
     padding-top: var(--safe-top);
   }
 
@@ -1121,7 +1117,9 @@
   }
 
   .mobile-segmented {
-    @apply flex w-full rounded-[14px] bg-matcha-soft/35 p-1;
+    @apply flex w-full rounded-[14px] p-1;
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   }
 
   .mobile-segmented-item {
@@ -1130,7 +1128,9 @@
   }
 
   .mobile-segmented-item-active {
-    @apply bg-white text-matcha-deep shadow-sm;
+    background: var(--surface-card);
+    color: var(--green-deep);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
 
   .mobile-segmented-item-inactive {
@@ -1138,7 +1138,9 @@
   }
 
   .mobile-list-row {
-    @apply flex min-h-[72px] items-center gap-4 rounded-[20px] border border-white/70 bg-white/82 px-4 py-3 transition active:scale-[0.98];
+    @apply flex min-h-[72px] items-center gap-4 rounded-[20px] border px-4 py-3 transition active:scale-[0.98];
+    border-color: var(--border);
+    background: var(--surface-card);
     touch-action: manipulation;
   }
 
