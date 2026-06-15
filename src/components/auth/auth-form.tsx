@@ -44,6 +44,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const canOAuth = hasSupabaseConfig();
 
@@ -171,11 +172,35 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
             <Input name="name" label="Họ và tên" placeholder="Ví dụ: Linh Nguyễn" required />
           ) : null}
           <Input name="email" type="email" label="Email" placeholder="email@example.com" required />
-          <Input name="password" type="password" label="Mật khẩu" placeholder="Tối thiểu 8 ký tự" required />
+          <div className="flex flex-col gap-2">
+            <div className="relative">
+              <Input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                label="Mật khẩu"
+                placeholder="Tối thiểu 8 ký tự"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute bottom-4 right-4 text-[12px] text-muted hover:text-foreground"
+                tabIndex={-1}
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showPassword ? "Ẩn" : "Hiện"}
+              </button>
+            </div>
+            {mode === "login" ? (
+              <a href="/forgot-password" className="self-end text-xs text-muted underline hover:text-foreground">
+                Quên mật khẩu?
+              </a>
+            ) : null}
+          </div>
           {mode === "register" ? (
             <Input
               name="confirmPassword"
-              type="password"
+              type={showPassword ? "text" : "password"}
               label="Xác nhận mật khẩu"
               placeholder="Nhập lại mật khẩu"
               required

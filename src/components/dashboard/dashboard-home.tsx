@@ -75,9 +75,10 @@ export function DashboardHome({
 
     setInsights((prev) => {
       if (!prev) return prev;
-      const nextChartDays = prev.chartDays.map((d) =>
-        d.date === today ? { ...d, score } : d,
-      );
+      const hasTodayInChart = prev.chartDays.some((d) => d.date === today);
+      const nextChartDays = hasTodayInChart
+        ? prev.chartDays.map((d) => (d.date === today ? { ...d, score } : d))
+        : [...prev.chartDays, { date: today, label: "Hôm nay", score }];
       const weekScores = nextChartDays
         .map((d) => d.score)
         .filter((s): s is number => s != null);

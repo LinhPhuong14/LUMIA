@@ -44,6 +44,8 @@ export function CheckoutPanel({
     if (!needsShipping) return null;
     if (!shipping.name.trim()) return "Vui lòng nhập họ tên người nhận.";
     if (!shipping.phone.trim()) return "Vui lòng nhập số điện thoại.";
+    if (!/^(0|\+84)\d{8,10}$/.test(shipping.phone.replace(/\s/g, "")))
+      return "Số điện thoại không hợp lệ (ví dụ: 0912345678).";
     if (!shipping.address.trim()) return "Vui lòng nhập địa chỉ giao hàng.";
     if (!shipping.city.trim()) return "Vui lòng nhập thành phố / tỉnh.";
     return null;
@@ -102,36 +104,61 @@ export function CheckoutPanel({
           <p className="text-sm font-semibold text-[var(--title-primary)]">
             Thông tin nhận hàng vật lý
           </p>
-          <input
-            value={shipping.name}
-            onChange={(e) => updateShipping("name", e.target.value)}
-            placeholder="Họ tên người nhận *"
-            className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-          />
-          <input
-            value={shipping.phone}
-            onChange={(e) => updateShipping("phone", e.target.value)}
-            placeholder="Số điện thoại *"
-            className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-          />
-          <input
-            value={shipping.address}
-            onChange={(e) => updateShipping("address", e.target.value)}
-            placeholder="Địa chỉ chi tiết *"
-            className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-          />
-          <input
-            value={shipping.city}
-            onChange={(e) => updateShipping("city", e.target.value)}
-            placeholder="Thành phố / Tỉnh *"
-            className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-          />
-          <input
-            value={shipping.note}
-            onChange={(e) => updateShipping("note", e.target.value)}
-            placeholder="Ghi chú giao hàng (tuỳ chọn)"
-            className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-          />
+          <label className="block">
+            <span className="sr-only">Họ tên người nhận</span>
+            <input
+              value={shipping.name}
+              onChange={(e) => updateShipping("name", e.target.value)}
+              placeholder="Họ tên người nhận *"
+              required
+              aria-label="Họ tên người nhận"
+              className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Số điện thoại</span>
+            <input
+              value={shipping.phone}
+              onChange={(e) => updateShipping("phone", e.target.value)}
+              placeholder="Số điện thoại * (ví dụ: 0912345678)"
+              type="tel"
+              required
+              aria-label="Số điện thoại"
+              className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Địa chỉ chi tiết</span>
+            <input
+              value={shipping.address}
+              onChange={(e) => updateShipping("address", e.target.value)}
+              placeholder="Địa chỉ chi tiết *"
+              required
+              aria-label="Địa chỉ chi tiết"
+              className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Thành phố / Tỉnh</span>
+            <input
+              value={shipping.city}
+              onChange={(e) => updateShipping("city", e.target.value)}
+              placeholder="Thành phố / Tỉnh *"
+              required
+              aria-label="Thành phố / Tỉnh"
+              className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Ghi chú giao hàng</span>
+            <input
+              value={shipping.note}
+              onChange={(e) => updateShipping("note", e.target.value)}
+              placeholder="Ghi chú giao hàng (tuỳ chọn)"
+              aria-label="Ghi chú giao hàng"
+              className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
+            />
+          </label>
         </div>
       ) : null}
 
