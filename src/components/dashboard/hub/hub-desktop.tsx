@@ -8,6 +8,7 @@ import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
 import { HubInsightsRow } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
+import { StoreWidget } from "@/components/dashboard/store-widget";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
 type HubProps = {
@@ -73,6 +74,8 @@ export function HubDesktop({
       </div>
 
       {insights ? <HubInsightsRow insights={insights} /> : null}
+
+      <StoreWidget />
     </div>
   );
 }
