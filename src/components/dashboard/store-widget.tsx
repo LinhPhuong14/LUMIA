@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { ShoppingBag, ChevronRight, Sparkles } from "lucide-react";
 
 import { getAllPurchasableProducts } from "@/data/catalog";
@@ -34,7 +35,7 @@ export function StoreWidget() {
         {boxes.map((box) => (
           <Link
             key={box.slug}
-            href={`/boxes/${box.slug}` as `/${string}`}
+            href={`/boxes/${box.slug}` as Route}
             className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition hover:border-[var(--green)]/40 hover:bg-[var(--surface-card)]"
           >
             <div className="min-w-0">
