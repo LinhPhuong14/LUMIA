@@ -233,7 +233,7 @@ export function NotificationCenter() {
                     );
 
                     return n.action_url ? (
-                      <Link key={n.id} href={n.action_url} onClick={() => setOpen(false)}>
+                      <Link key={n.id} href={n.action_url as import("next").Route} onClick={() => setOpen(false)}>
                         {content}
                       </Link>
                     ) : (
