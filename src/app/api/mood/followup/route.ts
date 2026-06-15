@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
   // If LLM not configured, fall back to static
   if (!hasLlmConfig()) {
-    const fu = buildFollowUp(score as 1 | 2 | 3 | 4 | 5, note, prevScore ?? null);
+    const fu = buildFollowUp(score as 1 | 2 | 3 | 4 | 5, note, (prevScore ?? null) as 1 | 2 | 3 | 4 | 5 | null);
     return NextResponse.json(fu);
   }
 
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     });
   } catch {
     // Fall back to static on any LLM error
-    const fu = buildFollowUp(score as 1 | 2 | 3 | 4 | 5, note, prevScore ?? null);
+    const fu = buildFollowUp(score as 1 | 2 | 3 | 4 | 5, note, (prevScore ?? null) as 1 | 2 | 3 | 4 | 5 | null);
     return NextResponse.json(fu);
   }
 }
