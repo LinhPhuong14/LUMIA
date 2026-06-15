@@ -11,7 +11,7 @@ import {
   Sparkles,
   ChevronRight,
   X,
-  SlidersHorizontal,
+  Gift,
 } from "lucide-react";
 import type { Route } from "next";
 
@@ -29,182 +29,185 @@ type StoreProduct = {
   in_stock: boolean;
 };
 
-type TabId = "digital" | "hybrid";
+type PlanTab = "digital" | "hybrid";
 
-const CATEGORIES: { id: string; label: string }[] = [
+const TIER_EMOJI: Record<string, string> = {
+  first_time: "🎁", standard: "📱", plus: "⭐", pro: "💎", premium: "🌸", ultimate: "🏆",
+};
+
+const CATEGORIES = [
   { id: "all", label: "Tất cả" },
-  { id: "scent", label: "Hương thơm" },
-  { id: "drink", label: "Đồ uống" },
+  { id: "scent", label: "Nến thơm" },
+  { id: "drink", label: "Trà & thức uống" },
   { id: "sleep", label: "Ngủ ngon" },
-  { id: "meditation", label: "Thiền" },
+  { id: "meditation", label: "Thiền định" },
 ];
 
-function formatVnd(n: number): string {
+const CATEGORY_EMOJI: Record<string, string> = {
+  all: "🌿", scent: "🕯️", drink: "🍵", sleep: "🌙", meditation: "✨",
+};
+
+function formatVnd(n: number) {
   return n.toLocaleString("vi-VN") + " ₫";
 }
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+function PromoBanner({ box }: { box: BoxProduct }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-[24px] p-6 sm:p-8"
+      style={{
+        background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)",
+        border: "1px solid rgba(245,158,11,0.3)",
+        boxShadow: "0 4px 24px rgba(251,191,36,0.18)",
+      }}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-2xl">🎁</div>
+          <div>
+            <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+              Ưu đãi người dùng mới
+            </span>
+            <h3 className="mt-1.5 font-serif text-[20px] font-semibold leading-tight text-amber-900">{box.name}</h3>
+            <p className="mt-0.5 text-[13px] text-amber-700">App Premium 1 tháng + Welcome Kit giao tận nhà</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+          <span className="font-sans text-[28px] font-bold text-amber-900">{formatVnd(box.price)}</span>
+          <Link
+            href={`/boxes/${box.slug}` as Route}
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-amber-600"
+            style={{ boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}
+          >
+            <Gift className="h-3.5 w-3.5" />
+            Nhận ưu đãi
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
-function PlanCard({ plan, searchQuery }: { plan: BoxProduct; searchQuery: string }) {
-  const isFeatured = plan.featured === true;
-  const q = searchQuery.toLowerCase();
-  if (q && !plan.name.toLowerCase().includes(q) && !plan.tagline.toLowerCase().includes(q)) {
-    return null;
-  }
+function PlanCard({ box }: { box: BoxProduct }) {
+  const isFeatured = box.featured;
+  const isHybrid = box.group === "hybrid";
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      whileHover={{ scale: 1.02, y: -4 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={`relative flex flex-col overflow-hidden rounded-[28px] border shadow-[0_8px_24px_rgba(95,111,82,0.08)] transition-shadow hover:shadow-[0_16px_40px_rgba(95,111,82,0.16)] ${
+      transition={{ duration: 0.22 }}
+      className={`relative flex flex-col overflow-hidden rounded-[22px] border transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(95,111,82,0.16)] ${
         isFeatured
-          ? "border-[var(--green)] ring-2 ring-[var(--green)]/20"
-          : "border-[var(--border)]"
+          ? "border-[var(--green)] shadow-[0_8px_32px_rgba(95,111,82,0.20)]"
+          : "border-[var(--border)] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
       }`}
-      style={{ background: plan.gradient }}
     >
-      {isFeatured ? (
-        <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-[var(--green)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-          <Sparkles className="h-3 w-3" />
+      {isFeatured && (
+        <div className="absolute right-4 top-4 z-10 rounded-full bg-[var(--green)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
           Phổ biến nhất
         </div>
-      ) : null}
+      )}
 
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white/60 text-2xl shadow-sm">
-            {plan.group === "hybrid" ? "📦" : "📱"}
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-sans text-[15px] font-bold leading-tight text-[var(--green-deep)]">
-              {plan.name}
-            </h3>
-            <span className="mt-1 inline-block rounded-full bg-white/50 px-2.5 py-0.5 text-[11px] font-medium text-[var(--muted)]">
-              {plan.duration}
+      <div className="p-6 pb-5" style={{ background: box.gradient }}>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-2xl">{TIER_EMOJI[box.tier] ?? "🌿"}</span>
+          {isHybrid && (
+            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
+              <Package className="h-2.5 w-2.5" />
+              Kèm hộp quà
             </span>
-          </div>
+          )}
         </div>
-
-        <div className="mt-5">
-          <div className="font-serif text-[30px] font-bold leading-none text-[var(--green-deep)]">
-            {formatVnd(plan.price)}
-          </div>
-          {plan.priceNote ? (
-            <p className="mt-1.5 text-[12px] text-[var(--muted)]">{plan.priceNote}</p>
-          ) : null}
+        <h3 className="font-serif text-[19px] font-semibold leading-tight text-[var(--green-deep)]">{box.name}</h3>
+        <p className="mt-1 text-[12px] text-[var(--muted)]">{box.tagline}</p>
+        <div className="mt-4 flex items-baseline gap-2">
+          <span className="font-sans text-[30px] font-bold leading-none text-[var(--foreground)]">
+            {formatVnd(box.price)}
+          </span>
+          {box.priceNote && <span className="text-[12px] text-[var(--muted)]">{box.priceNote}</span>}
         </div>
-
-        {plan.savingsNote ? (
-          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-700">
-            <Sparkles className="h-3 w-3" />
-            {plan.savingsNote}
-          </div>
-        ) : null}
+        {box.savingsNote && (
+          <span className="mt-2 inline-block rounded-full bg-[var(--green-wash)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--green-deep)]">
+            {box.savingsNote}
+          </span>
+        )}
       </div>
 
-      <div className="flex-1 space-y-2 border-t border-black/[0.06] px-6 py-4">
-        {plan.features.slice(0, 5).map((feature) => (
-          <div key={feature} className="flex items-start gap-2.5">
-            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--green)]/20">
-              <Check className="h-2.5 w-2.5 text-[var(--green-deep)]" />
-            </div>
-            <span className="text-[13px] leading-5 text-[var(--foreground)]">{feature}</span>
-          </div>
-        ))}
-        {plan.physicalItems.slice(0, 3).map((item) => (
-          <div key={item} className="flex items-start gap-2.5">
-            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-100">
-              <Package className="h-2.5 w-2.5 text-amber-600" />
-            </div>
-            <span className="text-[13px] leading-5 text-[var(--foreground)]">{item}</span>
-          </div>
-        ))}
-      </div>
-
-      {plan.group === "hybrid" ? (
-        <div className="mx-6 mb-4 flex items-center gap-2 rounded-[12px] bg-amber-50 px-3 py-2.5">
-          <Package className="h-4 w-4 shrink-0 text-amber-600" />
-          <span className="text-[12px] font-medium text-amber-700">Kèm hộp quà gửi tận nhà</span>
-        </div>
-      ) : null}
-
-      <div className="px-6 pb-6">
+      <div className="flex flex-1 flex-col bg-[var(--surface-card)] p-5">
+        <ul className="flex-1 space-y-2.5">
+          {box.features.slice(0, 5).map((f) => (
+            <li key={f} className="flex items-start gap-2 text-[13px] text-[var(--foreground)]">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--green)]" />
+              {f}
+            </li>
+          ))}
+          {box.physicalItems.slice(0, 3).map((item) => (
+            <li key={item} className="flex items-start gap-2 text-[13px] text-[var(--foreground)]">
+              <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+              {item}
+            </li>
+          ))}
+        </ul>
         <Link
-          href={`/boxes/${plan.slug}` as Route}
-          className={`flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold transition hover:opacity-90 ${
+          href={`/boxes/${box.slug}` as Route}
+          className={`mt-5 flex items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold transition hover:opacity-90 ${
             isFeatured
-              ? "bg-[var(--green)] text-white shadow-md"
-              : "bg-white/80 text-[var(--green-deep)] ring-1 ring-[var(--border)]"
+              ? "bg-[var(--green)] text-white"
+              : "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--green)]/50"
           }`}
         >
-          {plan.ctaLabel}
-          <ChevronRight className="h-4 w-4" />
+          {box.ctaLabel ?? "Xem gói"}
+          <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     </motion.div>
   );
 }
 
-function ProductCard({
-  product,
-  onAdd,
-}: {
-  product: StoreProduct;
-  onAdd: () => void;
-}) {
+function ProductCard({ product }: { product: StoreProduct }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    addItem({ id: product.id, slug: product.slug, name: product.name, subtitle: product.subtitle, price_vnd: product.price_vnd, image_url: product.image_url, variant: null, qty: 1 });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] shadow-[0_4px_16px_rgba(95,111,82,0.07)] transition hover:shadow-[0_12px_32px_rgba(95,111,82,0.12)]">
-      <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--surface)] to-[var(--green-wash)]">
+    <div className="group flex flex-col overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(95,111,82,0.12)]">
+      <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--green-wash)] to-[var(--surface)]">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="h-full w-full object-cover"
-          />
+          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
-          <span className="text-5xl">🌿</span>
+          <span className="text-5xl opacity-30">{CATEGORY_EMOJI[product.category] ?? "🌿"}</span>
         )}
-        {!product.in_stock ? (
+        {!product.in_stock && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--muted)]">
-              Hết hàng
-            </span>
+            <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--muted)]">Hết hàng</span>
           </div>
-        ) : null}
+        )}
       </div>
-
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-serif text-[15px] font-semibold leading-snug text-[var(--foreground)]">
-          {product.name}
-        </h3>
-        {product.subtitle ? (
-          <p className="mt-1 text-[12px] leading-5 text-[var(--muted)]">{product.subtitle}</p>
-        ) : null}
-
-        <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-          <span className="text-[14px] font-bold text-[var(--green-deep)]">
-            {formatVnd(product.price_vnd)}
-          </span>
+        <div className="flex-1">
+          <h3 className="font-serif text-[15px] font-medium leading-snug text-[var(--foreground)]">{product.name}</h3>
+          {product.subtitle && <p className="mt-0.5 text-[11.5px] text-[var(--muted)]">{product.subtitle}</p>}
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="font-sans text-[15px] font-bold text-[var(--foreground)]">{formatVnd(product.price_vnd)}</span>
           <button
             type="button"
-            onClick={onAdd}
-            disabled={!product.in_stock}
-            className="flex items-center gap-1.5 rounded-full bg-[var(--green)] px-3.5 py-2 text-[12px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            onClick={handleAdd}
+            disabled={!product.in_stock || added}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              added ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-[var(--green)] text-white hover:opacity-90"
+            }`}
           >
-            <ShoppingBag className="h-3.5 w-3.5" />
-            Thêm
+            {added ? <><Check className="h-3 w-3" /> Đã thêm</> : <><ShoppingBag className="h-3 w-3" /> Thêm</>}
           </button>
         </div>
       </div>
@@ -212,244 +215,182 @@ function ProductCard({
   );
 }
 
-function ProductSkeleton() {
-  return (
-    <div className="animate-pulse overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)]">
-      <div className="h-44 bg-[var(--green-wash)]/60" />
-      <div className="space-y-3 p-4">
-        <div className="h-4 w-3/4 rounded-full bg-[var(--border)]" />
-        <div className="h-3 w-1/2 rounded-full bg-[var(--border)]" />
-        <div className="mt-4 h-8 w-1/3 rounded-full bg-[var(--border)]" />
-      </div>
-    </div>
-  );
-}
-
 export function UnifiedStore() {
-  const { addItem } = useCart();
-
+  const [planTab, setPlanTab] = useState<PlanTab>("digital");
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
-
-  const [activeTab, setActiveTab] = useState<TabId>("digital");
-  const [activeCategory, setActiveCategory] = useState("all");
-
-  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  const allPlans = getAllPurchasableProducts();
-  const promoBox = allPlans.find((b) => b.group === "promo");
-  const digitalPlans = allPlans.filter((b) => b.group === "digital");
-  const hybridPlans = allPlans.filter((b) => b.group === "hybrid");
-  const displayPlans = activeTab === "digital" ? digitalPlans : hybridPlans;
-
-  const fetchProducts = useCallback(
-    (category: string, query: string) => {
-      setLoadingProducts(true);
-      const params = new URLSearchParams();
-      if (category !== "all") params.set("category", category);
-      if (query) params.set("search", query);
-      const qs = params.toString();
-      fetch(`/api/store/products${qs ? `?${qs}` : ""}`)
-        .then((r) => (r.ok ? r.json() : { products: [] }))
-        .then((data: { products?: StoreProduct[] } | StoreProduct[]) => {
-          const products = Array.isArray(data) ? data : (data.products ?? []);
-          setStoreProducts(products);
-        })
-        .catch(() => setStoreProducts([]))
-        .finally(() => setLoadingProducts(false));
-    },
-    [],
-  );
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
-    fetchProducts(activeCategory, debouncedSearch);
-  }, [activeCategory, debouncedSearch, fetchProducts]);
+    setLoadingProducts(true);
+    const params = new URLSearchParams();
+    if (category !== "all") params.set("category", category);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    const qs = params.toString();
+    fetch(`/api/store/products${qs ? `?${qs}` : ""}`)
+      .then((r) => r.json())
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoadingProducts(false));
+  }, [category, debouncedSearch]);
 
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "digital", label: "Gói số" },
-    { id: "hybrid", label: "Gói kèm hộp quà" },
-  ];
+  const allBoxes = getAllPurchasableProducts();
+  const promoBox = allBoxes.find((b) => b.group === "promo");
+  const planBoxes = allBoxes.filter((b) =>
+    planTab === "digital" ? b.group === "digital" : b.group === "hybrid",
+  );
+  const filteredPlans = debouncedSearch
+    ? planBoxes.filter(
+        (b) =>
+          b.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          b.tagline.toLowerCase().includes(debouncedSearch.toLowerCase()),
+      )
+    : planBoxes;
+
+  const clearSearch = useCallback(() => setSearch(""), []);
 
   return (
-    <div className="min-h-screen bg-[var(--surface)]">
-      <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-4 py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-              <input
-                type="search"
-                placeholder="Tìm gói hoặc sản phẩm..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-full border border-[var(--border)] bg-[var(--surface-card)] py-2.5 pl-9 pr-10 text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none focus:ring-2 focus:ring-[var(--green)]/20"
-              />
-              {search ? (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
-              <SlidersHorizontal className="h-4 w-4 shrink-0 text-[var(--muted)]" />
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition ${
-                    activeCategory === cat.id
-                      ? "border-[var(--green)] bg-[var(--green)] text-white"
-                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50 hover:text-[var(--foreground)]"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
+    <div className="space-y-16 pb-20">
+
+      {/* Sticky search + plan tab bar */}
+      <div
+        className="sticky z-20 -mx-4 border-b border-[var(--border)] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+        style={{
+          top: "var(--marketing-header-height, 64px)",
+          background: "color-mix(in srgb, var(--surface) 85%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm gói hoặc sản phẩm..."
+              className="h-10 w-full rounded-full border border-[var(--border)] bg-[var(--surface-card)] pl-10 pr-10 text-[13.5px] text-[var(--foreground)] outline-none ring-[var(--green)]/20 transition focus:border-[var(--green)]/50 focus:ring-4"
+            />
+            {search && (
+              <button type="button" onClick={clearSearch} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)] transition hover:text-[var(--foreground)]">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        </div>
-      </div>
-
-      {promoBox ? (
-        <section className="relative overflow-hidden border-b border-amber-200 bg-gradient-to-r from-amber-50 via-amber-100 to-yellow-50 px-4 py-8">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-12 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl"
-          />
-
-          <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-200/60 text-2xl">
-                🎁
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700">
-                    Ưu đãi người dùng mới
-                  </span>
-                  <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
-                    Welcome Kit
-                  </span>
-                </div>
-                <h2 className="mt-0.5 font-serif text-xl font-semibold text-amber-900 sm:text-2xl">
-                  {promoBox.name} · {formatVnd(promoBox.price)}
-                </h2>
-                <p className="mt-1 max-w-md text-[12px] leading-5 text-amber-800/80">
-                  {promoBox.description}
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/boxes/first-time-user"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-[13px] font-bold text-white shadow transition hover:bg-amber-600"
-            >
-              Dùng thử ngay
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <div className="mb-8 flex flex-col items-center gap-5">
-          <div className="text-center">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
-              Gói đăng ký
-            </span>
-            <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)] sm:text-4xl">
-              Chọn hành trình phù hợp với bạn
-            </h2>
-          </div>
-
-          <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-card)] p-1 shadow-sm">
-            {tabs.map((tab) => (
+          <div className="flex shrink-0 gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-1">
+            {(["digital", "hybrid"] as const).map((t) => (
               <button
-                key={tab.id}
+                key={t}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-full px-5 py-2.5 text-[13px] font-semibold transition ${
-                  activeTab === tab.id
-                    ? "bg-[var(--green)] text-white shadow-sm"
+                onClick={() => setPlanTab(t)}
+                className={`rounded-full px-4 py-1.5 text-[12.5px] font-semibold transition ${
+                  planTab === t
+                    ? "bg-[var(--surface-card)] text-[var(--foreground)] shadow-sm"
                     : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
               >
-                {tab.label}
+                {t === "digital" ? "📱 Gói số" : "📦 Kèm hộp quà"}
               </button>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Section 1 — Subscription plans */}
+      <section id="goi-lumia">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[var(--green)]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">Gói thành viên</span>
+          </div>
+          <h2 className="mt-1 font-serif text-[26px] font-semibold leading-tight text-[var(--foreground)] sm:text-[30px]">
+            Chọn gói LUMIA cho bạn
+          </h2>
+          <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-[var(--muted)]">
+            Truy cập toàn bộ tính năng Premium. Một số gói kèm hộp quà wellbeing giao tận nhà.
+          </p>
+        </div>
+
+        {promoBox && !debouncedSearch && (
+          <div className="mb-8"><PromoBanner box={promoBox} /></div>
+        )}
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 12 }}
+            key={planTab}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {displayPlans.map((plan) => (
-              <PlanCard key={plan.slug} plan={plan} searchQuery={debouncedSearch} />
-            ))}
+            {filteredPlans.length > 0 ? (
+              filteredPlans.map((box) => <PlanCard key={box.slug} box={box} />)
+            ) : (
+              <div className="col-span-full flex flex-col items-center gap-3 py-12 text-center">
+                <span className="text-4xl opacity-30">🔍</span>
+                <p className="text-[14px] text-[var(--muted)]">Không tìm thấy gói phù hợp.</p>
+                <button type="button" onClick={clearSearch} className="text-[13px] font-medium text-[var(--green-deep)] underline">
+                  Xoá tìm kiếm
+                </button>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </section>
 
-      <section className="mx-auto max-w-6xl border-t border-[var(--border)] px-4 py-14">
-        <div className="mb-8">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+      {/* Section 2 — Physical products */}
+      <section id="san-pham">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4 text-[var(--green)]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">Sản phẩm</span>
+          </div>
+          <h2 className="mt-1 font-serif text-[26px] font-semibold leading-tight text-[var(--foreground)] sm:text-[30px]">
             Wellbeing Store
-          </span>
-          <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)]">
-            Sản phẩm chăm sóc sức khỏe tinh thần
           </h2>
+          <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-[var(--muted)]">
+            Sản phẩm chọn lọc để tạo không gian ngủ và thư giãn tốt hơn.
+          </p>
+        </div>
+
+        <div className="mb-6 flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCategory(c.id)}
+              className={`rounded-full border px-4 py-2 text-[13px] font-medium transition ${
+                category === c.id
+                  ? "border-[var(--green)] bg-[var(--green-wash)] text-[var(--green-deep)]"
+                  : "border-[var(--border)] bg-[var(--surface-card)] text-[var(--muted)] hover:border-[var(--green)]/40 hover:text-[var(--foreground)]"
+              }`}
+            >
+              {CATEGORY_EMOJI[c.id]} {c.label}
+            </button>
+          ))}
         </div>
 
         {loadingProducts ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <ProductSkeleton key={i} />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-64 animate-pulse rounded-[18px] bg-[var(--surface)]" />
             ))}
           </div>
-        ) : storeProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--green-wash)] text-3xl">
-              🌿
-            </div>
-            <h3 className="mt-4 font-serif text-xl text-[var(--green-deep)]">
-              Sản phẩm sắp ra mắt
-            </h3>
-            <p className="mt-2 max-w-xs text-sm text-[var(--muted)]">
-              Chúng mình đang chuẩn bị các sản phẩm wellbeing tốt nhất. Hãy quay lại sớm nhé.
-            </p>
+        ) : products.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {products.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {storeProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAdd={() =>
-                  addItem({
-                    id: product.id,
-                    slug: product.slug,
-                    name: product.name,
-                    subtitle: product.subtitle,
-                    price_vnd: product.price_vnd,
-                    image_url: product.image_url,
-                    qty: 1,
-                  })
-                }
-              />
-            ))}
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="text-5xl opacity-30">🌿</span>
+            <p className="text-[14px] text-[var(--muted)]">Chưa có sản phẩm trong danh mục này.</p>
           </div>
         )}
       </section>
