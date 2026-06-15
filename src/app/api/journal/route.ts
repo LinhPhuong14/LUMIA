@@ -94,20 +94,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
-  const { data, error } = await supabase
+  const payload = {
+    user_id: session.id,
+    content: parsed.data.content,
+    prompt_used: parsed.data.promptUsed ?? null,
+    meta: parsed.data.meta ?? {},
+    date,
+  };
+
+  let result = await supabase
     .from("journal_entries")
-    .upsert(
-      {
-        user_id: session.id,
-        content: parsed.data.content,
-        prompt_used: parsed.data.promptUsed ?? null,
-        meta: parsed.data.meta ?? {},
-        date,
-      },
-      { onConflict: "user_id,date" },
-    )
+    .upsert(payload, { onConflict: "user_id,date" })
     .select()
     .single();
+
+  // Fallback: if meta column doesn't exist yet (migration not applied), retry without it
+  if (result.error && (result.error.code === "42703" || result.error.message.includes("meta"))) {
+    console.warn("[journal POST] meta column missing, retrying without meta");
+    const { meta: _meta, ...payloadWithoutMeta } = payload;
+    result = await supabase
+      .from("journal_entries")
+      .upsert(payloadWithoutMeta, { onConflict: "user_id,date" })
+      .select()
+      .single();
+  }
+
+  const { data, error } = result;
 
   if (error) {
     console.error("[journal POST] supabase error:", error.code, error.message);

@@ -2,13 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
 import { getMoodPlaceholder, MoodFace } from "@/components/ui/mood-faces";
 import { MOOD_OPTIONS, type MoodScore } from "@/lib/mood-constants";
 import { buildFollowUp, type FollowUp } from "@/lib/mood-followup";
+
+async function fetchFollowUp(
+  score: MoodScore,
+  note: string | undefined,
+  prevScore: MoodScore | null,
+): Promise<FollowUp> {
+  try {
+    const res = await fetch("/api/mood/followup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score, note, prevScore }),
+    });
+    if (!res.ok) throw new Error("api error");
+    return (await res.json()) as FollowUp;
+  } catch {
+    return buildFollowUp(score, note, prevScore);
+  }
+}
 
 export function MoodCheckInPanel({
   selectedScore,
@@ -29,6 +47,7 @@ export function MoodCheckInPanel({
 }) {
   const [note, setNote] = useState(savedNote ?? "");
   const [followUp, setFollowUp] = useState<FollowUp | null>(null);
+  const [followUpLoading, setFollowUpLoading] = useState(false);
   const [prevScore, setPrevScore] = useState<MoodScore | null>(savedScore as MoodScore | null);
   const activeScore = selectedScore ?? (savedScore as MoodScore | null);
 
@@ -38,14 +57,12 @@ export function MoodCheckInPanel({
     }
   }, [savedNote, selectedScore]);
 
-  // Track prev score for mood-change detection
   useEffect(() => {
     if (savedScore != null && selectedScore == null) {
       setPrevScore(savedScore as MoodScore);
     }
   }, [savedScore, selectedScore]);
 
-  // Allow re-submit when note text changes even without changing score
   const hasChanges =
     activeScore != null &&
     (selectedScore != null
@@ -55,11 +72,14 @@ export function MoodCheckInPanel({
   async function handleSubmit() {
     if (!activeScore || !hasChanges) return;
     const trimmedNote = note.trim() || undefined;
-    // Build followup before clearing selection (using old prevScore for delta)
-    const fu = buildFollowUp(activeScore, trimmedNote, prevScore);
+    const scoreBefore = prevScore;
     await onSubmit(activeScore, trimmedNote);
     setPrevScore(activeScore);
+    setFollowUp(null);
+    setFollowUpLoading(true);
+    const fu = await fetchFollowUp(activeScore, trimmedNote, scoreBefore);
     setFollowUp(fu);
+    setFollowUpLoading(false);
   }
 
   return (
@@ -138,9 +158,19 @@ export function MoodCheckInPanel({
         {submitting ? "Đang lưu…" : savedScore == null ? "Lưu check-in hôm nay" : "Cập nhật check-in"}
       </button>
 
-      {/* Inline followup — appears immediately after submit */}
+      {/* Follow-up — AI generated, loading state */}
       <AnimatePresence>
-        {followUp && !submitting ? (
+        {followUpLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center gap-2 px-1 py-2 text-[13px] text-[var(--muted)]"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--green)]" />
+            LUMIA đang suy nghĩ…
+          </motion.div>
+        ) : followUp ? (
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
