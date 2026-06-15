@@ -1,55 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Search,
   ShoppingBag,
   Check,
   Package,
   Sparkles,
   ChevronRight,
-  Star,
-  Gift,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { Route } from "next";
 
 import { getAllPurchasableProducts, type BoxProduct } from "@/data/catalog";
 import { useCart } from "@/lib/cart-context";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type StoreProduct = {
   id: string;
+  slug: string;
   name: string;
-  subtitle?: string;
-  price: number;
+  subtitle: string | null;
+  price_vnd: number;
   category: string;
-  emoji?: string;
-  imageUrl?: string;
+  image_url: string | null;
+  in_stock: boolean;
 };
 
 type TabId = "digital" | "hybrid";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const CATEGORIES: { id: string; label: string }[] = [
+  { id: "all", label: "Tất cả" },
+  { id: "scent", label: "Hương thơm" },
+  { id: "drink", label: "Đồ uống" },
+  { id: "sleep", label: "Ngủ ngon" },
+  { id: "meditation", label: "Thiền" },
+];
 
 function formatVnd(n: number): string {
   return n.toLocaleString("vi-VN") + " ₫";
 }
 
-// ---------------------------------------------------------------------------
-// PlanCard
-// ---------------------------------------------------------------------------
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
-function PlanCard({ plan }: { plan: BoxProduct }) {
+function PlanCard({ plan, searchQuery }: { plan: BoxProduct; searchQuery: string }) {
   const isFeatured = plan.featured === true;
+  const q = searchQuery.toLowerCase();
+  if (q && !plan.name.toLowerCase().includes(q) && !plan.tagline.toLowerCase().includes(q)) {
+    return null;
+  }
 
   return (
     <motion.div
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
       whileHover={{ scale: 1.02, y: -4 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className={`relative flex flex-col overflow-hidden rounded-[28px] border shadow-[0_8px_24px_rgba(95,111,82,0.08)] transition-shadow hover:shadow-[0_16px_40px_rgba(95,111,82,0.16)] ${
@@ -60,8 +75,8 @@ function PlanCard({ plan }: { plan: BoxProduct }) {
       style={{ background: plan.gradient }}
     >
       {isFeatured ? (
-        <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-[var(--green)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-          <Star className="h-3 w-3" />
+        <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-[var(--green)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+          <Sparkles className="h-3 w-3" />
           Phổ biến nhất
         </div>
       ) : null}
@@ -82,11 +97,11 @@ function PlanCard({ plan }: { plan: BoxProduct }) {
         </div>
 
         <div className="mt-5">
-          <div className="font-serif text-3xl font-semibold text-[var(--green-deep)]">
+          <div className="font-serif text-[30px] font-bold leading-none text-[var(--green-deep)]">
             {formatVnd(plan.price)}
           </div>
           {plan.priceNote ? (
-            <p className="mt-1 text-[12px] text-[var(--muted)]">{plan.priceNote}</p>
+            <p className="mt-1.5 text-[12px] text-[var(--muted)]">{plan.priceNote}</p>
           ) : null}
         </div>
 
@@ -105,6 +120,14 @@ function PlanCard({ plan }: { plan: BoxProduct }) {
               <Check className="h-2.5 w-2.5 text-[var(--green-deep)]" />
             </div>
             <span className="text-[13px] leading-5 text-[var(--foreground)]">{feature}</span>
+          </div>
+        ))}
+        {plan.physicalItems.slice(0, 3).map((item) => (
+          <div key={item} className="flex items-start gap-2.5">
+            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-100">
+              <Package className="h-2.5 w-2.5 text-amber-600" />
+            </div>
+            <span className="text-[13px] leading-5 text-[var(--foreground)]">{item}</span>
           </div>
         ))}
       </div>
@@ -133,10 +156,6 @@ function PlanCard({ plan }: { plan: BoxProduct }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// ProductCard
-// ---------------------------------------------------------------------------
-
 function ProductCard({
   product,
   onAdd,
@@ -145,150 +164,183 @@ function ProductCard({
   onAdd: () => void;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] shadow-[0_8px_24px_rgba(95,111,82,0.07)] transition hover:shadow-[0_12px_32px_rgba(95,111,82,0.12)]">
-      <div className="relative flex h-48 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--surface)] to-[var(--green-wash)]">
-        {product.imageUrl ? (
+    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] shadow-[0_4px_16px_rgba(95,111,82,0.07)] transition hover:shadow-[0_12px_32px_rgba(95,111,82,0.12)]">
+      <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--surface)] to-[var(--green-wash)]">
+        {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.imageUrl}
+            src={product.image_url}
             alt={product.name}
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-5xl">{product.emoji ?? "🌿"}</span>
+          <span className="text-5xl">🌿</span>
         )}
-        <span className="absolute left-3 top-3 rounded-full bg-[var(--green)] px-3 py-1 text-[11px] font-bold text-white shadow">
-          {formatVnd(product.price)}
-        </span>
+        {!product.in_stock ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--muted)]">
+              Hết hàng
+            </span>
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-serif text-[16px] font-semibold text-[var(--foreground)]">
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-serif text-[15px] font-semibold leading-snug text-[var(--foreground)]">
           {product.name}
         </h3>
         {product.subtitle ? (
           <p className="mt-1 text-[12px] leading-5 text-[var(--muted)]">{product.subtitle}</p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={onAdd}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] py-2.5 text-[13px] font-semibold text-white transition hover:opacity-90"
-        >
-          <ShoppingBag className="h-4 w-4" />
-          Thêm vào giỏ
-        </button>
+        <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+          <span className="text-[14px] font-bold text-[var(--green-deep)]">
+            {formatVnd(product.price_vnd)}
+          </span>
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={!product.in_stock}
+            className="flex items-center gap-1.5 rounded-full bg-[var(--green)] px-3.5 py-2 text-[12px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            Thêm
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Loading skeleton
-// ---------------------------------------------------------------------------
 
 function ProductSkeleton() {
   return (
     <div className="animate-pulse overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)]">
-      <div className="h-48 bg-[var(--green-wash)]/60" />
-      <div className="space-y-3 p-5">
+      <div className="h-44 bg-[var(--green-wash)]/60" />
+      <div className="space-y-3 p-4">
         <div className="h-4 w-3/4 rounded-full bg-[var(--border)]" />
         <div className="h-3 w-1/2 rounded-full bg-[var(--border)]" />
-        <div className="mt-4 h-9 rounded-full bg-[var(--border)]" />
+        <div className="mt-4 h-8 w-1/3 rounded-full bg-[var(--border)]" />
       </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// UnifiedStore
-// ---------------------------------------------------------------------------
-
 export function UnifiedStore() {
   const { addItem } = useCart();
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+
   const [activeTab, setActiveTab] = useState<TabId>("digital");
-  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
 
+  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
   const allPlans = getAllPurchasableProducts();
-  const digitalPlans = allPlans.filter((p) => p.group === "digital");
-  const hybridPlans = allPlans.filter((p) => p.group === "hybrid");
-  const promoBox = allPlans.find((p) => p.tier === "first_time");
+  const promoBox = allPlans.find((b) => b.group === "promo");
+  const digitalPlans = allPlans.filter((b) => b.group === "digital");
+  const hybridPlans = allPlans.filter((b) => b.group === "hybrid");
   const displayPlans = activeTab === "digital" ? digitalPlans : hybridPlans;
 
+  const fetchProducts = useCallback(
+    (category: string, query: string) => {
+      setLoadingProducts(true);
+      const params = new URLSearchParams();
+      if (category !== "all") params.set("category", category);
+      if (query) params.set("search", query);
+      const qs = params.toString();
+      fetch(`/api/store/products${qs ? `?${qs}` : ""}`)
+        .then((r) => (r.ok ? r.json() : { products: [] }))
+        .then((data: { products?: StoreProduct[] } | StoreProduct[]) => {
+          const products = Array.isArray(data) ? data : (data.products ?? []);
+          setStoreProducts(products);
+        })
+        .catch(() => setStoreProducts([]))
+        .finally(() => setLoadingProducts(false));
+    },
+    [],
+  );
+
   useEffect(() => {
-    fetch("/api/store/products")
-      .then((r) => (r.ok ? r.json() : { products: [] }))
-      .then((data: { products?: StoreProduct[] } | StoreProduct[]) => {
-        const products = Array.isArray(data) ? data : (data.products ?? []);
-        setStoreProducts(products);
-      })
-      .catch(() => {
-        setStoreProducts([]);
-      })
-      .finally(() => {
-        setLoadingProducts(false);
-      });
-  }, []);
-
-  const categories = [
-    "all",
-    ...Array.from(new Set(storeProducts.map((p) => p.category))),
-  ];
-
-  const filteredProducts =
-    activeCategory === "all"
-      ? storeProducts
-      : storeProducts.filter((p) => p.category === activeCategory);
+    fetchProducts(activeCategory, debouncedSearch);
+  }, [activeCategory, debouncedSearch, fetchProducts]);
 
   const tabs: { id: TabId; label: string }[] = [
-    { id: "digital", label: "📱 Chỉ app" },
-    { id: "hybrid", label: "📦 Kèm hộp quà" },
+    { id: "digital", label: "Gói số" },
+    { id: "hybrid", label: "Gói kèm hộp quà" },
   ];
-
-  const categoryLabels: Record<string, string> = {
-    all: "Tất cả",
-    drink: "Đồ uống",
-    scent: "Hương thơm",
-    sleep: "Ngủ ngon",
-    meditation: "Thiền",
-    tea: "Trà",
-    candle: "Nến thơm",
-    accessories: "Phụ kiện",
-  };
 
   return (
     <div className="min-h-screen bg-[var(--surface)]">
+      <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
+        <div className="mx-auto max-w-6xl px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                type="search"
+                placeholder="Tìm gói hoặc sản phẩm..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-full border border-[var(--border)] bg-[var(--surface-card)] py-2.5 pl-9 pr-10 text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none focus:ring-2 focus:ring-[var(--green)]/20"
+              />
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
+              <SlidersHorizontal className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition ${
+                    activeCategory === cat.id
+                      ? "border-[var(--green)] bg-[var(--green)] text-white"
+                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50 hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {promoBox ? (
-        <section className="relative overflow-hidden bg-gradient-to-r from-[var(--green-deep)] via-[var(--green)] to-emerald-500 py-10 px-4">
+        <section className="relative overflow-hidden border-b border-amber-200 bg-gradient-to-r from-amber-50 via-amber-100 to-yellow-50 px-4 py-8">
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5 blur-2xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-white/8 blur-2xl"
+            className="pointer-events-none absolute -right-16 -top-12 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl"
           />
 
-          <div className="relative mx-auto flex max-w-4xl flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                <Gift className="h-6 w-6 text-white" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-200/60 text-2xl">
+                🎁
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
-                    Ưu đãi lần đầu
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700">
+                    Ưu đãi người dùng mới
                   </span>
                   <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
-                    Kèm Welcome Kit
+                    Welcome Kit
                   </span>
                 </div>
-                <h2 className="mt-1 font-serif text-2xl font-semibold text-white sm:text-3xl">
+                <h2 className="mt-0.5 font-serif text-xl font-semibold text-amber-900 sm:text-2xl">
                   {promoBox.name} · {formatVnd(promoBox.price)}
                 </h2>
-                <p className="mt-1.5 max-w-md text-[13px] leading-6 text-white/80">
+                <p className="mt-1 max-w-md text-[12px] leading-5 text-amber-800/80">
                   {promoBox.description}
                 </p>
               </div>
@@ -296,7 +348,7 @@ export function UnifiedStore() {
 
             <Link
               href="/boxes/first-time-user"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-bold text-[var(--green-deep)] shadow-lg transition hover:bg-white/90"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-[13px] font-bold text-white shadow transition hover:bg-amber-600"
             >
               Dùng thử ngay
               <ChevronRight className="h-4 w-4" />
@@ -305,17 +357,17 @@ export function UnifiedStore() {
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="mb-10 text-center">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
-            Gói đăng ký
-          </span>
-          <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)] sm:text-4xl">
-            Chọn hành trình phù hợp với bạn
-          </h2>
-        </div>
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <div className="mb-8 flex flex-col items-center gap-5">
+          <div className="text-center">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+              Gói đăng ký
+            </span>
+            <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)] sm:text-4xl">
+              Chọn hành trình phù hợp với bạn
+            </h2>
+          </div>
 
-        <div className="mb-8 flex justify-center">
           <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-card)] p-1 shadow-sm">
             {tabs.map((tab) => (
               <button
@@ -344,53 +396,30 @@ export function UnifiedStore() {
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           >
             {displayPlans.map((plan) => (
-              <PlanCard key={plan.slug} plan={plan} />
+              <PlanCard key={plan.slug} plan={plan} searchQuery={debouncedSearch} />
             ))}
           </motion.div>
         </AnimatePresence>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16 border-t border-[var(--border)]">
-        <div className="mb-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
-                Wellbeing Store
-              </span>
-              <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)]">
-                Sản phẩm chăm sóc sức khỏe tinh thần
-              </h2>
-            </div>
-          </div>
-
-          {!loadingProducts && storeProducts.length > 0 ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActiveCategory(cat)}
-                  className={`rounded-full border px-4 py-2 text-[13px] font-medium transition ${
-                    activeCategory === cat
-                      ? "border-[var(--green)] bg-[var(--green)] text-white"
-                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
-                  }`}
-                >
-                  {categoryLabels[cat] ?? cat}
-                </button>
-              ))}
-            </div>
-          ) : null}
+      <section className="mx-auto max-w-6xl border-t border-[var(--border)] px-4 py-14">
+        <div className="mb-8">
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+            Wellbeing Store
+          </span>
+          <h2 className="mt-2 font-serif text-3xl font-semibold text-[var(--green-deep)]">
+            Sản phẩm chăm sóc sức khỏe tinh thần
+          </h2>
         </div>
 
         {loadingProducts ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
               // eslint-disable-next-line react/no-array-index-key
               <ProductSkeleton key={i} />
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : storeProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--green-wash)] text-3xl">
               🌿
@@ -403,19 +432,19 @@ export function UnifiedStore() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {storeProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onAdd={() =>
                   addItem({
                     id: product.id,
-                    slug: product.id,
+                    slug: product.slug,
                     name: product.name,
-                    subtitle: product.subtitle ?? null,
-                    price_vnd: product.price,
-                    image_url: product.imageUrl ?? null,
+                    subtitle: product.subtitle,
+                    price_vnd: product.price_vnd,
+                    image_url: product.image_url,
                     qty: 1,
                   })
                 }
