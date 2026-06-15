@@ -132,7 +132,7 @@ export function JournalPageCanvas({
               e.stopPropagation();
               removeSticker(sticker.id);
             }}
-            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/95 text-[var(--muted)] opacity-0 shadow-sm transition group-hover:opacity-100"
+            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-card)] text-[var(--muted)] opacity-0 shadow-sm transition group-hover:opacity-100"
             aria-label="Xóa sticker"
           >
             <X className="h-3 w-3" />

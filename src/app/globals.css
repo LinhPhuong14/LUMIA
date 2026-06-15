@@ -1806,6 +1806,21 @@
     color: var(--green-bright);
   }
 
+  /* ── Journal dark mode ── */
+  [data-theme="dark"] .journal-page {
+    background: linear-gradient(180deg, rgba(18, 28, 50, 0.97) 0%, rgba(14, 22, 40, 0.99) 100%);
+    border-color: rgba(80, 110, 160, 0.2);
+  }
+
+  [data-theme="dark"] .journal-page-lines {
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      rgba(100, 140, 200, 0.1) 31px,
+      rgba(100, 140, 200, 0.1) 32px
+    );
+  }
+
   .lumia-magnetic {
     transition: transform 220ms ease, box-shadow 220ms ease;
   }

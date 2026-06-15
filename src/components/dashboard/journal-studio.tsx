@@ -158,7 +158,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
         >
           <History className="h-4 w-4" />
           Lịch sử ({entries.length})
@@ -216,7 +216,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                     "rounded-full border px-3 py-1.5 text-[12px] transition hover:border-[var(--green)]/40 hover:bg-[var(--green-wash)]",
                     promptUsed === prompt
                       ? "border-[var(--green)] bg-[var(--green-wash)] text-[var(--green-deep)]"
-                      : "border-[var(--border)] bg-white/70 text-[var(--muted)]",
+                      : "border-[var(--border)] bg-[var(--surface-card)] text-[var(--muted)]",
                   )}
                 >
                   {prompt.length > 42 ? `${prompt.slice(0, 42)}…` : prompt}
@@ -263,7 +263,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-[70] flex w-[min(88vw,320px)] flex-col border-r border-[var(--border)] bg-[#fefdfb] p-5 shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[70] flex w-[min(88vw,320px)] flex-col border-r border-[var(--border)] bg-[var(--bg)] p-5 shadow-2xl lg:hidden"
             >
               <div className="mb-4 flex items-center justify-between">
                 <span className="font-serif text-lg text-[var(--foreground)]">Lịch sử</span>

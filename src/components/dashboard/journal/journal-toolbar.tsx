@@ -26,7 +26,7 @@ export function JournalToolbar({
   onToggleStickerMode: () => void;
 }) {
   return (
-    <div className="journal-toolbar flex flex-wrap items-center gap-2 rounded-[18px] border border-[var(--border)]/80 bg-white/75 px-3 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4">
+    <div className="journal-toolbar flex flex-wrap items-center gap-2 rounded-[18px] border border-[var(--border)]/80 bg-[var(--surface-card)]/90 px-3 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4">
       <div className="flex items-center gap-1.5 border-r border-[var(--border)]/60 pr-2 sm:pr-3">
         <Type className="h-3.5 w-3.5 text-[var(--muted)]" aria-hidden />
         <div className="flex gap-1">
