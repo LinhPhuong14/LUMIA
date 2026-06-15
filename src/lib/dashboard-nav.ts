@@ -3,6 +3,7 @@ import {
   Feather,
   Flame,
   MessageCircle,
+  MessageSquareHeart,
   Moon,
   Music,
   Package,
@@ -30,6 +31,7 @@ export const desktopNav: DashboardNavItem[] = [
   { id: "coach", href: "/audio/sleep", label: "Sleep Coach", icon: Moon },
   { id: "streak", href: "/journey", label: "Streak", icon: Flame },
   { id: "plan", href: "/account", label: "Gói", icon: Package },
+  { id: "feedback", href: "/feedback", label: "Góp ý", icon: MessageSquareHeart },
   { id: "settings", href: "/settings", label: "Cài đặt", icon: Settings },
 ];
 
@@ -41,7 +43,14 @@ export const mobileTabs: DashboardNavItem[] = [
   { id: "you", href: "/account", label: "Bạn", mobileLabel: "Bạn", icon: User, mobileTab: true },
 ];
 
-export function isNavActive(pathname: string, href: string) {
+export function isNavActive(pathname: string, href: string, allHrefs?: string[]) {
   if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // Don't highlight a parent if a more specific sibling matches exactly
+  if (allHrefs) {
+    const moreSpecific = allHrefs.some((h) => h !== href && h.startsWith(`${href}/`) && pathname === h);
+    if (moreSpecific) return false;
+  }
+  return true;
 }

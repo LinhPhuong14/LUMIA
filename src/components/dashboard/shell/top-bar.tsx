@@ -1,7 +1,8 @@
 "use client";
 
-import { Bell, Crown } from "lucide-react";
+import { Crown } from "lucide-react";
 
+import { NotificationCenter } from "@/components/dashboard/notification-center";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
 
 function getInitials(name: string) {
@@ -34,13 +35,7 @@ export function TopBar({
         {subtitle ? <p className="mt-1 text-[13.5px] text-[var(--muted)]">{subtitle}</p> : null}
       </div>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="dash-control-btn h-[42px] w-[42px]"
-          aria-label="Thông báo"
-        >
-          <Bell className="h-[18px] w-[18px] text-[var(--muted)]" />
-        </button>
+        <NotificationCenter />
         <div className="dash-plan-pill py-1.5 pl-3.5 pr-1.5">
           <Crown className="h-3.5 w-3.5 text-[var(--honey-dark)]" />
           <span className="text-[12.5px] font-semibold text-[var(--green-deep)]">{planLabel}</span>
