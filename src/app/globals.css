@@ -293,6 +293,13 @@
   .dashboard-topbar {
     flex-shrink: 0;
     min-height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    backdrop-filter: blur(40px) saturate(1.5);
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   }
 
   .dashboard-page-root {
@@ -872,8 +879,8 @@
     padding: 7px;
     border-radius: 24px;
     background: var(--glass-strong);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(40px) saturate(1.5);
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
@@ -1807,6 +1814,10 @@
   [data-theme="dark"] .lumia-h2 {
     color: var(--green-bright);
   }
+
+  /* ── Journal ink CSS var ── */
+  :root { --journal-ink: #1e3b2d; }
+  [data-theme="dark"] { --journal-ink: #d4e8d0; }
 
   /* ── Journal dark mode ── */
   [data-theme="dark"] .journal-page {

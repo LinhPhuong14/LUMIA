@@ -10,7 +10,7 @@ import { getSession } from "@/lib/supabase/auth";
 const stickerSchema = z.object({
   id: z.string(),
   emoji: z.string(),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().max(2_000_000).optional(), // ~1.5 MB base64 limit
   x: z.number(),
   y: z.number(),
   size: z.number().optional(),
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
+    console.error("[journal POST] supabase error:", error.code, error.message);
     return NextResponse.json({ error: "Không thể lưu nhật ký. Vui lòng thử lại." }, { status: 500 });
   }
 

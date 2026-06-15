@@ -26,7 +26,7 @@ export type JournalEntry = {
 
 export const DEFAULT_JOURNAL_META: JournalMeta = {
   fontFamily: "serif",
-  textColor: "#1e3b2d",
+  textColor: "var(--journal-ink)",
   stickers: [],
 };
 
@@ -37,12 +37,13 @@ export const JOURNAL_FONTS: { id: JournalFontId; label: string; className: strin
 ];
 
 export const JOURNAL_COLORS = [
-  { id: "ink", value: "#1e3b2d", label: "Mực" },
-  { id: "leaf", value: "#5f7a45", label: "Lá" },
-  { id: "honey", value: "#9a7b2e", label: "Mật" },
-  { id: "rose", value: "#a86b6b", label: "Hồng" },
-  { id: "mist", value: "#6b6560", label: "Khói" },
-] as const;
+  { id: "ink",    light: "#1e3b2d", dark: "#d4e8d0", label: "Mực" },
+  { id: "leaf",   light: "#5f7a45", dark: "#a8c97a", label: "Lá" },
+  { id: "honey",  light: "#9a7b2e", dark: "#f0c96b", label: "Mật" },
+  { id: "rose",   light: "#a86b6b", dark: "#f4b0b0", label: "Hồng" },
+  { id: "mist",   light: "#6b6560", dark: "#c5bfbc", label: "Khói" },
+  { id: "ocean",  light: "#2b5f8a", dark: "#8dd4f5", label: "Biển" },
+] satisfies { id: string; light: string; dark: string; label: string }[];
 
 export const JOURNAL_STICKER_PACK = ["🌿", "✨", "🌙", "🍃", "☁️", "🕯️", "💚", "📝", "🌸", "⭐"] as const;
 
@@ -51,7 +52,8 @@ export function parseJournalMeta(raw: unknown): JournalMeta {
   const m = raw as Partial<JournalMeta>;
   return {
     fontFamily: m.fontFamily ?? DEFAULT_JOURNAL_META.fontFamily,
-    textColor: m.textColor ?? DEFAULT_JOURNAL_META.textColor,
+    // Migrate old hard-coded dark default to CSS var
+    textColor: (m.textColor && m.textColor !== "#1e3b2d") ? m.textColor : DEFAULT_JOURNAL_META.textColor,
     stickers: Array.isArray(m.stickers) ? m.stickers : [],
   };
 }

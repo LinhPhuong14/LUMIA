@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ImagePlus, Palette, Save, Sticker, Type } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,16 @@ export function JournalToolbar({
   canSave: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.dataset.theme === "dark");
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -80,19 +90,46 @@ export function JournalToolbar({
       <div className="flex items-center gap-1.5 border-r border-[var(--border)]/60 pr-2 sm:pr-3">
         <Palette className="h-3.5 w-3.5 text-[var(--muted)]" aria-hidden />
         <div className="flex gap-1.5">
-          {JOURNAL_COLORS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              title={c.label}
-              onClick={() => onMetaChange({ textColor: c.value })}
-              className={cn(
-                "h-6 w-6 rounded-full border-2 transition hover:scale-110",
-                meta.textColor === c.value ? "border-[var(--green-deep)] ring-2 ring-[var(--green)]/30" : "border-white/90",
-              )}
-              style={{ backgroundColor: c.value }}
-            />
-          ))}
+          {JOURNAL_COLORS.map((c) => {
+            const colorVal = isDark ? c.dark : c.light;
+            const isActive = meta.textColor === colorVal || meta.textColor === c.light || meta.textColor === c.dark;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                title={c.label}
+                onClick={() => onMetaChange({ textColor: colorVal })}
+                className={cn(
+                  "h-6 w-6 rounded-full border-2 transition hover:scale-110",
+                  isActive ? "border-[var(--green-deep)] ring-2 ring-[var(--green)]/30" : "border-[var(--border)]",
+                )}
+                style={{ backgroundColor: colorVal }}
+              />
+            );
+          })}
+          {/* Custom color */}
+          <button
+            type="button"
+            title="Màu tùy chọn"
+            onClick={() => colorInputRef.current?.click()}
+            className="relative h-6 w-6 overflow-hidden rounded-full border-2 border-dashed border-[var(--muted)]/50 transition hover:scale-110 hover:border-[var(--green)]"
+            style={
+              !JOURNAL_COLORS.some((c) => meta.textColor === c.light || meta.textColor === c.dark || meta.textColor === "var(--journal-ink)")
+                ? { backgroundColor: meta.textColor, borderStyle: "solid", borderColor: "var(--green-deep)" }
+                : {}
+            }
+          >
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-[var(--muted)]">+</span>
+          </button>
+          <input
+            ref={colorInputRef}
+            type="color"
+            className="sr-only"
+            value={
+              meta.textColor.startsWith("#") ? meta.textColor : isDark ? "#d4e8d0" : "#1e3b2d"
+            }
+            onChange={(e) => onMetaChange({ textColor: e.target.value })}
+          />
         </div>
       </div>
 
