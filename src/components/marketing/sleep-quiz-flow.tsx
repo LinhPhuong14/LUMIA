@@ -87,7 +87,7 @@ export function SleepQuizFlow() {
           <Link href={`/boxes/${rec.slug}`} className="button-primary text-[13px]">
             Xem gói đề xuất
           </Link>
-          <Link href="/boxes?onboarding=1" className="button-secondary text-[13px]">
+          <Link href="/store?onboarding=1" className="button-secondary text-[13px]">
             So sánh tất cả gói
           </Link>
           <Link href="/register?next=/dashboard" className="text-sm font-semibold text-[var(--lumia-green)] underline">

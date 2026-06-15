@@ -260,7 +260,7 @@ export function AiStudio() {
         {disabled ? (
           <div className="mx-4 mb-2 shrink-0 rounded-[18px] border border-[var(--border)] bg-[var(--green-wash)] px-4 py-3 text-sm text-[var(--foreground)] lg:mx-7">
             Đã hết lượt chat hôm nay.{" "}
-            <Link href="/boxes" className="font-semibold text-[var(--green-deep)] underline">
+            <Link href="/store" className="font-semibold text-[var(--green-deep)] underline">
               Khám phá gói LUMIA
             </Link>{" "}
             để tiếp tục không giới hạn.

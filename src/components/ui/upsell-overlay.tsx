@@ -37,7 +37,7 @@ export function UpsellOverlay({
             )}
           </div>
         </div>
-        <Link href="/boxes" className="button-primary shrink-0 self-start text-[13px] sm:self-center">
+        <Link href="/store" className="button-primary shrink-0 self-start text-[13px] sm:self-center">
           Xem các gói LUMIA
         </Link>
       </div>
@@ -56,7 +56,7 @@ export function UpsellOverlay({
             {featureName}
           </p>
           <Link
-            href="/boxes"
+            href="/store"
             className="rounded-full bg-[var(--green)] px-3 py-1.5 text-[10px] font-semibold text-white shadow-sm"
           >
             Mở khóa
@@ -78,7 +78,7 @@ export function UpsellOverlay({
             {featureName} dành cho thành viên LUMIA Premium
           </h3>
           {description ? <p className="mt-2 text-[12px] leading-6 text-muted sm:text-[13px]">{description}</p> : null}
-          <Link href="/boxes" className="button-primary mt-4 inline-flex text-[13px] sm:mt-5">
+          <Link href="/store" className="button-primary mt-4 inline-flex text-[13px] sm:mt-5">
             Xem các gói LUMIA
           </Link>
         </div>

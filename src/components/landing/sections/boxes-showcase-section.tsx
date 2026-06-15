@@ -22,7 +22,7 @@ export function BoxesShowcaseSection() {
             <h2 className="lumia-h2 max-w-[680px]">Chọn gói thành viên phù hợp với nhịp sống của bạn.</h2>
           </div>
           <Link
-            href="/boxes"
+            href="/store"
             className="lumia-section-link inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold transition hover:opacity-90"
           >
             So sánh gói <ArrowRight className="h-4 w-4" />

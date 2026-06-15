@@ -29,7 +29,7 @@ export function FooterSection() {
               <div className="text-[14.5px] font-bold text-[var(--foreground)]">{col.title}</div>
               <div className="mt-4 grid gap-2.5">
                 {col.links.map((link) => (
-                  <Link key={link} href="/boxes" className="text-[13.5px] text-[var(--muted)] hover:text-[var(--green-deep)]">
+                  <Link key={link} href="/store" className="text-[13.5px] text-[var(--muted)] hover:text-[var(--green-deep)]">
                     {link}
                   </Link>
                 ))}

@@ -7,6 +7,7 @@ import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
 import { HubInsightsStatRow } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
+import { StoreWidget } from "@/components/dashboard/store-widget";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
 import { getTimeGreeting } from "@/lib/time-greeting";
@@ -115,6 +116,7 @@ export function HubMobile({
         ))}
       </div>
 
+      <StoreWidget />
     </div>
   );
 }

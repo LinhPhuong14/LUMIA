@@ -15,7 +15,7 @@ export default function CheckoutCancelPage() {
           Nếu bạn cần thêm một chút thời gian, hãy quay lại khi mọi thứ nhẹ hơn. LUMIA vẫn ở đây để chờ bạn.
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/boxes" className="button-primary">
+          <Link href="/store" className="button-primary">
             Xem lại các hộp
           </Link>
           <Link href="/checkout" className="button-secondary">
