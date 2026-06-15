@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 
 import { getMoodPlaceholder, MoodFace } from "@/components/ui/mood-faces";
 import { MOOD_OPTIONS, type MoodScore } from "@/lib/mood-constants";
@@ -151,7 +152,7 @@ export function MoodCheckInPanel({
             </div>
             <p className="text-[13.5px] leading-[1.65] text-[var(--foreground)]">{followUp.message}</p>
             <Link
-              href={followUp.cta.href}
+              href={followUp.cta.href as Route}
               className="mt-3 inline-flex items-center rounded-full bg-[var(--green)] px-4 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
             >
               {followUp.cta.label}
