@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { AudioHubExtras } from "@/components/audio/audio-category-page";
 import { FeaturedTrackOfDay } from "@/components/audio/featured-track-of-day";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
@@ -16,8 +15,14 @@ const categories = [
   {
     href: "/audio/meditation",
     emoji: "🧘",
-    title: "Thiền định",
-    description: "Guided, mini meditation và body scan",
+    title: "Thiền & Hơi thở",
+    description: "Guided meditation, mini session và bài tập thở",
+  },
+  {
+    href: "/audio/timer",
+    emoji: "⏱️",
+    title: "Hẹn giờ thiền",
+    description: "Meditation timer với ambient sound",
   },
 ] as const;
 
@@ -43,7 +48,7 @@ export default async function AudioPage() {
               <Link
                 key={cat.href}
                 href={cat.href}
-                className="audio-hub-category mobile-list-row lg:!flex lg:min-h-[120px] lg:flex-col lg:items-start lg:justify-between lg:rounded-[26px] lg:border lg:border-[var(--border)] lg:bg-[var(--surface-card)]/90 lg:p-6 lg:shadow-[0_14px_34px_rgba(122,140,82,0.1)] lg:backdrop-blur-sm lg:hover:shadow-[0_18px_44px_rgba(122,140,82,0.14)]"
+                className="audio-hub-category mobile-list-row lg:!flex lg:min-h-[100px] lg:flex-col lg:items-start lg:justify-between lg:rounded-[26px] lg:border lg:border-[var(--border)] lg:bg-[var(--surface-card)]/90 lg:p-6 lg:shadow-[0_14px_34px_rgba(122,140,82,0.1)] lg:backdrop-blur-sm lg:hover:shadow-[0_18px_44px_rgba(122,140,82,0.14)]"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-matcha-soft text-2xl lg:h-14 lg:w-14 lg:text-3xl">
                   {cat.emoji}
@@ -57,16 +62,6 @@ export default async function AudioPage() {
             ))}
           </div>
         </div>
-
-        <AudioHubExtras isActive={subscription.isActive} />
-
-        <section className="dash-panel p-5 sm:p-6">
-          <span className="eyebrow">Mood test</span>
-          <p className="mt-2 text-sm text-muted">Không chắc nên nghe gì? Làm quiz ngắn để được gợi ý.</p>
-          <Link href="/mood-test" className="button-secondary mt-4 inline-flex text-[13px]">
-            Làm kiểm tra cảm xúc
-          </Link>
-        </section>
       </div>
     </DashboardShell>
   );

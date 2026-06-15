@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { runChat } from "@/lib/ai/chat-pipeline";
 import type { ChatHistoryMessage } from "@/lib/ai/chat-pipeline";
+import { getUserContext } from "@/lib/ai/user-context";
 import { env, hasLlmConfig } from "@/lib/env";
 import { localDateString } from "@/lib/local-date";
 import { logActivity } from "@/lib/streak";
@@ -77,7 +78,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ content: fallback, mode: env.DEMO_MODE ? "demo" : "unconfigured" });
   }
 
-  const history = await loadChatHistory(session.id);
+  const [history, userContext] = await Promise.all([
+    loadChatHistory(session.id),
+    getUserContext(session.id, session.name, snapshot.isActive),
+  ]);
   const encoder = new TextEncoder();
   let fullContent = "";
   let escalated = false;
@@ -90,6 +94,7 @@ export async function POST(request: Request) {
           userName: session.name,
           message: parsed.data.message,
           history,
+          userContext,
         })) {
           if (chunk.type === "meta" && chunk.safety_flag) {
             escalated = true;
@@ -111,7 +116,13 @@ export async function POST(request: Request) {
 
         // (#003) Only save to history if there was real AI content (not error fallback)
         if (supabase && fullContent && !hasError) {
-          const { data: chatSession } = await supabase.from("chat_sessions").insert({ user_id: session.id }).select().single();
+          const today = localDateString();
+          // Upsert daily session — one session per user per day
+          const { data: chatSession } = await supabase
+            .from("chat_sessions")
+            .upsert({ user_id: session.id, date: today }, { onConflict: "user_id,date" })
+            .select()
+            .single();
           if (chatSession) {
             await supabase.from("chat_messages").insert([
               { session_id: chatSession.id, user_id: session.id, role: "user", content: parsed.data.message },
