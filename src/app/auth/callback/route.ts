@@ -34,44 +34,45 @@ export async function GET(request: Request) {
     email.split("@")[0] ??
     "Bạn";
 
+  // Try using admin client for profile bootstrap; fall back to session client if unavailable
   const admin = createAdminClient();
-  if (admin) {
-    // Ensure profile exists (first OAuth login creates the profile row)
-    await admin
-      .from("profiles")
-      .upsert({ id: user.id, email, full_name: name, role: "user" }, { onConflict: "id" });
+  const db = admin ?? supabase;
 
-    // Create free subscription if not already present
-    const { data: sub } = await admin
-      .from("subscriptions")
-      .select("id")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
-    if (!sub) {
-      await admin.from("subscriptions").insert({ user_id: user.id, status: "free" });
-    }
+  // Ensure profile exists (first OAuth login)
+  await db
+    .from("profiles")
+    .upsert({ id: user.id, email, full_name: name, role: "user" }, { onConflict: "id" });
 
-    // Create streak row if not present
-    const { data: streak } = await admin
-      .from("streaks")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!streak) {
-      await admin.from("streaks").insert({ user_id: user.id });
-    }
+  // Create free subscription if not present
+  const { data: sub } = await db
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+  if (!sub) {
+    await db.from("subscriptions").insert({ user_id: user.id, status: "free" });
+  }
 
-    // New OAuth users (no onboarding_goal) go through onboarding first
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("onboarding_goal")
-      .eq("id", user.id)
-      .maybeSingle();
+  // Create streak row if not present
+  const { data: streak } = await db
+    .from("streaks")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!streak) {
+    await db.from("streaks").insert({ user_id: user.id });
+  }
 
-    if (!profile?.onboarding_goal) {
-      return NextResponse.redirect(new URL("/onboarding", origin));
-    }
+  // New OAuth users go through onboarding first
+  const { data: profile } = await db
+    .from("profiles")
+    .select("onboarding_goal")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile?.onboarding_goal) {
+    return NextResponse.redirect(new URL("/onboarding", origin));
   }
 
   return NextResponse.redirect(new URL(next, origin));

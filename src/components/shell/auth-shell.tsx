@@ -29,7 +29,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <ThemeToggle />
       </header>
       <main ref={mainRef} className="auth-page-main flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
-        <div className="shell flex w-full flex-1 flex-col py-4 pb-[max(2.5rem,var(--safe-bottom))]">{children}</div>
+        <div className="shell flex w-full flex-col py-4 pb-[max(2.5rem,var(--safe-bottom))]">{children}</div>
       </main>
     </div>
   );

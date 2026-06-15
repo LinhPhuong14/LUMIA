@@ -11,9 +11,9 @@ export default async function RegisterPage({
   const params = await searchParams;
 
   return (
-    <div className="auth-page-grid grid w-full flex-1 gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-stretch">
+    <div className="auth-page-grid grid w-full gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-start">
       <section
-        className="relative hidden min-h-[min(100dvh,720px)] overflow-hidden rounded-[32px] p-8 lg:flex lg:flex-col lg:justify-between"
+        className="relative hidden overflow-hidden rounded-[32px] p-8 lg:flex lg:flex-col lg:justify-between lg:min-h-[600px]"
         style={{ background: "var(--gradient-jade)" }}
       >
         <div className="relative max-w-xl pt-8">
@@ -37,7 +37,7 @@ export default async function RegisterPage({
         </p>
       </section>
 
-      <div className="hero-card flex min-h-[min(100dvh,800px)] w-full flex-1 flex-col lg:max-h-[calc(100dvh-8rem)]">
+      <div className="hero-card flex w-full flex-col">
         <AuthForm mode="register" next={params.next ?? defaultRegisterNext} />
       </div>
     </div>
