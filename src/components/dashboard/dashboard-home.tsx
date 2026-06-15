@@ -8,6 +8,7 @@ import { HubMobile } from "@/components/dashboard/hub/hub-mobile";
 import { UpsellBanner } from "@/components/dashboard/upsell-banner";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useToast } from "@/components/ui/toast";
+import { buildFollowUp, type FollowUp } from "@/lib/mood-followup";
 import {
   buildSuggestion,
   type ChartPoint,
@@ -43,6 +44,7 @@ export function DashboardHome({
   const [insights, setInsights] = useState<DashboardInsights | null>(null);
   const [selectedScore, setSelectedScore] = useState<MoodScore | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [followUp, setFollowUp] = useState<FollowUp | null>(null);
   const isFree = !subscription.isActive;
 
   const loadInsights = useCallback(async () => {
@@ -74,6 +76,7 @@ export function DashboardHome({
   async function handleCheckIn(score: MoodScore, note?: string) {
     const today = localDateString();
     setSelectedScore(null);
+    setFollowUp(null);
 
     setInsights((prev) => {
       if (!prev) return prev;
@@ -111,12 +114,14 @@ export function DashboardHome({
     setSubmitting(false);
 
     if (response.ok) {
+      setFollowUp(buildFollowUp(score, note));
       await loadInsights();
     }
   }
 
   function handleSelectScore(score: MoodScore) {
     setSelectedScore(score);
+    setFollowUp(null);
   }
 
   const hubProps = {
@@ -127,6 +132,7 @@ export function DashboardHome({
     selectedScore,
     savedScore,
     savedNote,
+    followUp,
     onSelectScore: handleSelectScore,
     onCheckIn: handleCheckIn,
     submitting,
