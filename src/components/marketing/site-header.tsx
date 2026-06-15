@@ -27,14 +27,14 @@ export async function SiteHeader({ transparent = false }: { transparent?: boolea
         height: "var(--marketing-header-height, auto)",
       }}
     >
-      <div className="shell flex min-h-16 items-center justify-between gap-3 md:min-h-20">
+      <div className="shell flex h-16 items-center justify-between gap-4">
         <ThemeAwareLogo />
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-7 md:flex">
           {links.map((link) => (
             <SiteHeaderNavLink key={link.href} href={link.href} label={link.label} />
           ))}
         </nav>
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2">
           <MobileNavDrawer links={links} session={session ? { name: session.name } : null} />
           <SiteHeaderActions session={session ? { name: session.name } : null} />
         </div>
