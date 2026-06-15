@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Mode = "bedtime" | "waketime";
 type SleepType = "deep" | "nap";
@@ -101,6 +101,62 @@ function calcNapRecommendations(inputTime: string): SleepRecommendation[] {
         "Trải qua đủ các giai đoạn: ngủ nhẹ → ngủ sâu → REM. Thức dậy tự nhiên, cảm thấy như được nạp lại năng lượng. Dùng khi thiếu ngủ nghiêm trọng.",
     },
   ];
+}
+
+function TimeInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [hh, mm] = value.split(":");
+  const mmRef = useRef<HTMLInputElement>(null);
+
+  function handleHH(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, "").slice(-2);
+    const n = parseInt(raw, 10);
+    const clamped = isNaN(n) ? "00" : String(Math.min(23, n)).padStart(2, "0");
+    onChange(`${clamped}:${mm}`);
+    if (raw.length === 2) mmRef.current?.focus();
+  }
+
+  function handleMM(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, "").slice(-2);
+    const n = parseInt(raw, 10);
+    const clamped = isNaN(n) ? "00" : String(Math.min(59, n)).padStart(2, "0");
+    onChange(`${hh}:${clamped}`);
+  }
+
+  const inputCls =
+    "w-[64px] rounded-[10px] border border-[var(--border)] bg-[var(--surface)] py-2 text-center text-2xl font-bold text-[var(--foreground)] outline-none ring-[var(--green)]/20 focus:border-[var(--green)] focus:ring-4 transition";
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="text"
+        inputMode="numeric"
+        maxLength={2}
+        value={hh}
+        onChange={handleHH}
+        className={inputCls}
+        placeholder="HH"
+        aria-label="Giờ"
+      />
+      <span className="text-2xl font-bold text-[var(--muted)]">:</span>
+      <input
+        ref={mmRef}
+        type="text"
+        inputMode="numeric"
+        maxLength={2}
+        value={mm}
+        onChange={handleMM}
+        className={inputCls}
+        placeholder="MM"
+        aria-label="Phút"
+      />
+    </div>
+  );
 }
 
 export function SleepCoach() {
@@ -217,24 +273,17 @@ export function SleepCoach() {
             ? "Thời điểm lên giường:"
             : "Thời điểm muốn thức dậy:"}
         </label>
-        <input
-          type="time"
+        <TimeInput
           value={
             sleepType === "nap" || mode === "bedtime"
               ? bedtimeInput
               : waketimeInput
           }
-          onChange={(e) =>
+          onChange={
             sleepType === "nap" || mode === "bedtime"
-              ? handleBedtimeChange(e.target.value)
-              : handleWaketimeChange(e.target.value)
+              ? handleBedtimeChange
+              : handleWaketimeChange
           }
-          className="w-full rounded-[10px] border px-4 py-2 text-sm font-semibold outline-none transition-all"
-          style={{
-            borderColor: "var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-          }}
         />
         {sleepType === "deep" && mode === "bedtime" && (
           <p className="mt-1 text-[11px]" style={{ color: "var(--muted)" }}>

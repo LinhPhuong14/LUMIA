@@ -45,8 +45,12 @@ export function MoodCheckInPanel({
     }
   }, [savedScore, selectedScore]);
 
+  // Allow re-submit when note text changes even without changing score
   const hasChanges =
-    selectedScore != null && (selectedScore !== savedScore || note.trim() !== (savedNote ?? "").trim());
+    activeScore != null &&
+    (selectedScore != null
+      ? selectedScore !== savedScore || note.trim() !== (savedNote ?? "").trim()
+      : note.trim() !== (savedNote ?? "").trim());
 
   async function handleSubmit() {
     if (!activeScore || !hasChanges) return;

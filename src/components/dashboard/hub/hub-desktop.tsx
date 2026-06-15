@@ -4,15 +4,12 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
-import { MoodFollowUpCard } from "@/components/dashboard/mood-followup-card";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
 import { HubInsightsRow } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
-import type { FollowUp } from "@/lib/mood-followup";
-
 type HubProps = {
   insights: DashboardInsights | null;
   chartDays: ChartPoint[];
@@ -21,7 +18,6 @@ type HubProps = {
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
-  followUp?: FollowUp | null;
   onSelectScore: (score: MoodScore) => void;
   onCheckIn: (score: MoodScore, note?: string) => Promise<void>;
   submitting: boolean;
@@ -35,7 +31,6 @@ export function HubDesktop({
   selectedScore,
   savedScore,
   savedNote,
-  followUp,
   onSelectScore,
   onCheckIn,
   submitting,
@@ -74,7 +69,6 @@ export function HubDesktop({
             onSubmit={onCheckIn}
             submitting={submitting}
           />
-          {followUp ? <MoodFollowUpCard followUp={followUp} /> : null}
         </Panel>
       </div>
 
