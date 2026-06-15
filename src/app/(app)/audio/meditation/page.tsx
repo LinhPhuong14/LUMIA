@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import { AudioCategoryPage } from "@/components/audio/audio-category-page";
+import { BreathingExercise } from "@/components/audio/breathing-exercise";
+import { MeditationTimer } from "@/components/audio/meditation-timer";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
 
@@ -15,10 +18,19 @@ export default async function AudioMeditationPage() {
       sessionEmail={session.email}
       subscription={subscription}
       title="Thiền định"
-      subtitle="Guided meditation và mini sessions cho mọi năng lượng."
+      subtitle="Nhạc thiền, hướng dẫn và bài tập thở."
       isAdmin={session.role === "admin"}
     >
-      <div className="flex min-h-0 flex-1 flex-col space-y-8">
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
+        {/* Back to audio hub */}
+        <Link
+          href="/audio"
+          className="inline-flex w-fit items-center gap-1.5 text-[13px] text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        >
+          ← Âm thanh
+        </Link>
+
+        {/* Meditation audio tracks */}
         <AudioCategoryPage
           isActive={subscription.isActive}
           categories={["guided_meditation", "mini_meditation"]}
@@ -27,17 +39,16 @@ export default async function AudioMeditationPage() {
             { title: "Mini Meditations", category: "mini_meditation" },
           ]}
         />
-        <section className="soft-card p-6">
-          <h2 className="font-sans text-base font-medium text-matcha-text">Breathing & Timer</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/audio/breathing" className="button-secondary text-[13px]">
-              Bài tập thở
-            </Link>
-            <Link href="/audio/timer" className="button-secondary text-[13px]">
-              Meditation Timer
-            </Link>
-          </div>
-        </section>
+
+        {/* Breathing exercise — inline, no separate page needed */}
+        <UpsellOverlay featureName="Bài tập thở" locked={!subscription.isActive}>
+          <BreathingExercise enabled={subscription.isActive} />
+        </UpsellOverlay>
+
+        {/* Meditation timer */}
+        <UpsellOverlay featureName="Hẹn giờ thiền" locked={!subscription.isActive}>
+          <MeditationTimer enabled={subscription.isActive} />
+        </UpsellOverlay>
       </div>
     </DashboardShell>
   );
