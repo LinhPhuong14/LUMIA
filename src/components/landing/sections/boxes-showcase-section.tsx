@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { landingBoxCards } from "@/components/landing/data/landing-content";
+import { LandingPricingCarousel } from "@/components/landing/shared/landing-pricing-carousel";
 import { LandingPricingTier } from "@/components/landing/shared/landing-pricing-tier";
 import { fadeUp } from "@/components/landing/shared/landing-motion";
 
@@ -30,11 +31,12 @@ export function BoxesShowcaseSection() {
       </div>
 
       <div className="landing-pricing-shell">
-        <div className="landing-pricing-row">
+        <div className="landing-pricing-row hidden md:grid">
           {landingBoxCards.map((box) => (
             <LandingPricingTier key={box.slug} box={box} />
           ))}
         </div>
+        <LandingPricingCarousel boxes={landingBoxCards} className="md:hidden" />
       </div>
     </section>
   );

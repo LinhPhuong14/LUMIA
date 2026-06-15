@@ -54,7 +54,7 @@ export function MobileMoreSheet({
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="mobile-more-sheet"
+            className="mobile-more-sheet flex max-h-[min(92dvh,100%)] flex-col"
             role="dialog"
             aria-modal="true"
             aria-label="Thêm tùy chọn"
@@ -65,7 +65,7 @@ export function MobileMoreSheet({
           >
             <div className="mobile-more-sheet-handle" />
             {userName ? (
-              <div className="mb-4 flex items-center gap-3 px-1">
+              <div className="mb-4 flex shrink-0 items-center gap-3 px-1">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-matcha-soft text-sm font-semibold text-matcha-deep">
                   {getInitials(userName)}
                 </div>
@@ -89,7 +89,7 @@ export function MobileMoreSheet({
             >
               <X className="h-5 w-5" />
             </button>
-            <nav className="space-y-1">
+            <nav className="mobile-nav-sheet-body space-y-1 pb-2">
               {moreLinks.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (

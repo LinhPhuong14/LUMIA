@@ -57,37 +57,39 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
   }
 
   return (
-    <form action={onSubmit} className="flex h-full w-full flex-col gap-4 overflow-hidden p-4 md:p-5">
-      <div>
-        <h2 className="mt-4 font-serif text-3xl leading-tight text-matcha-deep md:text-4xl">
-          {mode === "login" ? "Chào mừng bạn quay trở lại!" : "Tạo không gian LUMIA của riêng bạn."}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-muted">
-          {mode === "login"
-            ? "Hãy lắng nghe bản thân hôm nay."
-            : "Bạn có thể xóa dữ liệu cảm xúc và lịch sử trò chuyện bất cứ lúc nào."}
-        </p>
+    <form action={onSubmit} className="auth-form flex min-h-0 w-full flex-1 flex-col">
+      <div className="auth-form-scroll flex-1 overflow-y-auto overscroll-contain px-4 pt-4 md:px-5 md:pt-5">
+        <div>
+          <h2 className="mt-2 font-serif text-3xl leading-tight text-matcha-deep md:mt-4 md:text-4xl">
+            {mode === "login" ? "Chào mừng bạn quay trở lại!" : "Tạo không gian LUMIA của riêng bạn."}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            {mode === "login"
+              ? "Hãy lắng nghe bản thân hôm nay."
+              : "Bạn có thể xóa dữ liệu cảm xúc và lịch sử trò chuyện bất cứ lúc nào."}
+          </p>
+        </div>
+
+        <div className={`mt-6 grid gap-4 ${mode === "register" ? "md:grid-cols-2" : ""}`}>
+          {mode === "register" ? (
+            <Input name="name" label="Họ và tên" placeholder="Ví dụ: Linh Nguyễn" required />
+          ) : null}
+          <Input name="email" type="email" label="Email" placeholder="email@example.com" required />
+          <Input name="password" type="password" label="Mật khẩu" placeholder="Tối thiểu 8 ký tự" required />
+          {mode === "register" ? (
+            <Input
+              name="confirmPassword"
+              type="password"
+              label="Xác nhận mật khẩu"
+              placeholder="Nhập lại mật khẩu"
+              required
+            />
+          ) : null}
+        </div>
       </div>
 
-      <div className={`grid gap-4 ${mode === "register" ? "md:grid-cols-2" : ""}`}>
-        {mode === "register" ? (
-          <Input name="name" label="Họ và tên" placeholder="Linh Nguyễn" required />
-        ) : null}
-        <Input name="email" type="email" label="Email" placeholder="hello@lumia.vn" required />
-        <Input name="password" type="password" label="Mật khẩu" placeholder="Tối thiểu 8 ký tự" required />
-        {mode === "register" ? (
-          <Input
-            name="confirmPassword"
-            type="password"
-            label="Xác nhận mật khẩu"
-            placeholder="Nhập lại mật khẩu"
-            required
-          />
-        ) : null}
-      </div>
-
-      <div className="mt-auto space-y-3">
-        <Button type="submit" disabled={loading} size="md" className="mt-2 w-full justify-center">
+      <div className="auth-form-footer shrink-0 space-y-3 border-t border-[var(--border)] bg-[var(--surface-card)]/80 px-4 py-4 backdrop-blur-sm md:px-5">
+        <Button type="submit" disabled={loading} size="md" className="w-full justify-center">
           {loading ? "Đang xử lý..." : mode === "login" ? "Đăng nhập" : "Đăng ký"}
         </Button>
 

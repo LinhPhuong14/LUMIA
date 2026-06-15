@@ -130,7 +130,7 @@ export const landingBoxCards: LandingBoxCard[] = [
     gradient: "var(--gradient-lime)",
     icon: Package,
     slug: "standard",
-    badge: "Digital",
+    badge: "Trải nghiệm số",
     photoTier: "standard",
   },
   {
@@ -169,7 +169,7 @@ export const landingBoxCards: LandingBoxCard[] = [
     icon: Sparkles,
     featured: true,
     slug: "pro",
-    badge: "Digital Pro",
+    badge: "Gói số nâng cao",
     photoTier: "pro",
   },
   {

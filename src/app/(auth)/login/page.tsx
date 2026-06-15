@@ -11,9 +11,9 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <div className="grid w-full gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-center">
+    <div className="auth-page-grid grid w-full flex-1 gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-stretch">
       <section
-        className="relative hidden min-h-[calc(100dvh-150px)] overflow-hidden rounded-[32px] p-8 lg:flex lg:flex-col lg:justify-between"
+        className="relative hidden min-h-[min(100dvh,720px)] overflow-hidden rounded-[32px] p-8 lg:flex lg:flex-col lg:justify-between"
         style={{ background: "var(--gradient-jade)" }}
       >
         <div className="relative max-w-xl pt-8">
@@ -31,9 +31,9 @@ export default async function LoginPage({
         </div>
       </section>
 
-      <div className="hero-card h-full max-h-[calc(100dvh-150px)] overflow-hidden p-4 md:p-5">
+      <div className="hero-card flex min-h-[min(100dvh,800px)] w-full flex-1 flex-col lg:max-h-[calc(100dvh-8rem)]">
         <AuthForm mode="login" next={params.next ?? defaultLoginNext} />
-        <p className="px-5 pb-5 pt-2 text-sm" style={{ color: "var(--muted)" }}>
+        <p className="shrink-0 px-5 pb-5 pt-2 text-sm" style={{ color: "var(--muted)" }}>
           Chưa có tài khoản?{" "}
           <Link href="/register" className="font-semibold" style={{ color: "var(--green-deep)" }}>
             Đăng ký
@@ -43,4 +43,3 @@ export default async function LoginPage({
     </div>
   );
 }
-
