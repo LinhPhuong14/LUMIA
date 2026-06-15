@@ -95,13 +95,19 @@ export function MoodCheckInPanel({
       </div>
 
       {activeScore ? (
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={getMoodPlaceholder(activeScore)}
-          rows={compact ? 2 : 3}
-          className="w-full resize-none rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--foreground)] outline-none ring-[var(--green)]/15 focus:ring-4"
-        />
+        <div className="relative">
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={getMoodPlaceholder(activeScore)}
+            rows={compact ? 2 : 3}
+            maxLength={300}
+            className="w-full resize-none rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--foreground)] outline-none ring-[var(--green)]/15 focus:ring-4"
+          />
+          <span className="absolute bottom-2 right-3 text-[10px] text-[var(--muted)]">
+            {note.length}/300
+          </span>
+        </div>
       ) : null}
 
       <button

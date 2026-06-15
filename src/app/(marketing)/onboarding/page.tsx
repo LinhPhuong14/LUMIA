@@ -97,6 +97,7 @@ function SeedProgress({ current, total }: { current: number; total: number }) {
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  // (#010) Use a ref-like accumulated answers pattern to avoid stale closure issues
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,13 +110,18 @@ export default function OnboardingPage() {
     setLoading(true);
     setError(null);
 
-    sessionStorage.setItem(
-      "lumia-onboarding-hints",
-      JSON.stringify({
-        bedtime: allAnswers.bedtime,
-        experience: allAnswers.experience,
-      }),
-    );
+    // (#008) Save hints to localStorage (persists across tab closes, unlike sessionStorage)
+    try {
+      localStorage.setItem(
+        "lumia-onboarding-hints",
+        JSON.stringify({
+          bedtime: allAnswers.bedtime,
+          experience: allAnswers.experience,
+        }),
+      );
+    } catch {
+      // localStorage may be unavailable in private mode — non-critical
+    }
 
     const response = await fetch("/api/me/profile", {
       method: "POST",
@@ -134,13 +140,15 @@ export default function OnboardingPage() {
   }
 
   function onSelect(value: string) {
+    // (#010) Build next answers and pass directly to finish() to avoid stale state
     const next = { ...answers, [current.id]: value };
     setAnswers(next);
 
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
-      finish({ goal: next.goal ?? value, bedtime: next.bedtime, experience: next.experience });
+      // Pass the fully accumulated answers object — no stale state risk
+      finish(next);
     }
   }
 
@@ -183,7 +191,14 @@ export default function OnboardingPage() {
             ))}
           </div>
 
-          {step > 0 ? (
+          {loading ? (
+            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-[var(--muted)]">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-matcha border-t-transparent" />
+              Đang lưu lựa chọn của bạn…
+            </div>
+          ) : null}
+
+          {step > 0 && !loading ? (
             <button type="button" onClick={() => setStep(step - 1)} className="button-secondary mt-6">
               Quay lại
             </button>

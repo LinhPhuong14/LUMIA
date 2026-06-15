@@ -17,23 +17,23 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
   }
 
   const body = await request.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    return NextResponse.json({ error: "Dữ liệu không hợp lệ." }, { status: 400 });
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
   const profile = await ensureUserProfile(session);
   if (!profile.ok) {
-    return NextResponse.json({ error: profile.error }, { status: 500 });
+    return NextResponse.json({ error: "Không thể xác minh hồ sơ người dùng." }, { status: 500 });
   }
 
   const today = localDateString();
@@ -53,16 +53,7 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("[mood] upsert failed:", error.message, error.code);
-    return NextResponse.json(
-      {
-        error: error.message,
-        hint:
-          error.code === "42501"
-            ? "Chạy supabase/migrations/005_ensure_profile_rpc.sql trên Supabase SQL Editor."
-            : undefined,
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Không thể lưu cảm xúc. Vui lòng thử lại." }, { status: 500 });
   }
 
   await logActivity(session.id, "mood");

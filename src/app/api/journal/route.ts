@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/streak";
+import { localDateString } from "@/lib/local-date";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
@@ -22,7 +23,10 @@ const metaSchema = z.object({
 const schema = z.object({
   content: z.string().min(1),
   promptUsed: z.string().optional(),
-  date: z.string().optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày không hợp lệ.")
+    .optional(),
   meta: metaSchema.optional(),
 });
 
@@ -31,12 +35,18 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
+  }
+
+  // (#007) Journal read also requires active subscription for consistency
+  const snapshot = await getSubscriptionSnapshot(session.id);
+  if (!snapshot.isActive) {
+    return NextResponse.json({ error: "Cần hành trình active để xem nhật ký." }, { status: 403 });
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
   const { data, error } = await supabase
@@ -46,7 +56,7 @@ export async function GET() {
     .order("date", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Không thể tải nhật ký. Vui lòng thử lại." }, { status: 500 });
   }
 
   return NextResponse.json(data ?? []);
@@ -55,26 +65,33 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
   }
 
   const snapshot = await getSubscriptionSnapshot(session.id);
   if (!snapshot.isActive) {
-    return NextResponse.json({ error: "Cần hành trình active để viết journal." }, { status: 403 });
+    return NextResponse.json({ error: "Cần hành trình active để viết nhật ký." }, { status: 403 });
   }
 
   const body = await request.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    return NextResponse.json({ error: "Dữ liệu không hợp lệ." }, { status: 400 });
+  }
+
+  const today = localDateString();
+  const date = parsed.data.date ?? today;
+
+  // Reject future dates
+  if (date > today) {
+    return NextResponse.json({ error: "Không thể lưu nhật ký cho ngày trong tương lai." }, { status: 400 });
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
-  const date = parsed.data.date ?? new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("journal_entries")
     .upsert(
@@ -91,7 +108,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Không thể lưu nhật ký. Vui lòng thử lại." }, { status: 500 });
   }
 
   await logActivity(session.id, "journal");

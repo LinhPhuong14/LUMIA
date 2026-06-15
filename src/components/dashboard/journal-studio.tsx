@@ -35,11 +35,12 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [stickerMode, setStickerMode] = useState(false);
 
   const loadEntries = useCallback(async () => {
+    if (!isActive) return [];
     const res = await fetch("/api/journal");
     if (!res.ok) return [];
     const data = (await res.json()) as JournalEntry[];
     return Array.isArray(data) ? data : [];
-  }, []);
+  }, [isActive]);
 
   const applyEntry = useCallback((entry: JournalEntry | null, date: string) => {
     setActiveDate(date);
@@ -96,14 +97,21 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     setSaving(false);
     if (!response.ok) return;
 
+    const saved = (await response.json()) as JournalEntry;
+
+    // Optimistic update — replace or prepend the saved entry without full reload
+    setEntries((prev) => {
+      const exists = prev.some((e) => e.date === saved.date);
+      if (exists) return prev.map((e) => (e.date === saved.date ? saved : e));
+      return [saved, ...prev].sort((a, b) => (a.date < b.date ? 1 : -1));
+    });
+
     await fetch("/api/streak/log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ activityType: "journal" }),
     }).catch(() => null);
 
-    const list = await loadEntries();
-    setEntries(list);
     flashSaved();
   }
 
@@ -118,6 +126,12 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   }
 
   function insertPrompt(prompt: string) {
+    if (activeDate !== today && content.trim()) {
+      const ok = window.confirm(
+        `Bạn đang xem trang ngày ${activeDate}. Thêm gợi ý sẽ chỉnh sửa trang cũ này. Tiếp tục?`,
+      );
+      if (!ok) return;
+    }
     setPromptUsed(prompt);
     setContent((prev) => (prev ? `${prev}\n\n${prompt}\n` : `${prompt}\n`));
   }
@@ -161,7 +175,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
           className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
         >
           <History className="h-4 w-4" />
-          Lịch sử ({entries.length})
+          {loading ? "Lịch sử" : `Lịch sử (${entries.length})`}
         </button>
         <span className="text-[12px] text-[var(--muted)]">{charCount} ký tự</span>
       </div>

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useVisualViewportOffset } from "@/lib/use-visual-viewport-offset";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { role: "user" | "assistant"; content: string; id: string };
 
 const starters = [
   "Tối nay mình thấy hơi quá tải",
@@ -67,10 +67,16 @@ function ListenWelcome({
   );
 }
 
+let msgCounter = 0;
+function nextId() {
+  return `msg-${++msgCounter}`;
+}
+
 export function AiStudio() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [usage, setUsage] = useState<{ remaining: number | null; limit: number | null }>({
     remaining: null,
     limit: null,
@@ -78,6 +84,26 @@ export function AiStudio() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const keyboardOffset = useVisualViewportOffset();
+
+  // (#006) Load today's chat history on mount so refresh preserves context
+  useEffect(() => {
+    setHistoryLoading(true);
+    fetch("/api/chat/history")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Array<{ role: string; content: string }>) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMessages(
+            data.map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              id: nextId(),
+            })),
+          );
+        }
+      })
+      .catch(() => null)
+      .finally(() => setHistoryLoading(false));
+  }, []);
 
   useEffect(() => {
     fetch("/api/chat/usage")
@@ -95,7 +121,7 @@ export function AiStudio() {
     if (usage.remaining === 0) return;
 
     setLoading(true);
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setMessages((prev) => [...prev, { role: "user", content: text, id: nextId() }]);
     setInput("");
 
     const response = await fetch("/api/chat", {
@@ -106,7 +132,7 @@ export function AiStudio() {
 
     if (!response.ok) {
       const err = (await response.json()) as { error?: string };
-      setMessages((prev) => [...prev, { role: "assistant", content: err.error ?? "Có lỗi xảy ra." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: err.error ?? "Có lỗi xảy ra.", id: nextId() }]);
       setLoading(false);
       return;
     }
@@ -114,11 +140,12 @@ export function AiStudio() {
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const data = (await response.json()) as { content: string };
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content, id: nextId() }]);
     } else {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      const assistantId = nextId();
+      setMessages((prev) => [...prev, { role: "assistant", content: "", id: assistantId }]);
 
       if (reader) {
         let accumulated = "";
@@ -129,7 +156,10 @@ export function AiStudio() {
           const nextText = accumulated;
           setMessages((prev) => {
             const next = [...prev];
-            next[next.length - 1] = { role: "assistant", content: nextText };
+            const idx = next.findIndex((m) => m.id === assistantId);
+            if (idx !== -1) {
+              next[idx] = { ...next[idx], content: nextText };
+            }
             return next;
           });
         }
@@ -143,7 +173,7 @@ export function AiStudio() {
   }
 
   const disabled = usage.remaining === 0;
-  const isEmpty = messages.length === 0;
+  const isEmpty = messages.length === 0 && !historyLoading;
 
   return (
     <div className="chat-container h-full min-h-0 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-4 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)] xl:gap-5">
@@ -197,13 +227,17 @@ export function AiStudio() {
             isEmpty ? "justify-center" : "space-y-3"
           }`}
         >
-          {isEmpty ? (
+          {historyLoading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
+            </div>
+          ) : isEmpty ? (
             <ListenWelcome onPick={sendMessage} disabled={disabled} loading={loading} />
           ) : (
             <>
-              {messages.map((msg, i) => (
+              {messages.map((msg) => (
                 <motion.div
-                  key={i}
+                  key={msg.id}
                   initial={{ opacity: 0, scale: 0.95, x: msg.role === "user" ? 12 : -12 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25, duration: 0.2 }}
@@ -212,7 +246,7 @@ export function AiStudio() {
                   }`}
                 >
                   {msg.content}
-                  {msg.role === "assistant" && loading && i === messages.length - 1 && msg.content ? (
+                  {msg.role === "assistant" && loading && msg === messages[messages.length - 1] && msg.content ? (
                     <span className="animate-pulse">|</span>
                   ) : null}
                 </motion.div>
@@ -253,13 +287,14 @@ export function AiStudio() {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            maxLength={2000}
             disabled={disabled || loading}
             className="min-h-[44px] flex-1 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[15px] text-[var(--foreground)] outline-none ring-[var(--green)]/20 focus:ring-4 disabled:opacity-50"
             placeholder="Viết điều đang ở trong lòng bạn…"
           />
           <button
             type="submit"
-            disabled={disabled || loading}
+            disabled={disabled || loading || !input.trim()}
             className="dash-accent-btn min-h-[44px] shrink-0 px-5 disabled:opacity-50"
           >
             Gửi

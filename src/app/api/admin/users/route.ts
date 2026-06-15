@@ -8,17 +8,17 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await getSession();
   if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 
   const admin = createAdminClient();
   if (!admin) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
   const { data: profiles, error } = await admin.from("profiles").select("*").order("created_at", { ascending: false });
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Không thể tải danh sách người dùng." }, { status: 500 });
   }
 
   const users = await Promise.all(
