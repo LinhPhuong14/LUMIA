@@ -103,20 +103,29 @@ export function ProductDetailView({
   const cartQty = items.find((i) => i.slug === product.slug)?.qty ?? 0;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
-      {/* Back link */}
-      <div className="sticky top-0 z-20 border-b px-4 py-3" style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface) 90%, transparent)", backdropFilter: "blur(20px)" }}>
-        <Link
-          href={backHref as Route}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium transition hover:opacity-70"
-          style={{ color: "var(--green-deep)" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Quay lại cửa hàng
-        </Link>
-      </div>
+    <div>
+      {/* Back link — sticky bar on marketing page only */}
+      {!inDashboard && (
+        <div className="sticky top-0 z-20 border-b px-4 py-3" style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface) 90%, transparent)", backdropFilter: "blur(20px)" }}>
+          <Link
+            href={backHref as Route}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium transition hover:opacity-70"
+            style={{ color: "var(--green-deep)" }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại cửa hàng
+          </Link>
+        </div>
+      )}
 
-      <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 lg:px-8">
+      <div className={`mx-auto max-w-3xl px-4 pt-6 lg:px-8 ${inDashboard ? "pb-8" : "pb-24"}`}>
+        {/* Pill back button inside dashboard */}
+        {inDashboard && (
+          <Link href={backHref as Route} className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] font-medium text-[var(--foreground)] transition hover:border-[var(--green)]">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Cửa hàng
+          </Link>
+        )}
         {/* Hero */}
         <div
           className="relative mb-6 overflow-hidden rounded-[28px] p-8 sm:p-12"

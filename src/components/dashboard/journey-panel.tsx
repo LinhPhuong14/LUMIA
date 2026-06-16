@@ -372,11 +372,11 @@ export function JourneyPanel({
         {/* Streak milestone badges */}
         <div className="mt-5 grid grid-cols-4 gap-2">
           {[
-            { days: 3, emoji: "🌱", label: "Khởi đầu tích cực" },
-            { days: 7, emoji: "⭐", label: "Người giữ nhịp" },
-            { days: 14, emoji: "🌙", label: "Người bạn của giấc ngủ" },
-            { days: 30, emoji: "🏆", label: "Chuyên gia thói quen" },
-          ].map(({ days, emoji, label }) => {
+            { days: 3, label: "Khởi đầu tích cực" },
+            { days: 7, label: "Người giữ nhịp" },
+            { days: 14, label: "Người bạn của giấc ngủ" },
+            { days: 30, label: "Chuyên gia thói quen" },
+          ].map(({ days, label }) => {
             const reached = streak.longest_streak >= days;
             return (
               <div
@@ -388,7 +388,7 @@ export function JourneyPanel({
                     : "border-[var(--border)] opacity-35 grayscale"
                 }`}
               >
-                <span className="text-xl">{emoji}</span>
+                <img src={`/badges/badge-${days}.svg`} alt={label} className="h-8 w-8" />
                 <span className="text-[9px] font-bold text-[var(--green-deep)]">{days} ngày</span>
                 <span className="line-clamp-2 text-[9px] leading-tight text-[var(--muted)]">{label}</span>
               </div>
@@ -423,20 +423,20 @@ export function JourneyPanel({
         <p className="mb-4 text-[13px] font-semibold text-[var(--foreground)]">Huy hiệu</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { days: 3, emoji: "🌱", label: "Khởi đầu tích cực" },
-            { days: 7, emoji: "⭐", label: "Người giữ nhịp" },
-            { days: 14, emoji: "🌙", label: "Người bạn của giấc ngủ" },
-            { days: 30, emoji: "🏆", label: "Chuyên gia thói quen" },
-          ].map(({ days, emoji, label }) => {
+            { days: 3, label: "Khởi đầu tích cực" },
+            { days: 7, label: "Người giữ nhịp" },
+            { days: 14, label: "Người bạn của giấc ngủ" },
+            { days: 30, label: "Chuyên gia thói quen" },
+          ].map(({ days, label }) => {
             const earned = streak.longest_streak >= days;
             return (
               <div
                 key={days}
                 className={`flex flex-col items-center rounded-[16px] border p-4 text-center transition ${
-                  earned ? "border-[var(--green)]/50 bg-[var(--green-wash)]" : "border-[var(--border)] opacity-40"
+                  earned ? "border-[var(--green)]/50 bg-[var(--green-wash)]" : "border-[var(--border)] opacity-40 grayscale"
                 }`}
               >
-                <span className="text-2xl">{earned ? emoji : "🔒"}</span>
+                <img src={`/badges/badge-${days}.svg`} alt={label} className="h-14 w-14" />
                 <span className="mt-2 text-[11px] font-semibold text-[var(--foreground)]">{label}</span>
                 <span className="mt-0.5 text-[10px] text-[var(--muted)]">{days} ngày</span>
               </div>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <radialGradient id="bg7" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fff9d4"/>
+      <stop offset="100%" stop-color="#f5c842"/>
+    </radialGradient>
+    <radialGradient id="glow7" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="56" fill="url(#bg7)" stroke="#e0a800" stroke-width="2.5"/>
+  <!-- Inner glow -->
+  <circle cx="60" cy="60" r="48" fill="url(#glow7)"/>
+  <!-- Star body -->
+  <polygon points="60,26 67,48 90,48 72,62 79,84 60,70 41,84 48,62 30,48 53,48" fill="#f5c842" stroke="#c8960a" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Star inner highlight -->
+  <polygon points="60,34 65,50 80,50 68,59 72,74 60,65 48,74 52,59 40,50 55,50" fill="#ffe680" opacity="0.6"/>
+  <!-- Day label -->
+  <text x="60" y="103" text-anchor="middle" font-family="Georgia, serif" font-size="11" font-weight="700" fill="#7a5200">7 ngày</text>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <radialGradient id="bg14" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#dde8ff"/>
+      <stop offset="100%" stop-color="#7b9ef5"/>
+    </radialGradient>
+    <radialGradient id="glow14" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="56" fill="url(#bg14)" stroke="#4a6ed4" stroke-width="2.5"/>
+  <!-- Stars -->
+  <circle cx="32" cy="36" r="2" fill="#c8d9ff" opacity="0.9"/>
+  <circle cx="88" cy="32" r="1.5" fill="#c8d9ff" opacity="0.7"/>
+  <circle cx="78" cy="50" r="1" fill="#ffffff" opacity="0.6"/>
+  <circle cx="38" cy="55" r="1" fill="#ffffff" opacity="0.5"/>
+  <circle cx="85" cy="68" r="1.5" fill="#c8d9ff" opacity="0.6"/>
+  <!-- Inner glow -->
+  <circle cx="60" cy="60" r="48" fill="url(#glow14)"/>
+  <!-- Moon crescent -->
+  <path d="M68 30 A26 26 0 1 0 68 90 A18 18 0 1 1 68 30Z" fill="#7b9ef5" stroke="#4a6ed4" stroke-width="1.5"/>
+  <path d="M70 34 A22 22 0 1 0 70 86 A14 14 0 1 1 70 34Z" fill="#dde8ff" opacity="0.35"/>
+  <!-- Day label -->
+  <text x="60" y="103" text-anchor="middle" font-family="Georgia, serif" font-size="11" font-weight="700" fill="#1e3a8a">14 ngày</text>
+</svg>

@@ -76,6 +76,9 @@ export function SettingsPanel({
   const [goal, setGoal] = useState<OnboardingGoal | null>(initialGoal);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalSaving, setGoalSaving] = useState(false);
+  const [nameVal, setNameVal] = useState(userName);
+  const [nameSaving, setNameSaving] = useState(false);
+  const [pwResetSent, setPwResetSent] = useState(false);
 
   const sections = useMemo(
     () => [
@@ -103,6 +106,23 @@ export function SettingsPanel({
     setState((current) => ({ ...current, [key]: !current[key] }));
     setSaved("Đã lưu thay đổi.");
     window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 1800);
+  }
+
+  async function saveName() {
+    setNameSaving(true);
+    await fetch("/api/me/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName: nameVal }),
+    });
+    setNameSaving(false);
+    setSaved("Đã cập nhật tên.");
+    setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2000);
+  }
+
+  async function sendPasswordReset() {
+    setPwResetSent(true);
+    await fetch("/api/auth/reset-password", { method: "POST" });
   }
 
   async function saveGoal() {
@@ -248,6 +268,57 @@ export function SettingsPanel({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="dash-panel p-6">
+        <span className="eyebrow">Tài khoản</span>
+        <div className="mt-5 space-y-3">
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Họ tên</label>
+            <input
+              value={nameVal}
+              onChange={(e) => setNameVal(e.target.value)}
+              className="w-full rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[14px] text-[var(--foreground)] outline-none focus:border-[var(--green)]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Email</label>
+            <input
+              value={userEmail}
+              disabled
+              className="w-full rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[14px] text-[var(--muted)] outline-none opacity-70"
+            />
+          </div>
+          {nameVal !== userName && (
+            <button type="button" onClick={saveName} disabled={nameSaving} className="button-primary text-[13px]">
+              {nameSaving ? "Đang lưu..." : "Lưu tên"}
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="dash-panel p-6">
+        <span className="eyebrow">Bảo mật</span>
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4">
+            <div>
+              <p className="text-[14px] font-medium text-[var(--foreground)]">Mật khẩu</p>
+              <p className="text-[12px] text-[var(--muted)]">Thay đổi mật khẩu đăng nhập</p>
+            </div>
+            <button
+              type="button"
+              onClick={sendPasswordReset}
+              disabled={pwResetSent}
+              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[13px] font-medium text-[var(--foreground)] transition hover:border-[var(--green)] disabled:opacity-60"
+            >
+              {pwResetSent ? "Đã gửi email ✓" : "Đổi mật khẩu"}
+            </button>
+          </div>
+          <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4">
+            <p className="text-[14px] font-medium text-[var(--foreground)]">Phiên đăng nhập</p>
+            <p className="mt-1 text-[12px] text-[var(--muted)]">Bạn đang đăng nhập trên thiết bị này. Đăng xuất để kết thúc phiên.</p>
           </div>
         </div>
       </section>
