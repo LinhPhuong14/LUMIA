@@ -322,7 +322,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
           {loading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-32 animate-pulse rounded-[20px] bg-[var(--surface)]" />
               ))}
@@ -351,25 +351,26 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                   <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--muted)" }}>
                     {formatDateLabel(date)}
                   </p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                     {dayEntries.map((entry) => (
                       <button
                         key={entry.id}
                         type="button"
                         onClick={() => openEntry(entry)}
-                        className="cursor-pointer rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-4 text-left transition hover:border-[var(--green)]/40 hover:shadow-md"
+                        className="cursor-pointer rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] p-4 text-left transition active:scale-[0.98] hover:border-[var(--green)]/40 hover:shadow-md"
+                        style={{ minHeight: 120 }}
                       >
-                        <p className="truncate font-serif text-[15px] font-semibold text-[var(--foreground)]">
+                        <p className="mb-2 truncate font-serif text-[15px] font-semibold leading-snug text-[var(--foreground)]">
                           {getTitle(entry)}
                         </p>
                         {entry.content.trim() && (
-                          <p className="mt-1 line-clamp-3 text-[13px]" style={{ color: "var(--muted)" }}
+                          <p className="line-clamp-3 text-[12.5px] leading-relaxed" style={{ color: "var(--muted)" }}
                             dangerouslySetInnerHTML={{ __html: entry.content.replace(/<[^>]+>/g, " ").trim() }}
                           />
                         )}
                         {entry.created_at && (
-                          <p className="mt-3 flex items-center gap-1 text-[11px]" style={{ color: "var(--muted)" }}>
-                            <Clock className="h-3 w-3" />
+                          <p className="mt-3 flex items-center gap-1 text-[10.5px]" style={{ color: "var(--muted)" }}>
+                            <Clock className="h-2.5 w-2.5" />
                             {formatTime(entry.created_at)}
                           </p>
                         )}

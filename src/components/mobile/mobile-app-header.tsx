@@ -33,12 +33,17 @@ export function MobileAppHeader({
   onMoreOpen?: () => void;
 }) {
   if (variant === "hub") {
+    const today = new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" });
     return (
-      <header className="sticky top-0 z-40 px-4 pb-2.5 pt-[calc(var(--safe-top)+6px)] lg:hidden">
+      <header className="sticky top-0 z-40 px-4 pb-3 pt-[calc(var(--safe-top)+8px)] lg:hidden"
+        style={{ background: "color-mix(in srgb, var(--surface) 90%, transparent)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
         <div className="flex items-center justify-between">
-          <span className="font-serif text-[18px] font-medium tracking-[-0.01em] text-[var(--foreground)]">
-            {title}
-          </span>
+          <div>
+            <p className="text-[11px] capitalize text-[var(--muted)]">{today}</p>
+            <span className="font-serif text-[20px] font-medium tracking-[-0.01em] text-[var(--foreground)]">
+              {title}
+            </span>
+          </div>
           <button type="button" className="dash-glass-btn" aria-label="Thông báo">
             <Bell className="h-[19px] w-[19px] text-[var(--foreground)]" />
           </button>
