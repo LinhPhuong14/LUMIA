@@ -321,7 +321,7 @@ function ActivityHabitTracker({
   activities: ActivityLog[];
   days: string[];
 }) {
-  const CHUNK = 15;
+  const CHUNK = 21;
   const [offset, setOffset] = useState(0);
   const total = days.length;
   const end = total - offset * CHUNK;
@@ -368,52 +368,63 @@ function ActivityHabitTracker({
       </div>
 
       {/* Day headers */}
-      <div className="mb-2 flex items-center gap-1.5 pl-[84px]">
-        {visibleDays.map((d) => (
-          <div
-            key={d}
-            className="flex h-6 w-6 shrink-0 items-center justify-center text-[9px] font-medium text-[var(--muted)]"
-          >
-            {d.slice(8)}
-          </div>
-        ))}
-      </div>
-
-      {/* Activity rows */}
-      <div className="space-y-2">
-        {types.map((type) => {
-          const doneSet = byType[type] ?? new Set();
-          const doneCount = visibleDays.filter((d) => doneSet.has(d)).length;
-          return (
-            <div key={type} className="flex items-center gap-1.5">
-              <div className="flex w-[80px] shrink-0 items-center gap-1.5">
-                <span className="text-sm">{ACTIVITY_ICONS[type] ?? "•"}</span>
-                <span className="truncate text-[11px] font-medium text-[var(--muted)]">
-                  {ACTIVITY_LABELS[type] ?? type}
-                </span>
-              </div>
-              {visibleDays.map((d) => {
-                const done = doneSet.has(d);
-                return (
-                  <div
-                    key={d}
-                    title={done ? `${ACTIVITY_LABELS[type]} – ${d}` : undefined}
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] transition ${
-                      done
-                        ? "bg-[var(--green)] text-white"
-                        : "bg-[var(--surface)] text-[var(--muted)]/30"
-                    }`}
-                  >
-                    {done ? "✓" : "·"}
-                  </div>
-                );
-              })}
-              <span className="ml-1.5 w-8 shrink-0 text-right text-[10px] font-semibold text-[var(--green-deep)]">
-                {doneCount}/{visibleDays.length}
-              </span>
+      <div className="mb-2 overflow-x-auto">
+        <div className="min-w-0">
+          {/* Header row: label placeholder + day numbers */}
+          <div className="mb-1 flex items-center">
+            <div className="w-[90px] shrink-0" />
+            <div className="flex flex-1 items-center justify-between">
+              {visibleDays.map((d, i) => (
+                <div
+                  key={d}
+                  className="flex-1 text-center text-[9px] font-medium text-[var(--muted)]"
+                >
+                  {i === 0 || d.slice(8) === "01" ? d.slice(5, 10) : d.slice(8)}
+                </div>
+              ))}
             </div>
-          );
-        })}
+            <div className="w-[34px] shrink-0" />
+          </div>
+
+          {/* Activity rows */}
+          <div className="space-y-1.5">
+            {types.map((type) => {
+              const doneSet = byType[type] ?? new Set();
+              const doneCount = visibleDays.filter((d) => doneSet.has(d)).length;
+              return (
+                <div key={type} className="flex items-center">
+                  <div className="flex w-[90px] shrink-0 items-center gap-1.5 pr-2">
+                    <span className="text-sm">{ACTIVITY_ICONS[type] ?? "•"}</span>
+                    <span className="truncate text-[11px] font-medium text-[var(--muted)]">
+                      {ACTIVITY_LABELS[type] ?? type}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 items-center justify-between gap-0.5">
+                    {visibleDays.map((d) => {
+                      const done = doneSet.has(d);
+                      return (
+                        <div
+                          key={d}
+                          title={done ? `${ACTIVITY_LABELS[type]} – ${d}` : undefined}
+                          className={`flex h-6 flex-1 items-center justify-center rounded-md text-[10px] transition ${
+                            done
+                              ? "bg-[var(--green)] text-white"
+                              : "bg-[var(--surface)] text-[var(--muted)]/30"
+                          }`}
+                        >
+                          {done ? "✓" : "·"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="ml-1.5 w-8 shrink-0 text-right text-[10px] font-semibold text-[var(--green-deep)]">
+                    {doneCount}/{visibleDays.length}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

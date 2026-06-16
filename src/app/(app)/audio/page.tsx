@@ -64,9 +64,11 @@ export default async function AudioPage() {
               <Link
                 key={cat.href}
                 href={cat.href}
-                className={`flex flex-col items-start justify-between rounded-[22px] border bg-gradient-to-br p-5 transition hover:shadow-md active:scale-[0.98] lg:p-6 ${cat.color} ${cat.border}`}
+                className={`group relative flex flex-col items-start justify-between overflow-hidden rounded-[22px] border bg-gradient-to-br p-5 backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] active:scale-[0.98] lg:p-6 ${cat.color} ${cat.border}`}
               >
-                <span className="text-3xl">{cat.emoji}</span>
+                {/* Glass shimmer overlay */}
+                <div className="pointer-events-none absolute inset-0 rounded-[22px] opacity-0 transition group-hover:opacity-100" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 60%)" }} />
+                <span className="text-3xl drop-shadow-sm">{cat.emoji}</span>
                 <div className="mt-3">
                   <p className="font-semibold text-[var(--foreground)]">{cat.title}</p>
                   <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--muted)]">
