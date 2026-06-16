@@ -241,7 +241,7 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
 }
 
 /* ── Product Card ── */
-function ProductCard({ product, index }: { product: StoreProduct; index: number }) {
+function ProductCard({ product, index, basePath = "/store/products" }: { product: StoreProduct; index: number; basePath?: string }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -268,7 +268,7 @@ function ProductCard({ product, index }: { product: StoreProduct; index: number 
       transition={{ duration: 0.22, delay: (index % PRODUCTS_PER_PAGE) * 0.05 }}
     >
       <Link
-        href={`/store/products/${product.slug}` as Route}
+        href={`${basePath}/${product.slug}` as Route}
         className="group flex flex-col overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] transition hover:-translate-y-0.5 hover:border-[var(--green)]/30 hover:shadow-[0_12px_32px_rgba(95,111,82,0.14)] dark:hover:shadow-[0_12px_32px_rgba(95,111,82,0.22)]"
       >
         {/* Image */}
@@ -364,7 +364,7 @@ function TrustStrip() {
 }
 
 /* ── Main component ── */
-export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false }: { stickyTop?: string; hideRegisterCta?: boolean } = {}) {
+export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store/products" }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string } = {}) {
   const [planTab, setPlanTab] = useState<PlanTab>("digital");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -567,7 +567,7 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               <AnimatePresence>
                 {visibleProducts.map((p, i) => (
-                  <ProductCard key={p.id} product={p} index={i} />
+                  <ProductCard key={p.id} product={p} index={i} basePath={productBasePath} />
                 ))}
               </AnimatePresence>
             </div>
