@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { AuthForm } from "@/components/auth/auth-form";
 import { defaultLoginNext } from "@/lib/site-nav";
 
@@ -33,12 +31,6 @@ export default async function LoginPage({
 
       <div className="hero-card flex w-full flex-col">
         <AuthForm mode="login" next={params.next ?? defaultLoginNext} />
-        <p className="shrink-0 px-5 pb-5 pt-2 text-sm" style={{ color: "var(--muted)" }}>
-          Chưa có tài khoản?{" "}
-          <Link href="/register" className="font-semibold" style={{ color: "var(--green-deep)" }}>
-            Đăng ký
-          </Link>
-        </p>
       </div>
     </div>
   );
