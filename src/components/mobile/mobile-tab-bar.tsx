@@ -53,12 +53,11 @@ export function MobileTabBar({ onMoreOpen }: { onMoreOpen?: () => void }) {
         );
       })}
 
-      {/* More button */}
-      <button
-        type="button"
-        onClick={onMoreOpen}
+      {/* Settings link */}
+      <Link
+        href="/account?tab=settings"
         className="mobile-tab-floating-item"
-        aria-label="Thêm tùy chọn"
+        aria-label="Cài đặt"
       >
         <span
           className={cn(
@@ -78,9 +77,9 @@ export function MobileTabBar({ onMoreOpen }: { onMoreOpen?: () => void }) {
             moreActive ? "font-bold text-[var(--green-deep)]" : "font-medium text-[var(--foreground)] opacity-60",
           )}
         >
-          Thêm
+          Cài đặt
         </span>
-      </button>
+      </Link>
     </nav>
   );
 }
