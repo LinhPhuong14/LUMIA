@@ -608,7 +608,7 @@ export function UnifiedStore() {
               </p>
             </div>
             <Link
-              href="/signup"
+              href={"/register" as Route}
               className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--green)] px-7 py-3.5 text-[14px] font-semibold text-white transition hover:opacity-90 hover:shadow-[0_8px_24px_rgba(95,111,82,0.45)]"
             >
               Đăng ký miễn phí
