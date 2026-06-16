@@ -107,37 +107,8 @@ const faqs: { q: string; a: string; tag: Exclude<Group, "Tất cả"> }[] = [
   },
 ];
 
-const TAG_COLORS: Record<string, string> = {
-  "Tính năng": "bg-[var(--green-wash)] text-[var(--green-deep)]",
-  "Tổng quan": "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300",
-  "Bảo mật": "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300",
-  "Giá cả": "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
-  "Bắt đầu": "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
-  "Kiến thức": "bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-300",
-  "Hỗ trợ": "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
-};
-
-const GROUP_BG: Record<string, string> = {
-  "Tất cả": "bg-[var(--green)] text-white",
-  "Tổng quan": "bg-blue-600 text-white",
-  "Tính năng": "bg-[var(--green-deep)] text-white",
-  "Bảo mật": "bg-purple-600 text-white",
-  "Giá cả": "bg-amber-500 text-white",
-  "Bắt đầu": "bg-emerald-600 text-white",
-  "Kiến thức": "bg-rose-500 text-white",
-  "Hỗ trợ": "bg-orange-500 text-white",
-};
-
-const GROUP_INACTIVE: Record<string, string> = {
-  "Tất cả": "text-[var(--green-deep)] border-[var(--green-wash)] hover:bg-[var(--green-wash)]",
-  "Tổng quan": "text-blue-700 border-blue-100 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-900/30 dark:hover:bg-blue-900/20",
-  "Tính năng": "text-[var(--green-deep)] border-[var(--green-wash)] hover:bg-[var(--green-wash)]",
-  "Bảo mật": "text-purple-700 border-purple-100 hover:bg-purple-50 dark:text-purple-300 dark:border-purple-900/30 dark:hover:bg-purple-900/20",
-  "Giá cả": "text-amber-700 border-amber-100 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-900/30 dark:hover:bg-amber-900/20",
-  "Bắt đầu": "text-emerald-700 border-emerald-100 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-900/30 dark:hover:bg-emerald-900/20",
-  "Kiến thức": "text-rose-700 border-rose-100 hover:bg-rose-50 dark:text-rose-300 dark:border-rose-900/30 dark:hover:bg-rose-900/20",
-  "Hỗ trợ": "text-orange-700 border-orange-100 hover:bg-orange-50 dark:text-orange-300 dark:border-orange-900/30 dark:hover:bg-orange-900/20",
-};
+// All tags use the unified green palette - consistent with design system
+const TAG_CLASS = "bg-[var(--green-wash)] text-[var(--green-deep)]";
 
 export function FaqSection() {
   const [open, setOpen] = useState<number | null>(null);
@@ -255,11 +226,12 @@ export function FaqSection() {
                     setActiveGroup(g);
                     setOpen(null);
                   }}
-                  className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-150 ${
+                  className="rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-150"
+                  style={
                     isActive
-                      ? GROUP_BG[g]
-                      : `border ${GROUP_INACTIVE[g]} bg-transparent`
-                  }`}
+                      ? { background: "var(--green)", color: "#fff", borderColor: "var(--green)" }
+                      : { background: "transparent", color: "var(--green-deep)", borderColor: "var(--border)" }
+                  }
                 >
                   {g}
                 </button>
@@ -283,7 +255,7 @@ export function FaqSection() {
                 {activeGroup === "Tất cả" && search.trim() === "" && (
                   <div className="mb-3 flex items-center gap-3">
                     <span
-                      className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] ${TAG_COLORS[group.tag] ?? ""}`}
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] ${TAG_CLASS}`}
                     >
                       {group.tag}
                     </span>
@@ -316,9 +288,10 @@ export function FaqSection() {
                           className="flex w-full items-start gap-4 px-5 py-4 text-left"
                         >
                           <div className="min-w-0 flex-1">
-                            {(activeGroup === "Tất cả" || search.trim() !== "") && (
+                            {/* Only show tag badge when searching across all groups */}
+                            {search.trim() !== "" && (
                               <span
-                                className={`mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${TAG_COLORS[faq.tag] ?? ""}`}
+                                className={`mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${TAG_CLASS}`}
                               >
                                 {faq.tag}
                               </span>

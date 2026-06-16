@@ -29,21 +29,21 @@ export function PricingCatalog({
   return (
     <div>
       {/* Promo banner - not in fixed menu */}
-      <section className="mx-auto mt-10 max-w-4xl rounded-[28px] border border-[var(--lumia-green-soft)] bg-gradient-to-r from-[var(--lumia-green-bg)] to-white p-6 shadow-[0_8px_32px_rgba(45,58,40,0.08)] md:p-8">
+      <section className="mx-auto mt-10 max-w-4xl rounded-[28px] border border-[var(--border)] bg-gradient-to-r from-[var(--green-wash)] to-white p-6 shadow-[0_8px_32px_rgba(45,58,40,0.08)] md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--lumia-green)]">
+            <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--green)]">
               Ưu đãi người dùng mới
             </span>
-            <h2 className="mt-2 font-serif text-2xl font-bold text-[var(--title-primary)] md:text-3xl">
+            <h2 className="mt-2 font-serif text-2xl font-bold text-[var(--foreground)] md:text-3xl">
               Bắt đầu ngay chỉ với {formatCurrency(promoBox.price)}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--lumia-text-mid)]">
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               App Premium 1 tháng + Welcome Kit (trà thảo mộc & xịt gối mini) - dành riêng lần đầu.
             </p>
           </div>
           {firstTimeUnavailable ? (
-            <span className="rounded-full border border-[var(--lumia-green-soft)] px-5 py-3 text-sm text-[var(--lumia-text-soft)]">
+            <span className="rounded-full border border-[var(--border)] px-5 py-3 text-sm text-[var(--muted)]">
               Bạn đã sử dụng ưu đãi này
             </span>
           ) : (
@@ -55,11 +55,11 @@ export function PricingCatalog({
       </section>
 
       {/* Free tier */}
-      <section className="mx-auto mt-8 max-w-4xl rounded-[24px] border border-[var(--lumia-green-soft)] bg-surface-card p-5 shadow-[0_4px_20px_rgba(45,58,40,0.06)] md:p-6">
+      <section className="mx-auto mt-8 max-w-4xl rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(45,58,40,0.06)] md:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[var(--title-primary)]">{freeTierInfo.name}</h3>
-            <p className="mt-1 text-sm text-[var(--lumia-text-mid)]">Miễn phí - {freeTierInfo.features.join(" · ")}</p>
+            <h3 className="text-lg font-bold text-[var(--foreground)]">{freeTierInfo.name}</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">Miễn phí - {freeTierInfo.features.join(" · ")}</p>
           </div>
           <Link href={freeTierInfo.ctaHref as Route} className="button-secondary shrink-0 text-[13px]">
             {freeTierInfo.ctaLabel}
@@ -76,19 +76,19 @@ export function PricingCatalog({
             onClick={() => setTab(t.id)}
             className={`flex-1 rounded-[20px] border px-5 py-4 text-left transition ${
               tab === t.id
-                ? "border-[var(--lumia-green)] bg-[var(--lumia-green-bg)] shadow-[0_4px_16px_rgba(45,58,40,0.08)]"
-                : "border-[var(--lumia-green-soft)] bg-surface-card hover:bg-[var(--lumia-green-bg)]/50"
+                ? "border-[var(--green)] bg-[var(--green-wash)] shadow-[0_4px_16px_rgba(45,58,40,0.08)]"
+                : "border-[var(--border)] bg-[var(--surface-card)] hover:bg-[var(--green-wash)]/50"
             }`}
           >
-            <div className="text-sm font-bold text-[var(--title-primary)]">{t.label}</div>
-            <div className="mt-1 text-xs text-[var(--lumia-text-soft)]">{t.subtitle}</div>
+            <div className="text-sm font-bold text-[var(--foreground)]">{t.label}</div>
+            <div className="mt-1 text-xs text-[var(--muted)]">{t.subtitle}</div>
           </button>
         ))}
       </div>
 
       {tab === "store" ? (
         <section className="mx-auto mt-8 max-w-4xl">
-          <p className="mb-6 text-center text-sm leading-7 text-[var(--lumia-text-mid)]">
+          <p className="mb-6 text-center text-sm leading-7 text-[var(--muted)]">
             Đây là các công cụ hỗ trợ trong hệ sinh thái LUMIA - được tặng kèm hoặc mua riêng khi bạn
             chọn gói cao cấp.
           </p>
@@ -96,17 +96,17 @@ export function PricingCatalog({
             {storeItems.map((item) => (
               <article
                 key={item.name}
-                className="rounded-[24px] border border-[var(--lumia-green-soft)] bg-surface-card p-5 shadow-[0_4px_20px_rgba(45,58,40,0.06)]"
+                className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-5 shadow-[0_4px_20px_rgba(45,58,40,0.06)]"
               >
-                <h3 className="font-semibold text-[var(--title-primary)]">{item.name}</h3>
-                <p className="mt-2 text-sm text-[var(--lumia-text-mid)]">{item.description}</p>
-                <p className="mt-3 text-xs text-[var(--lumia-green)]">{item.note}</p>
+                <h3 className="font-semibold text-[var(--foreground)]">{item.name}</h3>
+                <p className="mt-2 text-sm text-[var(--muted)]">{item.description}</p>
+                <p className="mt-3 text-xs text-[var(--green)]">{item.note}</p>
               </article>
             ))}
           </div>
-          <p className="mt-6 text-center text-sm text-[var(--lumia-text-soft)]">
+          <p className="mt-6 text-center text-sm text-[var(--muted)]">
             Muốn nhận bộ đầy đủ? Xem{" "}
-            <button type="button" onClick={() => setTab("hybrid")} className="font-semibold text-[var(--lumia-green)] underline">
+            <button type="button" onClick={() => setTab("hybrid")} className="font-semibold text-[var(--green)] underline">
               Gói Hệ sinh thái
             </button>
           </p>
