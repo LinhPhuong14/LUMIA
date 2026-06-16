@@ -10,7 +10,7 @@ import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import { StoreWidget } from "@/components/dashboard/store-widget";
 import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
-import { getTimeGreeting } from "@/lib/time-greeting";
+import { getDashboardGreeting } from "@/lib/time-greeting";
 
 const quickActions = [
   {
@@ -78,7 +78,7 @@ export function HubMobile({
   onCheckIn,
   submitting,
 }: HubProps) {
-  const greeting = `${getTimeGreeting()}, ${firstName(userName)}`;
+  const greeting = getDashboardGreeting(userName);
   const streak = insights?.streak.current ?? 0;
 
   return (
