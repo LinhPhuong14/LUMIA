@@ -58,7 +58,7 @@ export function MobileNavSheet({
       >
         <div className="mobile-nav-sheet-handle" aria-hidden />
         <div className="mobile-nav-sheet-header">
-          <span className="font-serif text-xl text-[var(--matcha-deep)]">{title}</span>
+          <span className="font-serif text-xl text-[var(--foreground)]">{title}</span>
           <button
             type="button"
             onClick={onClose}

@@ -152,18 +152,20 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
       )}
 
       {/* Header */}
-      <div className="relative overflow-hidden p-6 pb-5 dark:bg-[var(--surface-card)]"
-        style={{ background: "light-dark(" + (box.gradient ?? "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)") + ", var(--surface-card))" }}
-      >
-        {/* light mode gradient */}
+      <div className="relative overflow-hidden p-6 pb-5">
+        {/* Light mode: brand gradient */}
         <div
           className="absolute inset-0 dark:hidden"
           style={{ background: box.gradient ?? "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)" }}
         />
-        {/* dark mode: subtle tinted surface */}
+        {/* Dark mode: clean surface + green accent strip */}
         <div
           className="absolute inset-0 hidden dark:block"
-          style={{ background: isFeatured ? "linear-gradient(135deg,rgba(60,80,50,0.55) 0%,rgba(40,60,35,0.4) 100%)" : "linear-gradient(135deg,rgba(30,40,28,0.6) 0%,rgba(20,30,18,0.5) 100%)" }}
+          style={{
+            background: isFeatured
+              ? "linear-gradient(160deg, rgba(72,95,58,0.45) 0%, var(--surface-card) 55%)"
+              : "var(--surface-card)",
+          }}
         />
         <div className="relative z-10">
           <div className="mb-3 flex items-center gap-2">
