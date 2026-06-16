@@ -12,7 +12,7 @@ export default function StorePage() {
       <div className="landing-frame py-16">
         <div className="mb-12">
           <span className="lumia-kicker">- LUMIA Store</span>
-          <h1 className="lumia-h2 mt-2">Gói & sản phẩm wellbeing.</h1>
+          <h1 className="lumia-h2 mt-2">Bộ sưu tập Lumia.</h1>
           <p className="mt-3 max-w-[520px] text-base leading-relaxed text-[var(--muted)]">
             Chọn gói LUMIA phù hợp hoặc mua riêng sản phẩm để tạo không gian ngủ và thư giãn tốt hơn.
           </p>
