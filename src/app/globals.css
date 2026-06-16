@@ -1685,10 +1685,13 @@
 
   .auth-page {
     min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
 
   .auth-page-main {
-    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
   }
 
   .auth-form {
