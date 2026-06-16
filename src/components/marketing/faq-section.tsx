@@ -12,17 +12,17 @@ const faqs = [
   },
   {
     q: "Lumia khác gì so với các ứng dụng sức khỏe thông thường?",
-    a: "Lumia kết hợp công nghệ AI, dữ liệu giấc ngủ và chăm sóc sức khỏe tinh thần trong một hệ sinh thái toàn diện — thay vì chỉ đếm bước chân hay calo.",
+    a: "Lumia kết hợp công nghệ AI, dữ liệu giấc ngủ và chăm sóc sức khỏe tinh thần trong một hệ sinh thái toàn diện - thay vì chỉ đếm bước chân hay calo.",
     tag: "Tổng quan",
   },
   {
     q: "Mood Test là gì?",
-    a: "Mood Test là bài đánh giá giúp bạn theo dõi tâm trạng, cảm xúc và mức độ căng thẳng theo thời gian — từ đó Lumia gợi ý trải nghiệm phù hợp cho bạn.",
+    a: "Mood Test là bài đánh giá giúp bạn theo dõi tâm trạng, cảm xúc và mức độ căng thẳng theo thời gian - từ đó Lumia gợi ý trải nghiệm phù hợp cho bạn.",
     tag: "Tính năng",
   },
   {
     q: "AI Chatbot hoạt động như thế nào?",
-    a: "AI Chatbot lắng nghe, trò chuyện và đưa ra những gợi ý phù hợp dựa trên trạng thái cảm xúc của bạn — không phán xét, không áp lực.",
+    a: "AI Chatbot lắng nghe, trò chuyện và đưa ra những gợi ý phù hợp dựa trên trạng thái cảm xúc của bạn - không phán xét, không áp lực.",
     tag: "Tính năng",
   },
   {
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     q: "Ai phù hợp sử dụng Lumia?",
-    a: "Bất kỳ ai muốn cải thiện giấc ngủ, chăm sóc sức khỏe tinh thần và xây dựng lối sống cân bằng hơn — từ sinh viên, nhân viên văn phòng đến người cao tuổi.",
+    a: "Bất kỳ ai muốn cải thiện giấc ngủ, chăm sóc sức khỏe tinh thần và xây dựng lối sống cân bằng hơn - từ sinh viên, nhân viên văn phòng đến người cao tuổi.",
     tag: "Tổng quan",
   },
   {
@@ -62,7 +62,7 @@ const faqs = [
   },
   {
     q: "Vì sao giấc ngủ lại quan trọng?",
-    a: "Giấc ngủ chất lượng giúp cơ thể phục hồi, cân bằng cảm xúc và nâng cao sức khỏe thể chất lẫn tinh thần — đây là nền tảng của mọi thứ.",
+    a: "Giấc ngủ chất lượng giúp cơ thể phục hồi, cân bằng cảm xúc và nâng cao sức khỏe thể chất lẫn tinh thần - đây là nền tảng của mọi thứ.",
     tag: "Kiến thức",
   },
   {

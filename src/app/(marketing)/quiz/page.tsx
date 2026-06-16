@@ -19,7 +19,7 @@ export default function QuizPage() {
           Tìm gói LUMIA phù hợp với bạn
         </h1>
         <p className="mt-4 max-w-md text-[15px] leading-7" style={{ color: "var(--muted)" }}>
-          Vài câu hỏi nhẹ nhàng về giấc ngủ và cảm xúc — LUMIA sẽ gợi ý gói phù hợp nhất, không áp lực quyết định.
+          Vài câu hỏi nhẹ nhàng về giấc ngủ và cảm xúc - LUMIA sẽ gợi ý gói phù hợp nhất, không áp lực quyết định.
         </p>
       </section>
       <section className="dash-panel p-5 md:p-7">

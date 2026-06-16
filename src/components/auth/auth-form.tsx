@@ -57,7 +57,7 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
         setError("Đăng nhập qua mạng xã hội thất bại. Vui lòng thử lại.");
         setOauthLoading(null);
       }
-      // On success, browser will redirect — no need to setOauthLoading(null)
+      // On success, browser will redirect - no need to setOauthLoading(null)
     } catch {
       setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
       setOauthLoading(null);

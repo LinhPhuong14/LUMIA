@@ -40,7 +40,7 @@ export default async function AudioMeditationPage() {
           ]}
         />
 
-        {/* Breathing exercise — inline, no separate page needed */}
+        {/* Breathing exercise - inline, no separate page needed */}
         <UpsellOverlay featureName="Bài tập thở" locked={!subscription.isActive}>
           <BreathingExercise enabled={subscription.isActive} />
         </UpsellOverlay>

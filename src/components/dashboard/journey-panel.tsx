@@ -337,7 +337,7 @@ export function JourneyPanel({
             return (
               <div
                 key={days}
-                title={`${days} ngày — ${label}`}
+                title={`${days} ngày - ${label}`}
                 className={`flex flex-col items-center gap-1 rounded-[14px] border p-2.5 text-center transition ${
                   reached
                     ? "border-[var(--green)]/40 bg-[var(--green-wash)]"

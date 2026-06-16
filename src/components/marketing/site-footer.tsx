@@ -23,7 +23,7 @@ export function SiteFooter() {
               Thấu hiểu giấc ngủ. Nuôi dưỡng hạnh phúc.
             </p>
             <p className="mt-2 text-[12px] leading-relaxed" style={{ color: "var(--muted)" }}>
-              Hệ sinh thái công nghệ thấu hiểu và tái tạo giấc ngủ — theo dõi cảm xúc, phân tích dữ liệu và AI lắng nghe.
+              Hệ sinh thái công nghệ thấu hiểu và tái tạo giấc ngủ - theo dõi cảm xúc, phân tích dữ liệu và AI lắng nghe.
             </p>
           </div>
 

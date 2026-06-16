@@ -21,7 +21,7 @@ export default async function LoginPage({
             Chào mừng bạn quay lại với LUMIA.
           </h1>
           <p className="mt-4 text-lg leading-8" style={{ color: "var(--scene-ink-muted)" }}>
-            Hôm nay mình bắt đầu nhẹ nhàng thôi — một check-in, vài dòng viết ra, hoặc vài phút được lắng nghe.
+            Hôm nay mình bắt đầu nhẹ nhàng thôi - một check-in, vài dòng viết ra, hoặc vài phút được lắng nghe.
           </p>
         </div>
         <div className="dash-panel relative p-6">

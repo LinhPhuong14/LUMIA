@@ -170,7 +170,7 @@ export function FeedbackPanel() {
       {/* Form */}
       <div className="dash-panel rounded-[24px] p-5">
         <p className="mb-4 text-[13px] leading-relaxed text-[var(--muted)]">
-          Bạn đang nghĩ gì? Góp ý, báo lỗi, hay chia sẻ điều bạn mong muốn ở LUMIA — chúng mình lắng nghe tất cả.
+          Bạn đang nghĩ gì? Góp ý, báo lỗi, hay chia sẻ điều bạn mong muốn ở LUMIA - chúng mình lắng nghe tất cả.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">

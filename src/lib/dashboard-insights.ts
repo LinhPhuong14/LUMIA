@@ -87,13 +87,13 @@ export function buildSuggestion(
   streak: number,
 ): string {
   if (todayScore === null) {
-    return "Ghi nhận cảm xúc hôm nay giúp LUMIA đọc nhịp của bạn chính xác hơn — chỉ mất vài giây.";
+    return "Ghi nhận cảm xúc hôm nay giúp LUMIA đọc nhịp của bạn chính xác hơn - chỉ mất vài giây.";
   }
   if (todayScore <= 2) {
     return "Hôm nay có vẻ nặng. Thử 3 phút thở sâu, viết một dòng journal, hoặc mở LUMIA lắng nghe khi bạn sẵn sàng.";
   }
   if (todayScore === 3) {
-    return "Một ngày ổn. Routine nhẹ buổi tối — soundscape 10 phút và check-in trước khi ngủ — có thể giúp bạn giữ nhịp ổn định.";
+    return "Một ngày ổn. Routine nhẹ buổi tối - soundscape 10 phút và check-in trước khi ngủ - có thể giúp bạn giữ nhịp ổn định.";
   }
   if (weekCheckIns < 4) {
     return `Bạn đã check-in ${weekCheckIns}/7 ngày tuần này. Giữ streak ${streak > 0 ? `${streak} ngày` : "mới"} bằng một ghi nhận ngắn mỗi tối.`;

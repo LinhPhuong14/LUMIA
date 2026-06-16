@@ -95,7 +95,7 @@ const COMPANION_OPTIONS = [
     icon: "💻",
     title: "Hành trình số",
     description:
-      "Phân tích dữ liệu, AI Chatbot, âm thanh sóng não — mọi thứ trên thiết bị của bạn.",
+      "Phân tích dữ liệu, AI Chatbot, âm thanh sóng não - mọi thứ trên thiết bị của bạn.",
     tag: "Gợi ý: LUMIA Digital",
   },
   {
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
         }),
       );
     } catch {
-      // localStorage may be unavailable in private/incognito mode — non-critical
+      // localStorage may be unavailable in private/incognito mode - non-critical
     }
 
     try {

@@ -42,7 +42,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   // Signed URLs require the admin (service role) client
   if (!admin) {
-    return NextResponse.json({ error: "Storage signing unavailable — set SUPABASE_SECRET_KEY" }, { status: 503 });
+    return NextResponse.json({ error: "Storage signing unavailable - set SUPABASE_SECRET_KEY" }, { status: 503 });
   }
 
   const { data, error } = await admin.storage.from("audio").createSignedUrl(track.file_url, 3600);

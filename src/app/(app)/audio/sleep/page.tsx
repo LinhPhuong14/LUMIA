@@ -28,7 +28,7 @@ export default async function AudioSleepPage() {
           ← Âm thanh
         </Link>
 
-        {/* Sleep audio tracks — primary content */}
+        {/* Sleep audio tracks - primary content */}
         <AudioCategoryPage
           isActive={subscription.isActive}
           categories={["sleep_sound", "sleep_cast", "wind_down", "sleep_music"]}
@@ -40,7 +40,7 @@ export default async function AudioSleepPage() {
           ]}
         />
 
-        {/* Sleep coach — secondary, below tracks */}
+        {/* Sleep coach - secondary, below tracks */}
         <SleepCoach />
       </div>
     </DashboardShell>

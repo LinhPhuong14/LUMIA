@@ -53,7 +53,7 @@ export const categoryCards: CategoryCard[] = [
     icon: Moon,
     gradient: "var(--gradient-jade)",
     imageSrc: "/landing/categories/path-sleep.png",
-    imageAlt: "Minh họa bé gái và chú chó đi trên đồng cỏ xanh — lối về giấc ngủ",
+    imageAlt: "Minh họa bé gái và chú chó đi trên đồng cỏ xanh - lối về giấc ngủ",
   },
   {
     title: "Thiền",
@@ -61,7 +61,7 @@ export const categoryCards: CategoryCard[] = [
     icon: Sparkles,
     gradient: "var(--gradient-emerald)",
     imageSrc: "/landing/categories/path-meditation.png",
-    imageAlt: "Minh họa bé gái thiền trên đồng cỏ — tĩnh lặng trong",
+    imageAlt: "Minh họa bé gái thiền trên đồng cỏ - tĩnh lặng trong",
   },
   {
     title: "Hơi thở",
@@ -69,7 +69,7 @@ export const categoryCards: CategoryCard[] = [
     icon: Wind,
     gradient: "var(--gradient-iris)",
     imageSrc: "/landing/categories/path-breath.png",
-    imageAlt: "Minh họa bé gái hít thở cùng gió — từng nhịp thở",
+    imageAlt: "Minh họa bé gái hít thở cùng gió - từng nhịp thở",
   },
   {
     title: "Nhật ký",
@@ -77,7 +77,7 @@ export const categoryCards: CategoryCard[] = [
     icon: Feather,
     gradient: "var(--gradient-honeyjade)",
     imageSrc: "/landing/categories/path-journal.png",
-    imageAlt: "Minh họa bé gái viết nhật ký trên đồng cỏ — viết ra và buông",
+    imageAlt: "Minh họa bé gái viết nhật ký trên đồng cỏ - viết ra và buông",
   },
 ];
 

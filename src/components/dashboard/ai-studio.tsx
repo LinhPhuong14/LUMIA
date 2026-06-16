@@ -465,7 +465,7 @@ export function AiStudio() {
           </p>
         ) : null}
 
-        {/* Input bar — only shown for today */}
+        {/* Input bar - only shown for today */}
         {isToday ? (
           <form
             className="chat-input-bar listen-input-bar fixed inset-x-0 z-30 flex shrink-0 gap-2 px-4 py-3 lg:static lg:z-auto lg:px-7 lg:py-5"
@@ -495,7 +495,7 @@ export function AiStudio() {
             </button>
           </form>
         ) : (
-          /* Past day — show read-only notice at bottom */
+          /* Past day - show read-only notice at bottom */
           <div className="shrink-0 border-t border-[var(--border)] px-4 py-3 text-center text-[12px] text-[var(--muted)] lg:px-7">
             Đây là lịch sử trò chuyện.{" "}
             <button

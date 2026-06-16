@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     if (!hasSupabaseConfig()) {
-      // Demo mode — just pretend success
+      // Demo mode - just pretend success
       setSuccess(true);
       setLoading(false);
       return;

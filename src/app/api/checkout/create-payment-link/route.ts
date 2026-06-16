@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });
   } catch (error) {
-    // DB order was created but PayOS failed — order stays as pending_payment
+    // DB order was created but PayOS failed - order stays as pending_payment
     // Admin can review and clean up orphan orders
     return NextResponse.json(
       { error: "Không thể tạo liên kết thanh toán.", detail: String(error), orderId: dbOrder.id },

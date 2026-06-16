@@ -102,7 +102,7 @@ const TONIGHT_OPTIONS = [
   {
     emoji: "💬",
     title: "Tâm sự",
-    description: "AI Chatbot — không gian lắng nghe không phán xét",
+    description: "AI Chatbot - không gian lắng nghe không phán xét",
     value: "chat",
     href: "/dashboard",
   },
@@ -169,11 +169,11 @@ function buildPersonalizedMessage(a: WeeklyAnswers): string {
   if (a.moodScore !== null && a.moodScore <= 2)
     return "Tuần này có vẻ khá nặng nề với bạn. Hãy cho bản thân không gian để nghỉ ngơi và không cần phải ổn ngay.";
   if (a.sleepScore !== null && a.sleepScore <= 2)
-    return "Giấc ngủ của bạn đang cần được chú ý. Thử thêm một thói quen nhỏ trước khi ngủ — LUMIA ở đây để giúp bạn.";
+    return "Giấc ngủ của bạn đang cần được chú ý. Thử thêm một thói quen nhỏ trước khi ngủ - LUMIA ở đây để giúp bạn.";
   if (a.stressScore !== null && a.stressScore >= 4)
     return "Mức căng thẳng của bạn khá cao tuần này. Hãy ưu tiên nghỉ ngơi và đừng ngần ngại tâm sự với LUMIA.";
   if (a.moodScore !== null && a.moodScore >= 4)
-    return "Bạn đang có một tuần khá tốt! Hãy duy trì năng lượng đó — mỗi ngày tích cực là một bước tiến.";
+    return "Bạn đang có một tuần khá tốt! Hãy duy trì năng lượng đó - mỗi ngày tích cực là một bước tiến.";
   return "Cảm ơn bạn đã dành thời gian nhìn lại chính mình. Mỗi tuần check-in là một bước chăm sóc bản thân rất có ý nghĩa.";
 }
 
@@ -184,9 +184,9 @@ function buildSuggestions(a: WeeklyAnswers): string[] {
   if (a.stressScore !== null && a.stressScore >= 3)
     tips.push("Bài tập thở 4-7-8 trước khi ngủ giúp hạ nhịp tim và giảm cortisol hiệu quả.");
   if (a.improveGoals.includes("reduce_stress"))
-    tips.push("Viết một dòng nhật ký ngắn mỗi tối — ghi ra giúp não bộ xử lý cảm xúc tốt hơn.");
+    tips.push("Viết một dòng nhật ký ngắn mỗi tối - ghi ra giúp não bộ xử lý cảm xúc tốt hơn.");
   if (a.improveGoals.includes("sleep_early"))
-    tips.push("Đặt báo thức 'chuẩn bị ngủ' sớm hơn 30 phút — thói quen nhỏ, hiệu quả lớn.");
+    tips.push("Đặt báo thức 'chuẩn bị ngủ' sớm hơn 30 phút - thói quen nhỏ, hiệu quả lớn.");
   if (tips.length < 2)
     tips.push("Duy trì check-in cảm xúc mỗi tuần để LUMIA hiểu bạn ngày càng tốt hơn.");
   return tips.slice(0, 3);
@@ -252,7 +252,7 @@ export function MoodTestQuiz({ isActive }: { isActive: boolean }) {
         }),
       });
     } catch {
-      // Non-blocking — still show report
+      // Non-blocking - still show report
     }
     setSubmitting(false);
     setDirection(1);

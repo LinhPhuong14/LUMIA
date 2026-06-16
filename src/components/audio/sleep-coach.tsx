@@ -236,7 +236,7 @@ export function SleepCoach() {
         ))}
       </div>
 
-      {/* Mode selector — only for deep sleep */}
+      {/* Mode selector - only for deep sleep */}
       {sleepType === "deep" && (
         <div className="mb-4 flex gap-2">
           {(

@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  // Error state — invalid or expired link
+  // Error state - invalid or expired link
   if (sessionError) {
     return (
       <div className="auth-page flex min-h-dvh flex-col items-center justify-center px-4">

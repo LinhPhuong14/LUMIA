@@ -52,7 +52,7 @@ export default async function CheckoutPage({
             Một bước cuối cùng để mang LUMIA về với buổi tối của bạn.
           </h1>
           <p className="max-w-2xl text-lg leading-8" style={{ color: "var(--muted)" }}>
-            Thanh toán qua PayOS — an toàn và riêng tư.
+            Thanh toán qua PayOS - an toàn và riêng tư.
           </p>
           <div className="dash-panel overflow-hidden p-4">
             <Image

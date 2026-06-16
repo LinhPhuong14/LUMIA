@@ -26,7 +26,7 @@ export function useHeroVideoLoop(sources: readonly string[]) {
         video.muted = true;
         await video.play();
       } catch {
-        // Autoplay blocked — fallback stays visible
+        // Autoplay blocked - fallback stays visible
       }
     };
 

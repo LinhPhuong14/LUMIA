@@ -98,7 +98,7 @@ export function MoodCheckInPanel({
           )}
         </div>
         <p className="mt-1 text-[12px] text-[var(--muted)]">
-          Một lần ghi nhận mỗi ngày — bạn có thể chỉnh lại nếu cảm xúc thay đổi.
+          Một lần ghi nhận mỗi ngày - bạn có thể chỉnh lại nếu cảm xúc thay đổi.
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export function MoodCheckInPanel({
         {submitting ? "Đang lưu…" : savedScore == null ? "Lưu check-in hôm nay" : "Cập nhật check-in"}
       </button>
 
-      {/* Follow-up — AI generated, loading state */}
+      {/* Follow-up - AI generated, loading state */}
       <AnimatePresence>
         {followUpLoading ? (
           <motion.div

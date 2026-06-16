@@ -200,7 +200,7 @@ export function SettingsPanel({
       <section className="dash-panel p-6">
         <span className="eyebrow">Báo thức thông minh</span>
         <p className="mb-5 mt-2 text-[13px] text-[var(--muted)]">
-          LUMIA nhắc bạn theo routine — giờ ngủ, check-in sáng và bảo vệ streak.
+          LUMIA nhắc bạn theo routine - giờ ngủ, check-in sáng và bảo vệ streak.
         </p>
         <NotificationSettingsSection />
       </section>

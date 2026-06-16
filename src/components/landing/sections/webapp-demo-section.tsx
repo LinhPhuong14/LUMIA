@@ -24,12 +24,12 @@ const MOBILE_FEATURES = [
   {
     icon: MessageCircle,
     title: "LUMIA lắng nghe",
-    desc: "Một không gian riêng tư để nói ra điều đang ở trong lòng — không phán xét.",
+    desc: "Một không gian riêng tư để nói ra điều đang ở trong lòng - không phán xét.",
   },
   {
     icon: Feather,
     title: "Nhật ký cảm xúc",
-    desc: "Viết ra — không cần đúng, chỉ cần thật. LUMIA giữ những gì bạn viết an toàn.",
+    desc: "Viết ra - không cần đúng, chỉ cần thật. LUMIA giữ những gì bạn viết an toàn.",
   },
   {
     icon: Music,
@@ -55,7 +55,7 @@ export function WebappDemoSection() {
             <span className="lumia-kicker">- LUMIA trên web</span>
             <h2 className="lumia-h2">Một dashboard dịu dàng cho hành trình 21 ngày.</h2>
             <p className="mt-3.5 max-w-[520px] text-base leading-relaxed text-[var(--muted)]">
-              Check-in, lắng nghe, nhật ký, âm thanh và streak — tất cả trong một không gian.
+              Check-in, lắng nghe, nhật ký, âm thanh và streak - tất cả trong một không gian.
             </p>
           </div>
           <Link

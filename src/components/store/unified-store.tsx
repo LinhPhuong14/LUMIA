@@ -455,7 +455,7 @@ export function UnifiedStore() {
       {/* Trust strip */}
       <TrustStrip />
 
-      {/* Section 1 — Subscription plans */}
+      {/* Section 1 - Subscription plans */}
       <section id="goi-lumia">
         <div className="mb-8">
           <div className="flex items-center gap-2">
@@ -506,7 +506,7 @@ export function UnifiedStore() {
         </AnimatePresence>
       </section>
 
-      {/* Section 2 — Physical products */}
+      {/* Section 2 - Physical products */}
       <section id="san-pham">
         <div className="mb-6">
           <div className="flex items-center gap-2">
@@ -585,7 +585,7 @@ export function UnifiedStore() {
         )}
       </section>
 
-      {/* Section 3 — CTA banner */}
+      {/* Section 3 - CTA banner */}
       <section>
         <div
           className="relative overflow-hidden rounded-[28px] p-8 sm:p-12"

@@ -6,7 +6,7 @@ import { getSession } from "@/lib/supabase/auth";
 
 const profileSchema = z.object({
   fullName: z.string().min(2).optional(),
-  // Expanded — now accepts any string goal value (peace, sleep, habit, self_care, sharing, stress, meditation, …)
+  // Expanded - now accepts any string goal value (peace, sleep, habit, self_care, sharing, stress, meditation, …)
   onboardingGoal: z.string().optional(),
   nickname: z.string().min(1).optional(),
   // Full onboarding answers stored as arbitrary JSON

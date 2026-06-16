@@ -106,7 +106,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
     const saved = (await response.json()) as JournalEntry;
 
-    // Optimistic update — replace or prepend the saved entry without full reload
+    // Optimistic update - replace or prepend the saved entry without full reload
     setEntries((prev) => {
       const exists = prev.some((e) => e.date === saved.date);
       if (exists) return prev.map((e) => (e.date === saved.date ? saved : e));

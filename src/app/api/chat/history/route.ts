@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   const dateParam = searchParams.get("date");
   const daysParam = searchParams.get("days");
 
-  // ?days=N — return list of distinct active dates (YYYY-MM-DD) for history sidebar
+  // ?days=N - return list of distinct active dates (YYYY-MM-DD) for history sidebar
   if (daysParam) {
     const n = Math.min(Math.max(parseInt(daysParam, 10) || 30, 1), 90);
     const since = new Date();
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     return NextResponse.json(dates);
   }
 
-  // ?date=YYYY-MM-DD — load messages for a specific day; default = today
+  // ?date=YYYY-MM-DD - load messages for a specific day; default = today
   const targetDate = dateParam ?? localDateString();
   const startOfDay = `${targetDate}T00:00:00+07:00`;
   const endOfDay   = `${targetDate}T23:59:59+07:00`;

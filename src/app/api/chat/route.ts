@@ -104,7 +104,7 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(chunk.text));
           }
           if (chunk.type === "error") {
-            hasError = true; // (#003) mark as error — don't count against quota
+            hasError = true; // (#003) mark as error - don't count against quota
             controller.enqueue(encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."));
           }
         }
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         // (#003) Only save to history if there was real AI content (not error fallback)
         if (supabase && fullContent && !hasError) {
           const today = localDateString();
-          // Upsert daily session — one session per user per day
+          // Upsert daily session - one session per user per day
           const { data: chatSession } = await supabase
             .from("chat_sessions")
             .upsert({ user_id: session.id, date: today }, { onConflict: "user_id,date" })

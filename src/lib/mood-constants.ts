@@ -13,5 +13,5 @@ export function getMoodLabel(score: number): string {
 }
 
 export function getMoodShortLabel(score: number): string {
-  return MOOD_OPTIONS.find((m) => m.score === score)?.shortLabel ?? "—";
+  return MOOD_OPTIONS.find((m) => m.score === score)?.shortLabel ?? "-";
 }
