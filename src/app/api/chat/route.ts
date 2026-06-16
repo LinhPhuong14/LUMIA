@@ -19,7 +19,6 @@ export const runtime = "nodejs";
 
 async function incrementDailyUsage(supabase: SupabaseClient, userId: string) {
   const today = localDateString();
-  // Atomic upsert+increment via RPC to prevent race conditions (#005)
   await supabase.rpc("increment_chat_usage", { p_user_id: userId, p_date: today });
 }
 
@@ -27,7 +26,6 @@ async function loadChatHistory(userId: string): Promise<ChatHistoryMessage[]> {
   const supabase = await createClient();
   if (!supabase) return [];
 
-  // Use Vietnam timezone for "today" (#004)
   const today = localDateString();
   const { data } = await supabase
     .from("chat_messages")
@@ -41,6 +39,27 @@ async function loadChatHistory(userId: string): Promise<ChatHistoryMessage[]> {
     role: row.role as "user" | "assistant",
     content: row.content,
   }));
+}
+
+async function getOrCreateChatSession(supabase: SupabaseClient, userId: string, date: string): Promise<string | null> {
+  // Try to get existing session first
+  const { data: existing } = await supabase
+    .from("chat_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("date", date)
+    .maybeSingle();
+
+  if (existing?.id) return existing.id;
+
+  // Insert new session
+  const { data: created } = await supabase
+    .from("chat_sessions")
+    .insert({ user_id: userId, date })
+    .select("id")
+    .single();
+
+  return created?.id ?? null;
 }
 
 export async function POST(request: Request) {
@@ -59,7 +78,6 @@ export async function POST(request: Request) {
   const supabase = await createClient();
 
   if (!snapshot.isActive && supabase) {
-    // Use Vietnam timezone for daily limit check (#004)
     const today = localDateString();
     const { data: usage } = await supabase
       .from("chat_daily_usage")
@@ -85,7 +103,7 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   let fullContent = "";
   let escalated = false;
-  let hasError = false; // (#003) track if response was an error fallback
+  let hasError = false;
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -104,43 +122,34 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(chunk.text));
           }
           if (chunk.type === "error") {
-            hasError = true; // (#003) mark as error - don't count against quota
+            hasError = true;
             controller.enqueue(encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."));
           }
         }
       } catch {
-        hasError = true; // (#003)
+        hasError = true;
         controller.enqueue(encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."));
       } finally {
         controller.close();
 
-        // (#003) Only save to history if there was real AI content (not error fallback)
         if (supabase && fullContent && !hasError) {
           const today = localDateString();
-          // Upsert daily session - one session per user per day
-          const { data: chatSession } = await supabase
-            .from("chat_sessions")
-            .upsert({ user_id: session.id, date: today }, { onConflict: "user_id,date" })
-            .select()
-            .single();
-          if (chatSession) {
+          const sessionId = await getOrCreateChatSession(supabase, session.id, today);
+          if (sessionId) {
             await supabase.from("chat_messages").insert([
-              { session_id: chatSession.id, user_id: session.id, role: "user", content: parsed.data.message },
-              { session_id: chatSession.id, user_id: session.id, role: "assistant", content: fullContent },
+              { session_id: sessionId, user_id: session.id, role: "user", content: parsed.data.message },
+              { session_id: sessionId, user_id: session.id, role: "assistant", content: fullContent },
             ]);
           }
         }
 
-        // (#003) Only increment usage quota for successful responses
         if (!snapshot.isActive && supabase && !hasError) {
           await incrementDailyUsage(supabase, session.id);
         }
 
         await logActivity(session.id, "chat");
 
-        if (escalated) {
-          // crisis response streamed via pipeline
-        }
+        void escalated;
       }
     },
   });

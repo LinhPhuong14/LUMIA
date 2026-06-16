@@ -17,16 +17,22 @@ const starters = [
 
 function ThinkingOrbs() {
   return (
-    <div className="flex items-center gap-2 py-2">
-      {[0, 0.3, 0.6].map((delay, i) => (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.2 }}
+      className="listen-msg-assistant flex w-fit items-center gap-1.5 px-4 py-3"
+    >
+      {[0, 0.18, 0.36].map((delay, i) => (
         <motion.span
           key={i}
           className="inline-block h-2 w-2 rounded-full bg-[var(--green)]"
-          animate={{ scale: [0.8, 1.2, 0.8] }}
-          transition={{ duration: 1, delay, repeat: Infinity, type: "spring", stiffness: 300, damping: 20 }}
+          animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 0.9, delay, repeat: Infinity, ease: "easeInOut" }}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -96,6 +102,8 @@ export function AiStudio() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [activeDate, setActiveDate] = useState<string>(localToday());
   const [historyDates, setHistoryDates] = useState<string[]>([]);
@@ -159,9 +167,10 @@ export function AiStudio() {
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
     if (usage.remaining === 0) return;
-    if (!isToday) return; // can't send in past days
+    if (!isToday) return;
 
     setLoading(true);
+    setIsThinking(true);
     setMessages((prev) => [...prev, { role: "user", content: text, id: nextId() }]);
     setInput("");
 
@@ -173,6 +182,7 @@ export function AiStudio() {
 
     if (!response.ok) {
       const err = (await response.json()) as { error?: string };
+      setIsThinking(false);
       setMessages((prev) => [...prev, { role: "assistant", content: err.error ?? "Có lỗi xảy ra.", id: nextId() }]);
       setLoading(false);
       return;
@@ -181,28 +191,50 @@ export function AiStudio() {
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const data = (await response.json()) as { content: string };
+      setIsThinking(false);
       setMessages((prev) => [...prev, { role: "assistant", content: data.content, id: nextId() }]);
     } else {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       const assistantId = nextId();
-      setMessages((prev) => [...prev, { role: "assistant", content: "", id: assistantId }]);
+      let firstChunk = true;
 
       if (reader) {
         let accumulated = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          accumulated = `${accumulated}${decoder.decode(value)}`;
-          const nextText = accumulated;
+          const chunk = decoder.decode(value, { stream: true });
+          accumulated += chunk;
+
+          if (firstChunk) {
+            firstChunk = false;
+            setIsThinking(false);
+            setStreamingId(assistantId);
+            setMessages((prev) => [...prev, { role: "assistant", content: accumulated, id: assistantId }]);
+          } else {
+            const snap = accumulated;
+            setMessages((prev) => {
+              const next = [...prev];
+              const idx = next.findIndex((m) => m.id === assistantId);
+              if (idx !== -1) next[idx] = { ...next[idx], content: snap };
+              return next;
+            });
+          }
+        }
+        // Flush remaining decoder buffer
+        const tail = decoder.decode();
+        if (tail) {
+          const snap = accumulated + tail;
           setMessages((prev) => {
             const next = [...prev];
             const idx = next.findIndex((m) => m.id === assistantId);
-            if (idx !== -1) next[idx] = { ...next[idx], content: nextText };
+            if (idx !== -1) next[idx] = { ...next[idx], content: snap };
             return next;
           });
         }
       }
+      setStreamingId(null);
     }
 
     // Refresh date list so today appears
@@ -214,6 +246,7 @@ export function AiStudio() {
     const usageRes = await fetch("/api/chat/usage");
     const usageData = (await usageRes.json()) as { remaining: number | null; limit: number | null };
     setUsage(usageData);
+    setIsThinking(false);
     setLoading(false);
   }
 
@@ -430,20 +463,32 @@ export function AiStudio() {
               {messages.map((msg) => (
                 <motion.div
                   key={msg.id}
-                  initial={{ opacity: 0, scale: 0.95, x: msg.role === "user" ? 12 : -12 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25, duration: 0.2 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 28 }}
                   className={`px-4 py-3 text-[15px] leading-7 ${
                     msg.role === "user" ? "listen-msg-user" : "listen-msg-assistant"
                   }`}
                 >
                   {msg.content}
-                  {msg.role === "assistant" && loading && msg === messages[messages.length - 1] && msg.content ? (
-                    <span className="animate-pulse">|</span>
+                  {streamingId === msg.id ? (
+                    <AnimatePresence>
+                      <motion.span
+                        key="cursor"
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[1px] rounded-full bg-[var(--green)] align-middle"
+                        animate={{ opacity: [1, 0, 1] }}
+                        style={{ animationDuration: "0.8s" }}
+                      />
+                    </AnimatePresence>
                   ) : null}
                 </motion.div>
               ))}
-              {loading && messages[messages.length - 1]?.role === "user" ? <ThinkingOrbs /> : null}
+              <AnimatePresence>
+                {isThinking ? <ThinkingOrbs key="orbs" /> : null}
+              </AnimatePresence>
             </>
           )}
           <div ref={bottomRef} />
