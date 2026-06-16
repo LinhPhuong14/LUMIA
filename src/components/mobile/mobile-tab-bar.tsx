@@ -2,23 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Grid2X2 } from "lucide-react";
 
 import { isNavActive, mobileTabs } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
-const moreRoutes = ["/journal", "/settings", "/admin", "/audio/sleep"];
+const moreRoutes = ["/audio", "/audio/sleep", "/settings", "/feedback", "/account", "/dashboard/store", "/admin"];
 
 export function isMoreRouteActive(pathname: string) {
   return moreRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
-export function MobileTabBar() {
+export function MobileTabBar({ onMoreOpen }: { onMoreOpen?: () => void }) {
   const pathname = usePathname();
+  const moreActive = isMoreRouteActive(pathname) && !mobileTabs.some((t) => isNavActive(pathname, t.href as string));
 
   return (
     <nav className="mobile-tab-bar-floating lg:hidden" aria-label="Điều hướng chính">
       {mobileTabs.map((item) => {
-        const active = isNavActive(pathname, item.href);
+        const active = isNavActive(pathname, item.href as string);
         const Icon = item.icon;
         return (
           <Link
@@ -50,6 +52,35 @@ export function MobileTabBar() {
           </Link>
         );
       })}
+
+      {/* More button */}
+      <button
+        type="button"
+        onClick={onMoreOpen}
+        className="mobile-tab-floating-item"
+        aria-label="Thêm tùy chọn"
+      >
+        <span
+          className={cn(
+            "mobile-tab-floating-chip",
+            moreActive ? "bg-[var(--matcha-soft)]" : "bg-transparent",
+          )}
+        >
+          <Grid2X2
+            className="h-[18px] w-[18px]"
+            strokeWidth={moreActive ? 2 : 1.6}
+            style={{ color: moreActive ? "var(--green-deep)" : undefined }}
+          />
+        </span>
+        <span
+          className={cn(
+            "text-[10px]",
+            moreActive ? "font-bold text-[var(--green-deep)]" : "font-medium text-[var(--foreground)] opacity-60",
+          )}
+        >
+          Thêm
+        </span>
+      </button>
     </nav>
   );
 }

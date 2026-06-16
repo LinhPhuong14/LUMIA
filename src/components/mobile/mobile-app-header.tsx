@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { PlanBadge } from "@/components/ui/plan-badge";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
@@ -36,14 +36,6 @@ export function MobileAppHeader({
     return (
       <header className="sticky top-0 z-40 px-4 pb-2.5 pt-[calc(var(--safe-top)+6px)] lg:hidden">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onMoreOpen}
-            className="dash-glass-btn"
-            aria-label="Menu"
-          >
-            <Menu className="h-[19px] w-[19px] text-[var(--foreground)]" />
-          </button>
           <span className="font-serif text-[18px] font-medium tracking-[-0.01em] text-[var(--foreground)]">
             {title}
           </span>

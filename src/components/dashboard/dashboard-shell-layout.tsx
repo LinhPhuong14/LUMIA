@@ -84,7 +84,7 @@ function DashboardShellInner({
           </div>
 
           <div className="lg:hidden">
-            <MobileTabBar />
+            <MobileTabBar onMoreOpen={() => setMoreOpen(true)} />
           </div>
         </div>
       </div>
