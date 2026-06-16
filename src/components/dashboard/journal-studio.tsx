@@ -707,11 +707,11 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                 <span className="text-[11px]">Sticker</span>
               </button>
               {showStickerPicker && (
-                <div className="absolute left-0 top-8 z-30 rounded-[14px] border border-[var(--border)] bg-[var(--surface-card)] p-3 shadow-lg">
-                  <div className="grid grid-cols-6 gap-1">
+                <div className="absolute left-0 top-8 z-30 w-[280px] rounded-[14px] border border-[var(--border)] bg-[var(--surface-card)] p-3 shadow-lg">
+                  <div className="grid grid-cols-9 gap-0.5">
                     {STICKER_EMOJIS.map((emoji) => (
                       <button key={emoji} type="button" onClick={() => insertSticker(emoji)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-[var(--green-wash)] hover:scale-110">
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-xl transition hover:bg-[var(--green-wash)] hover:scale-110">
                         {emoji}
                       </button>
                     ))}

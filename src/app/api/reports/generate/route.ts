@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { runReflect } from "@/lib/ai/journal-pipeline";
+import { runReport } from "@/lib/ai/report-pipeline";
 import { hasLlmConfig, isVercelCronAuthorized } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/supabase/auth";
@@ -28,73 +28,73 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  const userId = session?.id;
-  if (!userId && !isCron) {
-    return NextResponse.json({ error: "User required" }, { status: 400 });
-  }
-
-  const targetUserId = userId ?? (body as { userId?: string }).userId;
+  const targetUserId = session?.id ?? (body as { userId?: string }).userId;
   if (!targetUserId) {
-    return NextResponse.json({ error: "userId required for cron" }, { status: 400 });
+    return NextResponse.json({ error: "userId required" }, { status: 400 });
   }
 
-  const { data: profile } = await admin.from("profiles").select("full_name").eq("id", targetUserId).single();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", targetUserId)
+    .single();
   const userName = profile?.full_name ?? "Bạn";
 
   const days = reportType === "full_21" ? 21 : 7;
   const since = new Date();
   since.setDate(since.getDate() - days);
   const sinceStr = since.toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
 
   const [{ data: moods }, { data: activities }, { data: journals }] = await Promise.all([
-    admin.from("mood_checkins").select("*").eq("user_id", targetUserId).gte("date", sinceStr),
-    admin.from("activity_logs").select("*").eq("user_id", targetUserId).gte("date", sinceStr),
+    admin.from("mood_checkins").select("date, score, note").eq("user_id", targetUserId).gte("date", sinceStr),
+    admin.from("activity_logs").select("date, activity_type").eq("user_id", targetUserId).gte("date", sinceStr),
     admin.from("journal_entries").select("date, content").eq("user_id", targetUserId).gte("date", sinceStr),
   ]);
 
+  // Activity counts per type
+  const activityCounts: Record<string, number> = {};
+  for (const a of activities ?? []) {
+    activityCounts[a.activity_type] = (activityCounts[a.activity_type] ?? 0) + 1;
+  }
+
   const summary = {
-    moodCount: moods?.length ?? 0,
-    avgMood: moods?.length ? moods.reduce((s, m) => s + m.score, 0) / moods.length : null,
-    activities: activities?.map((a) => a.activity_type) ?? [],
-    journalDays: journals?.length ?? 0,
     reportType,
     periodDays: days,
+    periodStart: sinceStr,
+    periodEnd: today,
+    moodCheckIns: moods?.length ?? 0,
+    avgMood: moods?.length
+      ? Math.round((moods.reduce((s, m) => s + m.score, 0) / moods.length) * 10) / 10
+      : null,
+    moodScores: moods?.map((m) => m.score) ?? [],
+    activities: activityCounts,
+    journalDays: journals?.length ?? 0,
   };
 
-  let insight = `Tuần này bạn check-in mood ${summary.moodCount}/${days} ngày.`;
-  if (summary.avgMood) {
-    insight += ` Mood trung bình: ${summary.avgMood.toFixed(1)}/5.`;
-  }
+  const journalSnippets = (journals ?? [])
+    .filter((j) => j.content?.trim())
+    .map((j) => j.content.replace(/<[^>]+>/g, "").trim().slice(0, 150))
+    .slice(0, 5);
 
-  let safetyFlag = false;
-  let riskLevel = "none";
+  // Fallback insight without LLM
+  let insight = `Tuần này ${userName} đã check-in ${summary.moodCheckIns}/${days} ngày.`;
+  if (summary.avgMood) insight += ` Mood trung bình: ${summary.avgMood}/5.`;
+  if (summary.journalDays > 0) insight += ` Đã viết nhật ký ${summary.journalDays} lần.`;
+  insight += " Hãy tiếp tục duy trì nhé!";
 
   if (hasLlmConfig()) {
-    const reflectText = [
-      `Báo cáo ${reportType === "full_21" ? "21 ngày" : "tuần"} LUMIA.`,
-      `Dữ liệu: ${JSON.stringify(summary)}`,
-      journals?.length
-        ? `Nhật ký gần đây: ${journals.map((j) => j.content.slice(0, 120)).join(" | ")}`
-        : "",
-    ].join("\n");
-
     try {
-      const result = await runReflect({ userName, text: reflectText });
-      insight = result.reflection;
-      safetyFlag = result.safety_flag;
-      riskLevel = result.risk_level;
-    } catch {
-      // keep fallback insight
-    }
+      insight = await runReport({ userName, summary, journalSnippets });
+    } catch { /* keep fallback */ }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await admin
     .from("reports")
     .insert({
       user_id: targetUserId,
       type: reportType,
-      content: { insight, summary, safety_flag: safetyFlag, risk_level: riskLevel },
+      content: { insight, summary },
       period_start: sinceStr,
       period_end: today,
     })

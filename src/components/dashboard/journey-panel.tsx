@@ -258,6 +258,167 @@ function StreakRing({ streak }: { streak: number }) {
   );
 }
 
+const ACTIVITY_ICONS: Record<string, string> = {
+  journal: "📓",
+  meditation: "🧘",
+  audio: "🎵",
+  breathing: "🌬️",
+  mood: "✅",
+  chat: "💬",
+};
+
+function CalendarSection({ days, moods }: { days: string[]; moods: MoodEntry[] }) {
+  const [offset, setOffset] = useState(0); // 0 = recent 15, 1 = prev 15, etc.
+  const CHUNK = 15;
+  const total = days.length;
+  const end = total - offset * CHUNK;
+  const start = Math.max(0, end - CHUNK);
+  const visibleDays = days.slice(start, end);
+  const canGoBack = end > CHUNK;
+  const canGoForward = offset > 0;
+
+  const firstDay = visibleDays[0];
+  const lastDay = visibleDays[visibleDays.length - 1];
+  function fmtRange(d: string) {
+    return new Date(`${d}T12:00:00`).toLocaleDateString("vi-VN", { day: "numeric", month: "short" });
+  }
+
+  return (
+    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-[13px] font-semibold text-[var(--foreground)]">Lịch hành trình</p>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[var(--muted)]">
+            {firstDay && lastDay ? `${fmtRange(firstDay)} – ${fmtRange(lastDay)}` : ""}
+          </span>
+          <button
+            type="button"
+            disabled={!canGoBack}
+            onClick={() => setOffset((v) => v + 1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            disabled={!canGoForward}
+            onClick={() => setOffset((v) => v - 1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+      <MoodHeatmap days={visibleDays} moods={moods} />
+    </div>
+  );
+}
+
+function ActivityHabitTracker({
+  activities,
+  days,
+}: {
+  activities: ActivityLog[];
+  days: string[];
+}) {
+  const CHUNK = 15;
+  const [offset, setOffset] = useState(0);
+  const total = days.length;
+  const end = total - offset * CHUNK;
+  const start = Math.max(0, end - CHUNK);
+  const visibleDays = days.slice(start, end);
+  const canGoBack = end > CHUNK;
+  const canGoForward = offset > 0;
+
+  // Map activity type → set of dates
+  const byType: Record<string, Set<string>> = {};
+  for (const a of activities) {
+    if (!byType[a.activity_type]) byType[a.activity_type] = new Set();
+    byType[a.activity_type].add(a.date);
+  }
+
+  const types = Object.keys(ACTIVITY_LABELS).filter(
+    (t) => byType[t] && byType[t].size > 0,
+  );
+
+  if (types.length === 0) return null;
+
+  return (
+    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-[13px] font-semibold text-[var(--foreground)]">Thói quen của bạn</p>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={!canGoBack}
+            onClick={() => setOffset((v) => v + 1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            disabled={!canGoForward}
+            onClick={() => setOffset((v) => v - 1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {/* Day headers */}
+      <div className="mb-2 flex items-center gap-1.5 pl-[84px]">
+        {visibleDays.map((d) => (
+          <div
+            key={d}
+            className="flex h-6 w-6 shrink-0 items-center justify-center text-[9px] font-medium text-[var(--muted)]"
+          >
+            {d.slice(8)}
+          </div>
+        ))}
+      </div>
+
+      {/* Activity rows */}
+      <div className="space-y-2">
+        {types.map((type) => {
+          const doneSet = byType[type] ?? new Set();
+          const doneCount = visibleDays.filter((d) => doneSet.has(d)).length;
+          return (
+            <div key={type} className="flex items-center gap-1.5">
+              <div className="flex w-[80px] shrink-0 items-center gap-1.5">
+                <span className="text-sm">{ACTIVITY_ICONS[type] ?? "•"}</span>
+                <span className="truncate text-[11px] font-medium text-[var(--muted)]">
+                  {ACTIVITY_LABELS[type] ?? type}
+                </span>
+              </div>
+              {visibleDays.map((d) => {
+                const done = doneSet.has(d);
+                return (
+                  <div
+                    key={d}
+                    title={done ? `${ACTIVITY_LABELS[type]} – ${d}` : undefined}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] transition ${
+                      done
+                        ? "bg-[var(--green)] text-white"
+                        : "bg-[var(--surface)] text-[var(--muted)]/30"
+                    }`}
+                  >
+                    {done ? "✓" : "·"}
+                  </div>
+                );
+              })}
+              <span className="ml-1.5 w-8 shrink-0 text-right text-[10px] font-semibold text-[var(--green-deep)]">
+                {doneCount}/{visibleDays.length}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function JourneyPanel({
   isActive,
   calendarDays = 30,
@@ -526,42 +687,11 @@ export function JourneyPanel({
               </div>
             ) : null}
 
-            {/* Heatmap calendar */}
-            <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-[13px] font-semibold text-[var(--foreground)]">Lịch hành trình</p>
-                <span className="text-[11px] text-[var(--muted)]">{calendarDays} ngày gần nhất</span>
-              </div>
-              <MoodHeatmap days={days} moods={moods} />
-            </div>
+            {/* Heatmap calendar with month navigation */}
+            <CalendarSection days={days} moods={moods} />
 
-            {/* Activity breakdown */}
-            {sortedActivities.length > 0 ? (
-              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-                <p className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">Hoạt động của bạn</p>
-                <div className="space-y-2">
-                  {sortedActivities.slice(0, 5).map(([type, count]) => {
-                    const pct = Math.round((count / activities.length) * 100);
-                    return (
-                      <div key={type} className="flex items-center gap-3">
-                        <span className="w-20 shrink-0 text-[12px] text-[var(--muted)]">
-                          {ACTIVITY_LABELS[type] ?? type}
-                        </span>
-                        <div className="flex-1 overflow-hidden rounded-full bg-[var(--surface)]" style={{ height: 6 }}>
-                          <motion.div
-                            className="h-full rounded-full bg-[var(--green)]"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                          />
-                        </div>
-                        <span className="w-8 text-right text-[11px] font-semibold text-[var(--foreground)]">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
+            {/* Activity habit tracker */}
+            <ActivityHabitTracker activities={activities} days={days} />
 
             {!moods.length ? (
               <EmptyState

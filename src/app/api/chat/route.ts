@@ -41,8 +41,11 @@ async function loadChatHistory(userId: string): Promise<ChatHistoryMessage[]> {
   }));
 }
 
-async function getOrCreateChatSession(supabase: SupabaseClient, userId: string, date: string): Promise<string | null> {
-  // Try to get existing session first
+async function getOrCreateChatSession(
+  supabase: SupabaseClient,
+  userId: string,
+  date: string,
+): Promise<string | null> {
   const { data: existing } = await supabase
     .from("chat_sessions")
     .select("id")
@@ -52,7 +55,6 @@ async function getOrCreateChatSession(supabase: SupabaseClient, userId: string, 
 
   if (existing?.id) return existing.id;
 
-  // Insert new session
   const { data: created } = await supabase
     .from("chat_sessions")
     .insert({ user_id: userId, date })
@@ -87,7 +89,10 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if ((usage?.count ?? 0) >= FREE_DAILY_LIMIT) {
-      return NextResponse.json({ error: "Đã hết lượt chat hôm nay. Mua hộp để tiếp tục." }, { status: 429 });
+      return NextResponse.json(
+        { error: "Đã hết lượt chat hôm nay. Mua hộp để tiếp tục." },
+        { status: 429 },
+      );
     }
   }
 
@@ -100,6 +105,7 @@ export async function POST(request: Request) {
     loadChatHistory(session.id),
     getUserContext(session.id, session.name, snapshot.isActive),
   ]);
+
   const encoder = new TextEncoder();
   let fullContent = "";
   let escalated = false;
@@ -114,43 +120,57 @@ export async function POST(request: Request) {
           history,
           userContext,
         })) {
-          if (chunk.type === "meta" && chunk.safety_flag) {
-            escalated = true;
-          }
+          if (chunk.type === "meta" && chunk.safety_flag) escalated = true;
           if (chunk.type === "token") {
             fullContent += chunk.text;
             controller.enqueue(encoder.encode(chunk.text));
           }
           if (chunk.type === "error") {
             hasError = true;
-            controller.enqueue(encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."));
+            controller.enqueue(
+              encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."),
+            );
           }
         }
       } catch {
         hasError = true;
-        controller.enqueue(encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."));
-      } finally {
-        controller.close();
+        controller.enqueue(
+          encoder.encode("LUMIA tạm thời không phản hồi được. Bạn thử lại sau nhé."),
+        );
+      }
 
-        if (supabase && fullContent && !hasError) {
+      // Save to DB BEFORE closing stream so serverless doesn't cut off
+      if (supabase && fullContent && !hasError) {
+        try {
           const today = localDateString();
           const sessionId = await getOrCreateChatSession(supabase, session.id, today);
           if (sessionId) {
             await supabase.from("chat_messages").insert([
-              { session_id: sessionId, user_id: session.id, role: "user", content: parsed.data.message },
-              { session_id: sessionId, user_id: session.id, role: "assistant", content: fullContent },
+              {
+                session_id: sessionId,
+                user_id: session.id,
+                role: "user",
+                content: parsed.data.message,
+              },
+              {
+                session_id: sessionId,
+                user_id: session.id,
+                role: "assistant",
+                content: fullContent,
+              },
             ]);
           }
-        }
-
-        if (!snapshot.isActive && supabase && !hasError) {
-          await incrementDailyUsage(supabase, session.id);
-        }
-
-        await logActivity(session.id, "chat");
-
-        void escalated;
+        } catch { /* save errors are non-fatal */ }
       }
+
+      if (!snapshot.isActive && supabase && !hasError) {
+        try { await incrementDailyUsage(supabase, session.id); } catch { /* noop */ }
+      }
+
+      try { await logActivity(session.id, "chat"); } catch { /* noop */ }
+
+      void escalated;
+      controller.close();
     },
   });
 
