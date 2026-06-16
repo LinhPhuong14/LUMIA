@@ -90,7 +90,7 @@ export type RitualStage = {
 };
 
 export const ritualStages: RitualStage[] = [
-  { id: 1, label: "Lắng", title: "Lắng lại", copy: "Bắt đầu bằng vài nhịp thở. Đặt điện thoại xuống, để cơ thể biết đã đến giờ nghỉ.", icon: Wind },
+  { id: 1, label: "Lắng", title: "Lắng lại", copy: "Bắt đầu bằng vài nhịp thở, để cơ thể biết đã đến giờ nghỉ.", icon: Wind },
   { id: 2, label: "Nghe", title: "Nghe sương rơi", copy: "Một soundscape ấm chọn riêng cho tối nay - mưa hiên, rừng đêm, hay sóng xa.", icon: Music },
   { id: 3, label: "Viết", title: "Viết ra", copy: "Đặt cảm xúc xuống một chút. Không cần đúng sai, chỉ cần thật.", icon: Feather },
   { id: 4, label: "Thở", title: "Thở cùng vòng sáng", copy: "Bài thở 4-7-8 dẫn bạn vào tĩnh lặng, hơi thở chậm dần theo ánh sáng.", icon: Moon },
