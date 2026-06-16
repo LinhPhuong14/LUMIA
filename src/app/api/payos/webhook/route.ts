@@ -22,6 +22,13 @@ export async function POST(request: Request) {
 
   try {
     const webhookData = await payos.webhooks.verify(payload);
+
+    // PayOS sends a test ping during webhook registration — orderCode = 0 or non-existent.
+    // Return 200 so registration succeeds; real payments always have a real orderCode.
+    if (!webhookData.orderCode || webhookData.orderCode === 0) {
+      return NextResponse.json({ received: true, test: true });
+    }
+
     const admin = createAdminClient();
     if (!admin) {
       return NextResponse.json({ error: "Supabase admin unavailable." }, { status: 500 });
@@ -34,7 +41,9 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found." }, { status: 404 });
+      // Unknown order — log and ack so PayOS doesn't retry endlessly
+      console.warn("[payos-webhook] unknown orderCode:", webhookData.orderCode);
+      return NextResponse.json({ received: true, unknown: true });
     }
 
     if (order.amount !== webhookData.amount) {
