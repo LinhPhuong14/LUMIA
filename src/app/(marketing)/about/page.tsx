@@ -310,13 +310,13 @@ export default function AboutPage() {
                 {
                   icon: ExternalLink,
                   label: "Facebook",
-                  value: "LUMIA - Dong hanh cung giac ngu Viet",
+                  value: "LUMIA - Đồng hành cùng giấc ngủ Việt",
                   href: "https://www.facebook.com/share/181NRssH8n/?mibextid=wwXIfr",
                 },
                 {
                   icon: MapPin,
-                  label: "Dia chi",
-                  value: "Ha Noi, Viet Nam",
+                  label: "Địa chỉ",
+                  value: "Hà Nội, Việt Nam",
                   href: null,
                 },
               ].map(({ icon: Icon, label, value, href }, idx, arr) => (
@@ -367,7 +367,7 @@ export default function AboutPage() {
                   boxShadow: "0 8px 24px rgba(95,111,82,0.35)",
                 }}
               >
-                Bat dau hanh trinh cung Lumia
+                Bắt đầu hành trình cùng Lumia
               </a>
             </div>
           </div>
