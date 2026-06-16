@@ -175,7 +175,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   if (!isActive) {
     return (
       <div className="relative flex min-h-[400px] flex-col items-center justify-center">
-        <UpsellOverlay message="Mở khóa nhật ký với gói Premium" />
+        <UpsellOverlay featureName="Nhật ký" description="Mở khóa nhật ký với gói Premium" />
       </div>
     );
   }

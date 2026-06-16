@@ -45,11 +45,15 @@ function Toggle({
     <button
       type="button"
       onClick={onChange}
-      className="flex w-full items-center justify-between rounded-[24px] border border-white/70 bg-white/82 px-4 py-4 text-left"
+      className="flex w-full items-center justify-between rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4 text-left"
     >
-      <span className="text-sm text-matcha-deep">{label}</span>
-      <span className={`relative h-7 w-12 rounded-full transition ${checked ? "bg-matcha" : "bg-matcha-soft"}`}>
-        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${checked ? "left-6" : "left-1"}`} />
+      <span className="text-sm text-[var(--foreground)]">{label}</span>
+      <span
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-[var(--border)]"}`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
+        />
       </span>
     </button>
   );
@@ -123,7 +127,7 @@ export function SettingsPanel({
     <div className="relative space-y-6">
       <section className="dash-panel p-6">
         <span className="eyebrow">Giao diện</span>
-        <p className="mt-3 text-sm text-matcha-deep">
+        <p className="mt-3 text-sm text-[var(--muted)]">
           Chọn chế độ sáng hoặc Midnight Blue. Lựa chọn của bạn được lưu trên thiết bị này.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -134,8 +138,8 @@ export function SettingsPanel({
               onClick={() => setTheme(option)}
               className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
                 theme === option
-                  ? "bg-matcha text-white"
-                  : "border border-matcha-soft bg-white text-matcha-deep"
+                  ? "bg-[var(--green)] text-white"
+                  : "border border-[var(--border)] bg-[var(--surface-card)] text-[var(--foreground)]"
               }`}
             >
               {option === "dark" ? "Midnight Blue (Tối)" : "Light Mode (Sáng)"}
@@ -148,7 +152,7 @@ export function SettingsPanel({
         <span className="eyebrow">Mục tiêu của tôi</span>
         {!editingGoal ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-matcha-deep">{goalLabel}</p>
+            <p className="text-sm text-[var(--foreground)]">{goalLabel}</p>
             <button type="button" onClick={() => setEditingGoal(true)} className="button-secondary text-[13px]">
               Thay đổi
             </button>
@@ -158,8 +162,10 @@ export function SettingsPanel({
             {goalOptions.map((option) => (
               <label
                 key={option.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-[20px] border px-4 py-3 ${
-                  goal === option.id ? "border-matcha bg-matcha-soft/30" : "border-white/70"
+                className={`flex cursor-pointer items-center gap-3 rounded-[20px] border px-4 py-3 transition ${
+                  goal === option.id
+                    ? "border-[var(--green)] bg-[var(--green-wash)]"
+                    : "border-[var(--border)] bg-[var(--surface-card)]"
                 }`}
               >
                 <input
@@ -168,7 +174,7 @@ export function SettingsPanel({
                   checked={goal === option.id}
                   onChange={() => setGoal(option.id)}
                 />
-                <span className="text-sm text-matcha-deep">{option.label}</span>
+                <span className="text-sm text-[var(--foreground)]">{option.label}</span>
               </label>
             ))}
             <div className="flex gap-3">
@@ -188,11 +194,11 @@ export function SettingsPanel({
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <input
             defaultValue={userName}
-            className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
+            className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[var(--foreground)] outline-none focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green-wash)]"
           />
           <input
             defaultValue={userEmail}
-            className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
+            className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[var(--foreground)] outline-none focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green-wash)]"
           />
         </div>
       </section>
@@ -221,11 +227,11 @@ export function SettingsPanel({
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <input
             defaultValue="21:30"
-            className="rounded-[22px] border border-matcha-soft bg-white px-4 py-3 outline-none ring-matcha/20 focus:ring-4"
+            className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[var(--foreground)] outline-none focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green-wash)]"
             placeholder="Thời điểm thường dùng LUMIA"
           />
-          <div className="rounded-[24px] border border-white/70 bg-white/82 p-4">
-            <p className="text-sm font-medium text-matcha-deep">Cách LUMIA phản hồi</p>
+          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+            <p className="text-sm font-medium text-[var(--foreground)]">Cách LUMIA phản hồi</p>
             <div className="mt-3 flex flex-wrap gap-3">
               {responseOptions.map((option) => (
                 <button
@@ -234,8 +240,8 @@ export function SettingsPanel({
                   onClick={() => setResponseStyle(option)}
                   className={`rounded-full px-4 py-2 text-sm transition ${
                     responseStyle === option
-                      ? "bg-matcha text-white"
-                      : "border border-matcha-soft bg-white text-matcha-deep"
+                      ? "bg-[var(--green)] text-white"
+                      : "border border-[var(--border)] bg-[var(--surface-card)] text-[var(--foreground)]"
                   }`}
                 >
                   {option}
@@ -256,16 +262,16 @@ export function SettingsPanel({
             Xóa tài khoản
           </button>
         </div>
-        <p className="mt-4 text-sm text-muted">{saved}</p>
+        <p className="mt-4 text-sm text-[var(--muted)]">{saved}</p>
       </section>
 
       {showDanger ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/48 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-[32px] border border-white/70 bg-white/94 p-7 shadow-[0_24px_80px_rgba(244,216,120,0.22)]">
-            <h3 className="font-serif text-3xl text-matcha-deep">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-[32px] border border-[var(--border)] bg-[var(--surface-card)] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
+            <h3 className="font-serif text-3xl text-[var(--foreground)]">
               {showDanger === "account" ? "Xóa tài khoản?" : "Xóa dữ liệu cảm xúc?"}
             </h3>
-            <p className="mt-3 text-sm leading-6 text-muted">
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
               Đây là bước cần xác nhận lại thật kỹ. Bạn luôn có thể quay lại sau nếu chưa sẵn sàng.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
