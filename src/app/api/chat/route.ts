@@ -46,16 +46,7 @@ async function getOrCreateChatSession(
   userId: string,
   date: string,
 ): Promise<string | null> {
-  // Upsert: insert or return existing (handles race conditions + unique constraint)
-  const { data: upserted } = await supabase
-    .from("chat_sessions")
-    .upsert({ user_id: userId, date }, { onConflict: "user_id,date" })
-    .select("id")
-    .single();
-
-  if (upserted?.id) return upserted.id;
-
-  // Fallback: SELECT if upsert returned nothing
+  // SELECT first (fast path — session usually already exists)
   const { data: existing } = await supabase
     .from("chat_sessions")
     .select("id")
@@ -63,7 +54,27 @@ async function getOrCreateChatSession(
     .eq("date", date)
     .maybeSingle();
 
-  return existing?.id ?? null;
+  if (existing?.id) return existing.id;
+
+  // INSERT new session for today
+  const { data: created, error } = await supabase
+    .from("chat_sessions")
+    .insert({ user_id: userId, date })
+    .select("id")
+    .single();
+
+  if (error) {
+    // Could be unique-constraint race — try SELECT once more
+    const { data: retry } = await supabase
+      .from("chat_sessions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("date", date)
+      .maybeSingle();
+    return retry?.id ?? null;
+  }
+
+  return created?.id ?? null;
 }
 
 export async function POST(request: Request) {
@@ -145,24 +156,28 @@ export async function POST(request: Request) {
       if (supabase && fullContent && !hasError) {
         try {
           const today = localDateString();
+          // Best-effort session lookup — session_id is now nullable so save proceeds regardless
           const sessionId = await getOrCreateChatSession(supabase, session.id, today);
-          if (sessionId) {
-            await supabase.from("chat_messages").insert([
-              {
-                session_id: sessionId,
-                user_id: session.id,
-                role: "user",
-                content: parsed.data.message,
-              },
-              {
-                session_id: sessionId,
-                user_id: session.id,
-                role: "assistant",
-                content: fullContent,
-              },
-            ]);
+          const { error: insertError } = await supabase.from("chat_messages").insert([
+            {
+              session_id: sessionId,   // nullable — null is fine if session failed
+              user_id: session.id,
+              role: "user",
+              content: parsed.data.message,
+            },
+            {
+              session_id: sessionId,
+              user_id: session.id,
+              role: "assistant",
+              content: fullContent,
+            },
+          ]);
+          if (insertError) {
+            console.error("[chat] message save failed:", insertError.message);
           }
-        } catch { /* save errors are non-fatal */ }
+        } catch (e) {
+          console.error("[chat] message save exception:", e);
+        }
       }
 
       if (!snapshot.isActive && supabase && !hasError) {
