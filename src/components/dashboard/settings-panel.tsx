@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 import { useLumiaTheme } from "@/components/theme/lumia-theme-provider";
 import { NotificationSettingsSection } from "@/components/dashboard/notification-settings-section";
@@ -68,8 +70,17 @@ export function SettingsPanel({
   userName: string;
   userEmail: string;
 }) {
+  const router = useRouter();
   const { theme, setTheme } = useLumiaTheme();
   const [state, setState] = useState(initialState);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+    router.refresh();
+  }
   const [saved, setSaved] = useState("Đã đồng bộ thiết lập gần nhất.");
   const [responseStyle, setResponseStyle] = useState<(typeof responseOptions)[number]>(responseOptions[0]);
   const [showDanger, setShowDanger] = useState<null | "account" | "data">(null);
@@ -303,8 +314,21 @@ export function SettingsPanel({
             </button>
           </div>
           <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4">
-            <p className="text-[14px] font-medium text-[var(--foreground)]">Phiên đăng nhập</p>
-            <p className="mt-1 text-[12px] text-[var(--muted)]">Bạn đang đăng nhập trên thiết bị này. Đăng xuất để kết thúc phiên.</p>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[14px] font-medium text-[var(--foreground)]">Phiên đăng nhập</p>
+                <p className="mt-0.5 text-[12px] text-[var(--muted)]">Bạn đang đăng nhập trên thiết bị này.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex shrink-0 items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-red-500 transition hover:bg-red-100 active:opacity-70 disabled:opacity-50 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                {loggingOut ? "Đang thoát..." : "Đăng xuất"}
+              </button>
+            </div>
           </div>
         </div>
       </section>
