@@ -75,5 +75,16 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/onboarding", origin));
   }
 
+  // Admins always go to /admin regardless of next param
+  const { data: fullProfile } = await db
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (fullProfile?.role === "admin") {
+    return NextResponse.redirect(new URL("/admin", origin));
+  }
+
   return NextResponse.redirect(new URL(next, origin));
 }

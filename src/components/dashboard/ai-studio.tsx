@@ -31,7 +31,22 @@ function ThinkingOrbs() {
   );
 }
 
-function ListenWelcome() {
+const STARTER_CHIPS = [
+  "Hôm nay mình có nhiều suy nghĩ lắm…",
+  "Mình đang cảm thấy không ổn lắm",
+  "Muốn nói chuyện với ai đó",
+  "Không biết bắt đầu từ đâu",
+  "Hôm nay có chuyện vui muốn kể",
+  "Mình đang rất mệt",
+];
+
+const SUGGESTED_REPLIES = [
+  "Kể thêm cho mình nghe nhé",
+  "Cảm ơn mình đã lắng nghe",
+  "Mình muốn viết nhật ký",
+];
+
+function ListenWelcome({ onChip }: { onChip: (text: string) => void }) {
   return (
     <div className="flex min-h-[min(420px,55vh)] flex-1 flex-col items-center justify-center px-4 py-8 text-center md:px-8">
       <div className="listen-welcome-glow mb-7" aria-hidden />
@@ -42,8 +57,20 @@ function ListenWelcome() {
         Hôm nay bạn muốn chia sẻ điều gì?
       </h2>
       <p className="mt-3 max-w-sm text-[14px] leading-7 text-[var(--muted)]">
-        Viết điều đang ở trong lòng, hoặc chọn một gợi ý từ bên trái.
+        Viết điều đang ở trong lòng, hoặc bắt đầu từ một gợi ý.
       </p>
+      <div className="mt-6 flex max-w-md flex-wrap justify-center gap-2">
+        {STARTER_CHIPS.map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            onClick={() => onChip(chip)}
+            className="rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] text-[var(--foreground)] transition hover:border-[var(--green)]/50 hover:bg-[var(--green-wash)] hover:text-[var(--green-deep)]"
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -393,7 +420,7 @@ export function AiStudio() {
             </div>
           ) : isEmpty ? (
             isToday ? (
-              <ListenWelcome />
+              <ListenWelcome onChip={(text) => sendMessage(text)} />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
                 <span className="text-4xl opacity-30">💬</span>
@@ -415,32 +442,68 @@ export function AiStudio() {
                   {formatDateLabel(activeDate)}
                 </div>
               ) : null}
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                  className={`px-4 py-3 text-[15px] leading-7 ${
-                    msg.role === "user" ? "listen-msg-user" : "listen-msg-assistant"
-                  }`}
-                >
-                  {msg.content}
-                  {streamingId === msg.id ? (
-                    <AnimatePresence>
-                      <motion.span
-                        key="cursor"
-                        initial={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[1px] rounded-full bg-[var(--green)] align-middle"
-                        animate={{ opacity: [1, 0, 1] }}
-                        style={{ animationDuration: "0.8s" }}
-                      />
-                    </AnimatePresence>
-                  ) : null}
-                </motion.div>
-              ))}
+              {messages.map((msg, idx) => {
+                const isLastAssistant =
+                  msg.role === "assistant" &&
+                  idx === messages.length - 1 &&
+                  !loading &&
+                  isToday;
+                return (
+                  <div key={msg.id}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                      className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-[11px] font-bold text-white">
+                          L
+                        </div>
+                      ) : null}
+                      <div
+                        className={`max-w-[85%] px-4 py-3 text-[15px] leading-7 ${
+                          msg.role === "user" ? "listen-msg-user" : "listen-msg-assistant"
+                        }`}
+                      >
+                        {msg.content}
+                        {streamingId === msg.id ? (
+                          <AnimatePresence>
+                            <motion.span
+                              key="cursor"
+                              initial={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[1px] rounded-full bg-[var(--green)] align-middle"
+                              animate={{ opacity: [1, 0, 1] }}
+                              style={{ animationDuration: "0.8s" }}
+                            />
+                          </AnimatePresence>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                    {isLastAssistant ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="ml-9 mt-1.5 flex flex-wrap gap-1.5"
+                      >
+                        {SUGGESTED_REPLIES.map((reply) => (
+                          <button
+                            key={reply}
+                            type="button"
+                            onClick={() => sendMessage(reply)}
+                            className="rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:bg-[var(--green-wash)] hover:text-[var(--green-deep)]"
+                          >
+                            {reply}
+                          </button>
+                        ))}
+                      </motion.div>
+                    ) : null}
+                  </div>
+                );
+              })}
               <AnimatePresence>
                 {isThinking ? <ThinkingOrbs key="orbs" /> : null}
               </AnimatePresence>
