@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CartButton } from "@/components/store/cart-button";
-import { defaultRegisterNext } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
 export function SiteHeaderActions({
@@ -28,17 +27,13 @@ export function SiteHeaderActions({
           </span>
         </Link>
       ) : (
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/login"
-            className="rounded-full px-4 py-2 text-[13px] font-medium text-[var(--muted)] transition hover:text-[var(--foreground)]"
-          >
-            Đăng nhập
-          </Link>
-          <Link href={`/register?next=${defaultRegisterNext}` as Route} className="button-primary py-2 text-[13px]">
-            Bắt đầu
-          </Link>
-        </div>
+        <Link
+          href="/login"
+          className="hidden rounded-full px-5 py-2 text-[13px] font-semibold text-white transition hover:opacity-90 md:inline-flex"
+          style={{ background: "var(--green)", boxShadow: "var(--glass-shadow)" }}
+        >
+          Đăng nhập
+        </Link>
       )}
     </div>
   );

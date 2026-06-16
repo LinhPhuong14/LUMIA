@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Route } from "next";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { LandingMobileDrawer } from "@/components/landing/shared/landing-mobile-drawer";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ThemeAwareLogo } from "@/components/ui/theme-aware-logo";
-import { defaultRegisterNext, landingAnchorLinks } from "@/lib/site-nav";
+import { landingAnchorLinks } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD = 12;
@@ -75,17 +74,12 @@ export function FloatingNavbar() {
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <LandingMobileDrawer />
           <ThemeToggle className="hidden sm:flex" />
-          <Link href="/login" className="lumia-nav-link hidden text-sm font-semibold sm:inline-flex">
-            Đăng nhập
-          </Link>
           <Link
-            href={`/register?next=${defaultRegisterNext}` as Route}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 md:px-5 md:py-2.5",
-            )}
+            href="/login"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 md:px-5 md:py-2.5"
             style={{ background: "var(--green)", boxShadow: "var(--glass-shadow)" }}
           >
-            Bắt đầu
+            Đăng nhập
           </Link>
         </div>
       </motion.div>
