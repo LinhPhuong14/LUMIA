@@ -3,6 +3,7 @@
 import { Crown } from "lucide-react";
 
 import { NotificationCenter } from "@/components/dashboard/notification-center";
+import { CartButton } from "@/components/store/cart-button";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
 
 function getInitials(name: string) {
@@ -35,6 +36,7 @@ export function TopBar({
         {subtitle ? <p className="mt-1 text-[13.5px] text-[var(--muted)]">{subtitle}</p> : null}
       </div>
       <div className="flex items-center gap-3">
+        <CartButton />
         <NotificationCenter />
         <div className="dash-plan-pill py-1.5 pl-3.5 pr-1.5">
           <Crown className="h-3.5 w-3.5 text-[var(--honey-dark)]" />

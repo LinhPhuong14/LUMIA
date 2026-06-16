@@ -1,4 +1,5 @@
 import { AiListeningSection } from "@/components/landing/sections/ai-listening-section";
+import { BlogSection } from "@/components/landing/sections/blog-section";
 import { BoxesShowcaseSection } from "@/components/landing/sections/boxes-showcase-section";
 import { CategoriesSection } from "@/components/landing/sections/categories-section";
 import { HeroSection } from "@/components/landing/sections/hero-section";
@@ -21,6 +22,7 @@ export default function HomePage() {
       <AiListeningSection />
       <WebappDemoSection />
       <TestimonialsSection />
+      <BlogSection />
       <JoinSection />
       <FaqSection />
       <SiteFooter />

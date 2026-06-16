@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -241,12 +242,17 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
 }
 
 /* ── Product Card ── */
-function ProductCard({ product, index, basePath = "/store/products" }: { product: StoreProduct; index: number; basePath?: string }) {
+function ProductCard({ product, index, basePath = "/store/products", isLoggedIn = true }: { product: StoreProduct; index: number; basePath?: string; isLoggedIn?: boolean }) {
   const { addItem } = useCart();
+  const router = useRouter();
   const [added, setAdded] = useState(false);
 
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
+    if (!isLoggedIn) {
+      router.push("/login?next=/store");
+      return;
+    }
     addItem({
       id: product.id,
       slug: product.slug,
@@ -364,7 +370,7 @@ function TrustStrip() {
 }
 
 /* ── Main component ── */
-export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store/products" }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string } = {}) {
+export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store/products", isLoggedIn = true }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string; isLoggedIn?: boolean } = {}) {
   const [planTab, setPlanTab] = useState<PlanTab>("digital");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -567,7 +573,7 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               <AnimatePresence>
                 {visibleProducts.map((p, i) => (
-                  <ProductCard key={p.id} product={p} index={i} basePath={productBasePath} />
+                  <ProductCard key={p.id} product={p} index={i} basePath={productBasePath} isLoggedIn={isLoggedIn} />
                 ))}
               </AnimatePresence>
             </div>

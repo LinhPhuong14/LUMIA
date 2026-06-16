@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { UnifiedStore } from "@/components/store/unified-store";
+import { getSession } from "@/lib/supabase/auth";
 
 export const metadata: Metadata = {
   title: "Cửa hàng – LUMIA",
   description: "Gói LUMIA và sản phẩm wellbeing giúp bạn tạo không gian ngủ và thư giãn tốt hơn.",
 };
 
-export default function StorePage() {
+export default async function StorePage() {
+  const session = await getSession();
   return (
     <main className="marketing-page landing-page">
       <div className="landing-frame py-16">
@@ -18,7 +20,7 @@ export default function StorePage() {
           </p>
         </div>
 
-        <UnifiedStore />
+        <UnifiedStore isLoggedIn={!!session} />
       </div>
     </main>
   );

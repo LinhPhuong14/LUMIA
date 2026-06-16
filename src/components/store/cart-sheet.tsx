@@ -66,7 +66,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
         aria-label="Đóng"
         onClick={onClose}
       />
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col bg-[var(--bg)] shadow-[-24px_0_60px_rgba(0,0,0,0.15)]">
+      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col bg-[var(--surface)] shadow-[-24px_0_60px_rgba(0,0,0,0.15)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
           <span className="font-serif text-xl text-[var(--foreground)]">

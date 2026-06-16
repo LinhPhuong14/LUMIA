@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { ArrowLeft, Check, ChevronDown, Phone, MapPin, ShoppingCart, Package } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Phone, MapPin, ShoppingCart, Package, LogIn } from "lucide-react";
 
 import type { StoreProductDetail } from "@/data/store-products-detail";
 import { SPRAY_PRODUCT_SLUGS } from "@/data/store-products-detail";
@@ -68,16 +69,23 @@ export function ProductDetailView({
   product,
   backHref,
   inDashboard = false,
+  isLoggedIn = true,
 }: {
   product: StoreProductDetail;
   backHref: string;
   inDashboard?: boolean;
+  isLoggedIn?: boolean;
 }) {
   const { addItem, items } = useCart();
+  const router = useRouter();
   const [added, setAdded] = useState(false);
   const isSpray = SPRAY_PRODUCT_SLUGS.includes(product.slug);
 
   function handleAdd() {
+    if (!isLoggedIn) {
+      router.push("/login?next=/store");
+      return;
+    }
     addItem({
       id: product.slug,
       slug: product.slug,
@@ -283,22 +291,32 @@ export function ProductDetailView({
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[14px] font-semibold text-white transition hover:opacity-90"
-                style={{ background: added ? "var(--green-deep)" : "var(--green)" }}
-              >
-                {added ? (
-                  <>
-                    <Check className="h-4 w-4" /> Đã thêm vào giỏ
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="h-4 w-4" /> Thêm vào giỏ hàng
-                  </>
-                )}
-              </button>
+              {!isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-[var(--green)] py-3.5 text-[14px] font-semibold text-[var(--green)] transition hover:bg-[var(--green-wash)]"
+                >
+                  <LogIn className="h-4 w-4" /> Đăng nhập để mua
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[14px] font-semibold text-white transition hover:opacity-90"
+                  style={{ background: added ? "var(--green-deep)" : "var(--green)" }}
+                >
+                  {added ? (
+                    <>
+                      <Check className="h-4 w-4" /> Đã thêm vào giỏ
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4" /> Thêm vào giỏ hàng
+                    </>
+                  )}
+                </button>
+              )}
 
               {cartQty > 0 && (
                 <p className="mt-2 text-center text-[12px]" style={{ color: "var(--muted)" }}>

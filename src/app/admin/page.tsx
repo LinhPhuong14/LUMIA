@@ -1,4 +1,4 @@
-import { Boxes, CreditCard, FileText, ShoppingBag, Users } from "lucide-react";
+import { Boxes, BookOpen, CreditCard, FileText, ShoppingBag, Users } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -12,6 +12,7 @@ const adminCards: { title: string; href: Route; icon: typeof CreditCard; copy: s
   { title: "Báo cáo", href: "/admin/reports", icon: FileText, copy: "Xem báo cáo đã generate." },
   { title: "Shop", href: "/store", icon: Boxes, copy: "Xem trang mua hộp như user." },
   { title: "Cửa hàng", href: "/admin/store", icon: ShoppingBag, copy: "Quản lý sản phẩm, tồn kho và đơn hàng." },
+  { title: "Blog", href: "/admin/blog", icon: BookOpen, copy: "Xem danh sách bài viết blog tĩnh." },
 ];
 
 export default async function AdminPage() {
