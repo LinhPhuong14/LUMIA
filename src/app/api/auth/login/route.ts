@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Không thể kết nối Supabase." }, { status: 503 });
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email.toLowerCase(),
     password: parsed.data.password,
   });
@@ -35,5 +35,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sai email hoặc mật khẩu." }, { status: 401 });
   }
 
-  return NextResponse.json({ ok: true });
+  // Fetch role to determine redirect destination
+  let redirect = "/dashboard";
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if (profile?.role === "admin") redirect = "/admin";
+  }
+
+  return NextResponse.json({ ok: true, redirect });
 }
