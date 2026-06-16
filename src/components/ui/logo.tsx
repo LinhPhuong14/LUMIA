@@ -24,7 +24,7 @@ export function LumiaLogo({
         width={260}
         height={116}
         className={cn(
-          compact ? "h-[26px] w-auto md:h-[28px]" : "h-[34px] w-auto md:h-[38px]",
+          compact ? "h-[32px] w-auto md:h-[36px]" : "h-[38px] w-auto md:h-[44px]",
         )}
         priority
       />

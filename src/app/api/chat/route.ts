@@ -46,6 +46,16 @@ async function getOrCreateChatSession(
   userId: string,
   date: string,
 ): Promise<string | null> {
+  // Upsert: insert or return existing (handles race conditions + unique constraint)
+  const { data: upserted } = await supabase
+    .from("chat_sessions")
+    .upsert({ user_id: userId, date }, { onConflict: "user_id,date" })
+    .select("id")
+    .single();
+
+  if (upserted?.id) return upserted.id;
+
+  // Fallback: SELECT if upsert returned nothing
   const { data: existing } = await supabase
     .from("chat_sessions")
     .select("id")
@@ -53,15 +63,7 @@ async function getOrCreateChatSession(
     .eq("date", date)
     .maybeSingle();
 
-  if (existing?.id) return existing.id;
-
-  const { data: created } = await supabase
-    .from("chat_sessions")
-    .insert({ user_id: userId, date })
-    .select("id")
-    .single();
-
-  return created?.id ?? null;
+  return existing?.id ?? null;
 }
 
 export async function POST(request: Request) {

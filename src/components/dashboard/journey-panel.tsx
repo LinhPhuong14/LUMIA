@@ -322,13 +322,15 @@ function ActivityHabitTracker({
   days: string[];
 }) {
   const CHUNK = 21;
-  const [offset, setOffset] = useState(0);
   const total = days.length;
-  const end = total - offset * CHUNK;
-  const start = Math.max(0, end - CHUNK);
+  const lastPage = Math.max(0, Math.ceil(total / CHUNK) - 1);
+  // page 0 = day 1 (oldest), lastPage = most recent; default to most recent
+  const [page, setPage] = useState(lastPage);
+  const start = page * CHUNK;
+  const end = Math.min(total, start + CHUNK);
   const visibleDays = days.slice(start, end);
-  const canGoBack = end > CHUNK;
-  const canGoForward = offset > 0;
+  const canGoBack = page > 0;        // ‹ = earlier (toward day 1)
+  const canGoForward = page < lastPage; // › = more recent
 
   // Map activity type → set of dates
   const byType: Record<string, Set<string>> = {};
@@ -351,7 +353,7 @@ function ActivityHabitTracker({
           <button
             type="button"
             disabled={!canGoBack}
-            onClick={() => setOffset((v) => v + 1)}
+            onClick={() => setPage((v) => v - 1)}
             className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
           >
             ‹
@@ -359,7 +361,7 @@ function ActivityHabitTracker({
           <button
             type="button"
             disabled={!canGoForward}
-            onClick={() => setOffset((v) => v - 1)}
+            onClick={() => setPage((v) => v + 1)}
             className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-[var(--surface)] disabled:opacity-30"
           >
             ›
