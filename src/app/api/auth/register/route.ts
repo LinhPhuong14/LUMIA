@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!env.DEMO_MODE) {
       return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
     }
-    return NextResponse.json({ ok: true, mode: "demo", redirect: "/onboarding" });
+    return NextResponse.json({ ok: true, mode: "demo", redirect: "/dashboard" });
   }
 
   const supabase = await createClient();
@@ -69,5 +69,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, id: data.user.id, redirect: "/onboarding" }, { status: 201 });
+  return NextResponse.json({ ok: true, id: data.user.id, redirect: "/dashboard" }, { status: 201 });
 }

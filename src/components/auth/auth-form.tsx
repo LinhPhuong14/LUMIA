@@ -195,6 +195,22 @@ export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?:
 
         {error ? <p className="text-sm text-error">{error}</p> : null}
 
+        {mode === "register" ? (
+          <p className="text-center text-[13px] text-muted">
+            Đã có tài khoản?{" "}
+            <a href="/login" className="font-semibold text-[var(--green-deep)] underline underline-offset-2 hover:text-[var(--green)]">
+              Đăng nhập
+            </a>
+          </p>
+        ) : (
+          <p className="text-center text-[13px] text-muted">
+            Chưa có tài khoản?{" "}
+            <a href="/register" className="font-semibold text-[var(--green-deep)] underline underline-offset-2 hover:text-[var(--green)]">
+              Đăng ký miễn phí
+            </a>
+          </p>
+        )}
+
         <p className="text-xs leading-6 text-muted">
           LUMIA không thay thế chuyên gia y tế hay chuyên gia tâm lý. Không gian này được thiết kế để lắng nghe một cách dịu dàng.
         </p>
