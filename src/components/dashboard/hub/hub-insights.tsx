@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, Flame, TrendingUp } from "lucide-react";
+import { CalendarCheck, Flame, TrendingUp } from "lucide-react";
 
 import { StatDisc } from "@/components/dashboard/shell/stat-disc";
 import type { DashboardInsights } from "@/lib/dashboard-insights";
@@ -36,12 +36,14 @@ function buildInsightCards(insights: DashboardInsights) {
       accent: "var(--green-deep)",
     },
     {
-      title: "Hoạt động",
-      value: String(insights.activity.totalThisWeek),
-      unit: "lần",
-      sub: insights.activity.topTypeLabel
-        ? `Nhiều nhất: ${insights.activity.topTypeLabel}`
-        : "Chưa có hoạt động tuần này",
+      title: "Điểm danh",
+      value: String(insights.week.checkInDays),
+      unit: "/7",
+      sub: insights.week.checkInDays >= 5
+        ? "Tuần xuất sắc! 🎉"
+        : insights.week.checkInDays > 0
+          ? `Còn ${7 - insights.week.checkInDays} ngày nữa`
+          : "Bắt đầu check-in",
       accent: "var(--rose-deep)",
     },
   ] as const;
@@ -49,7 +51,7 @@ function buildInsightCards(insights: DashboardInsights) {
 
 export function HubInsightsStatRow({ insights }: { insights: DashboardInsights }) {
   const cards = buildInsightCards(insights);
-  const icons = [Flame, TrendingUp, Activity];
+  const icons = [Flame, TrendingUp, CalendarCheck];
 
   return (
     <div>
@@ -108,12 +110,14 @@ export function HubInsightsRow({ insights }: { insights: DashboardInsights }) {
       accent: "var(--green-deep)",
     },
     {
-      icon: Activity,
-      title: "Hoạt động",
-      value: String(insights.activity.totalThisWeek),
-      sub: insights.activity.topTypeLabel
-        ? `Nhiều nhất: ${insights.activity.topTypeLabel}`
-        : "Chưa có hoạt động tuần này",
+      icon: CalendarCheck,
+      title: "Điểm danh",
+      value: `${insights.week.checkInDays}/7`,
+      sub: insights.week.checkInDays >= 5
+        ? "Tuần xuất sắc! 🎉"
+        : insights.week.checkInDays > 0
+          ? `Còn ${7 - insights.week.checkInDays} ngày nữa`
+          : "Bắt đầu check-in",
       accent: "var(--rose-deep)",
     },
   ] as const;

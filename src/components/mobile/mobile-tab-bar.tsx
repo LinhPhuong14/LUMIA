@@ -7,7 +7,7 @@ import { Grid2X2 } from "lucide-react";
 import { isNavActive, mobileTabs } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
-const moreRoutes = ["/audio", "/audio/sleep", "/settings", "/feedback", "/account", "/dashboard/store", "/admin"];
+const moreRoutes = ["/audio", "/audio/sleep", "/ai", "/settings", "/feedback", "/account", "/dashboard/store", "/admin"];
 
 export function isMoreRouteActive(pathname: string) {
   return moreRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));

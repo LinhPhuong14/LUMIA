@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/shell/top-bar";
 import { MobileAppHeader } from "@/components/mobile/mobile-app-header";
+import { FloatingChatBubble } from "@/components/mobile/floating-chat-bubble";
 import { MobileMoreSheet } from "@/components/mobile/mobile-more-sheet";
 import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
@@ -88,6 +89,8 @@ function DashboardShellInner({
           </div>
         </div>
       </div>
+
+      <FloatingChatBubble />
 
       <MobileMoreSheet
         open={moreOpen}
