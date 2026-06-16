@@ -326,24 +326,52 @@ export function JourneyPanel({
         </div>
 
         {/* Streak milestone badges */}
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-          {[3, 7, 14, 21, 30, 60, 90].map((milestone) => {
-            const reached = streak.longest_streak >= milestone;
+        <div className="mt-5 grid grid-cols-4 gap-2">
+          {[
+            { days: 3, emoji: "🌱", label: "Khởi đầu tích cực" },
+            { days: 7, emoji: "⭐", label: "Người giữ nhịp" },
+            { days: 14, emoji: "🌙", label: "Người bạn của giấc ngủ" },
+            { days: 30, emoji: "🏆", label: "Chuyên gia thói quen" },
+          ].map(({ days, emoji, label }) => {
+            const reached = streak.longest_streak >= days;
             return (
               <div
-                key={milestone}
-                className={`flex shrink-0 flex-col items-center rounded-[12px] border px-3 py-2 text-center transition ${
+                key={days}
+                title={`${days} ngày — ${label}`}
+                className={`flex flex-col items-center gap-1 rounded-[14px] border p-2.5 text-center transition ${
                   reached
                     ? "border-[var(--green)]/40 bg-[var(--green-wash)]"
-                    : "border-[var(--border)] opacity-40"
+                    : "border-[var(--border)] opacity-35 grayscale"
                 }`}
               >
-                <span className="text-base">{milestone >= 30 ? "🏆" : milestone >= 14 ? "⭐" : "🔥"}</span>
-                <span className="mt-0.5 text-[10px] font-semibold text-[var(--foreground)]">{milestone}d</span>
+                <span className="text-xl">{emoji}</span>
+                <span className="text-[9px] font-bold text-[var(--green-deep)]">{days} ngày</span>
+                <span className="line-clamp-2 text-[9px] leading-tight text-[var(--muted)]">{label}</span>
               </div>
             );
           })}
         </div>
+        {/* Next milestone progress */}
+        {(() => {
+          const next = [3, 7, 14, 30].find((d) => streak.longest_streak < d);
+          if (!next) return null;
+          const prev = [0, 3, 7, 14].find((_, i, arr) => arr[i + 1] === next) ?? 0;
+          const pct = Math.round(((streak.longest_streak - prev) / (next - prev)) * 100);
+          return (
+            <div className="mt-3">
+              <div className="mb-1 flex justify-between text-[10px] text-[var(--muted)]">
+                <span>Tiến độ đến huy hiệu tiếp theo</span>
+                <span>{streak.longest_streak}/{next} ngày</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]">
+                <div
+                  className="h-full rounded-full bg-[var(--green)] transition-all duration-700"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* ── Tabs ── */}

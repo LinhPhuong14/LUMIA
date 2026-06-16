@@ -7,6 +7,7 @@ import { RitualAccordionSection } from "@/components/landing/sections/ritual-acc
 import { TestimonialsSection } from "@/components/landing/sections/testimonials-section";
 import { WebappDemoSection } from "@/components/landing/sections/webapp-demo-section";
 import { FloatingNavbar } from "@/components/landing/shared/floating-navbar";
+import { FaqSection } from "@/components/marketing/faq-section";
 import { SiteFooter } from "@/components/marketing/site-footer";
 
 export default function HomePage() {
@@ -21,6 +22,7 @@ export default function HomePage() {
       <WebappDemoSection />
       <TestimonialsSection />
       <JoinSection />
+      <FaqSection />
       <SiteFooter />
     </>
   );

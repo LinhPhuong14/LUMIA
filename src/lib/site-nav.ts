@@ -8,6 +8,7 @@ export type SiteNavLink = {
 };
 
 export const marketingNavLinks: SiteNavLink[] = [
+  { id: "about", label: "Về chúng tôi", href: "/about" as Route },
   { id: "store", label: "Cửa hàng", href: "/store" },
   { id: "quiz", label: "Tìm gói phù hợp", href: "/quiz" },
 ];
