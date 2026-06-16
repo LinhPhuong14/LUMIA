@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Flame, TrendingUp, CalendarDays, Zap, ChevronRight, FileText, RefreshCw } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
@@ -141,45 +150,79 @@ function MoodHeatmap({ days, moods }: { days: string[]; moods: MoodEntry[] }) {
   );
 }
 
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { date: string; label: string } }> }) {
+  if (!active || !payload?.length) return null;
+  const { value, payload: p } = payload[0];
+  return (
+    <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2 shadow-lg">
+      <p className="text-[11px] font-semibold text-[var(--foreground)]">{p.date}</p>
+      <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+        Mood: <span className="font-bold text-[var(--green-deep)]">{value}/5</span> · {p.label}
+      </p>
+    </div>
+  );
+}
+
 function WeekChart({ moods }: { moods: MoodEntry[] }) {
   const last7 = [...moods].slice(-7);
   if (last7.length < 2) return null;
-
-  const W = 100, H = 40, max = 5;
-  const pts = last7.map((m, i) => ({
-    x: (i / (last7.length - 1)) * W,
-    y: H - (m.score / max) * H,
-    score: m.score,
-    date: m.date,
-  }));
-
-  const polyline = pts.map((p) => `${p.x},${p.y}`).join(" ");
-  const area = `${pts[0].x},${H} ${polyline} ${pts[pts.length - 1].x},${H}`;
   const avg = last7.reduce((s, m) => s + m.score, 0) / last7.length;
+
+  const data = last7.map((m) => ({
+    date: m.date.slice(5).replace("-", "/"),
+    score: m.score,
+    label: MOOD_COLORS[m.score]?.label ?? "",
+  }));
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 56 }} preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="mood-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--green)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="var(--green)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <polygon points={area} fill="url(#mood-grad)" />
-        <polyline points={polyline} fill="none" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="2" fill="var(--green)" />
-        ))}
-      </svg>
-      <div className="mt-1 flex justify-between">
-        {last7.map((m) => (
-          <span key={m.date} className="text-[9px] text-[var(--muted)]">{m.date.slice(8)}</span>
-        ))}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] text-[var(--muted)]">
+          Trung bình: <span className="font-semibold text-[var(--foreground)]">{avg.toFixed(1)}/5</span>
+        </p>
+        <div className="flex gap-3">
+          {[1,2,3,4,5].map((s) => (
+            <div key={s} className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full" style={{ background: MOOD_DOT[s] }} />
+              <span className="text-[9px] text-[var(--muted)]">{s}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <p className="mt-2 text-[11px] text-[var(--muted)]">
-        Trung bình 7 ngày: <span className="font-semibold text-[var(--foreground)]">{avg.toFixed(1)}/5</span>
-      </p>
+      <ResponsiveContainer width="100%" height={140}>
+        <AreaChart data={data} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
+          <defs>
+            <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#5F6F52" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#5F6F52" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[1, 5]}
+            ticks={[1, 2, 3, 4, 5]}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "var(--green)", strokeWidth: 1, strokeDasharray: "4 4" }} />
+          <Area
+            type="monotone"
+            dataKey="score"
+            stroke="#5F6F52"
+            strokeWidth={2}
+            fill="url(#moodGrad)"
+            dot={{ r: 4, fill: "#5F6F52", strokeWidth: 2, stroke: "var(--surface-card)" }}
+            activeDot={{ r: 6, fill: "#5F6F52", stroke: "var(--surface-card)", strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -478,7 +521,7 @@ export function JourneyPanel({
             {/* Mood trend chart */}
             {moods.length >= 2 ? (
               <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5">
-                <p className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">Xu hướng mood 7 ngày</p>
+                <p className="mb-4 text-[13px] font-semibold text-[var(--foreground)]">Xu hướng tâm trạng 15 ngày</p>
                 <WeekChart moods={moods} />
               </div>
             ) : null}

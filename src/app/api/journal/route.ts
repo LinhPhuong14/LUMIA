@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   }
 
-  // INSERT new entry — try without upsert to allow multiple per day
+  // INSERT new entry — multiple entries per day allowed (migration 014 removed UNIQUE constraint)
   const payload = {
     user_id: session.id,
     content,
@@ -111,35 +111,11 @@ export async function POST(request: Request) {
     date,
   };
 
-  // Try INSERT first (allows multiple entries per day if DB has no unique constraint)
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("journal_entries")
     .insert(payload)
     .select()
     .single();
-
-  // If unique constraint blocks it, fall back to upsert (legacy single-entry-per-day)
-  if (error && (error.code === "23505" || error.message?.includes("unique"))) {
-    const result = await supabase
-      .from("journal_entries")
-      .upsert(payload, { onConflict: "user_id,date" })
-      .select()
-      .single();
-    data = result.data;
-    error = result.error;
-  }
-
-  // meta column missing fallback
-  if (error && (error.code === "42703" || error.message?.includes("meta"))) {
-    const { meta: _meta, ...payloadWithoutMeta } = payload;
-    const result = await supabase
-      .from("journal_entries")
-      .upsert(payloadWithoutMeta, { onConflict: "user_id,date" })
-      .select()
-      .single();
-    data = result.data;
-    error = result.error;
-  }
 
   if (error) {
     console.error("[journal POST]", error.code, error.message);

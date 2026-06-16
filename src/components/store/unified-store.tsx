@@ -151,25 +151,25 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
         </div>
       )}
 
-      {/* Header with gradient */}
-      <div
-        className="relative p-6 pb-5"
-        style={{
-          background:
-            box.gradient ??
-            "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)",
-        }}
+      {/* Header */}
+      <div className="relative overflow-hidden p-6 pb-5 dark:bg-[var(--surface-card)]"
+        style={{ background: "light-dark(" + (box.gradient ?? "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)") + ", var(--surface-card))" }}
       >
-        {/* dark mode overlay — neutralises the hardcoded light hex gradient */}
+        {/* light mode gradient */}
+        <div
+          className="absolute inset-0 dark:hidden"
+          style={{ background: box.gradient ?? "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)" }}
+        />
+        {/* dark mode: subtle tinted surface */}
         <div
           className="absolute inset-0 hidden dark:block"
-          style={{ background: "linear-gradient(135deg,rgba(10,18,10,0.62) 0%,rgba(18,30,14,0.52) 100%)" }}
+          style={{ background: isFeatured ? "linear-gradient(135deg,rgba(60,80,50,0.55) 0%,rgba(40,60,35,0.4) 100%)" : "linear-gradient(135deg,rgba(30,40,28,0.6) 0%,rgba(20,30,18,0.5) 100%)" }}
         />
         <div className="relative z-10">
           <div className="mb-3 flex items-center gap-2">
             <span className="text-2xl">{TIER_EMOJI[box.tier] ?? "🌿"}</span>
             {isHybrid && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+              <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
                 <Package className="h-2.5 w-2.5" />
                 Kèm hộp quà
               </span>
@@ -178,7 +178,7 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
             {isHybrid ? "GÓI KÈM HỘP QUÀ" : "GÓI SỐ"}
           </p>
-          <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--green-deep)]">
+          <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--foreground)]">
             {box.name}
           </h3>
           <p className="mt-1 text-[12px] text-[var(--muted)]">{box.tagline}</p>

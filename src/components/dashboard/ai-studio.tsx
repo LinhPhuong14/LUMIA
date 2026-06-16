@@ -36,15 +36,7 @@ function ThinkingOrbs() {
   );
 }
 
-function ListenWelcome({
-  onPick,
-  disabled,
-  loading,
-}: {
-  onPick: (text: string) => void;
-  disabled: boolean;
-  loading: boolean;
-}) {
+function ListenWelcome() {
   return (
     <div className="flex min-h-[min(420px,55vh)] flex-1 flex-col items-center justify-center px-4 py-8 text-center md:px-8">
       <div className="listen-welcome-glow mb-7" aria-hidden />
@@ -52,24 +44,11 @@ function ListenWelcome({
         LUMIA lắng nghe
       </p>
       <h2 className="mt-3 font-serif text-[1.65rem] font-medium tracking-[-0.02em] text-[var(--foreground)] md:text-[1.85rem]">
-        LUMIA đang lắng nghe
+        Hôm nay bạn muốn chia sẻ điều gì?
       </h2>
-      <p className="mt-3 max-w-md text-sm leading-7 text-[var(--muted)]">
-        Hôm nay bạn muốn chia sẻ điều gì? Chọn một gợi ý hoặc viết trực tiếp bên dưới.
+      <p className="mt-3 max-w-sm text-[14px] leading-7 text-[var(--muted)]">
+        Viết điều đang ở trong lòng, hoặc chọn một gợi ý từ bên trái.
       </p>
-      <div className="mt-7 flex max-w-xl flex-wrap justify-center gap-2.5">
-        {starters.map((text) => (
-          <button
-            key={text}
-            type="button"
-            onClick={() => onPick(text)}
-            disabled={disabled || loading}
-            className="listen-starter-chip disabled:opacity-50"
-          >
-            {text}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -438,7 +417,7 @@ export function AiStudio() {
             </div>
           ) : isEmpty ? (
             isToday ? (
-              <ListenWelcome onPick={sendMessage} disabled={disabled} loading={loading} />
+              <ListenWelcome />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
                 <span className="text-4xl opacity-30">💬</span>
