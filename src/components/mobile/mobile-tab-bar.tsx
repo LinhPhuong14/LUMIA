@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Grid2X2 } from "lucide-react";
+import { Settings } from "lucide-react";
 
 import { isNavActive, mobileTabs } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,7 @@ export function MobileTabBar({ onMoreOpen }: { onMoreOpen?: () => void }) {
             moreActive ? "bg-[var(--matcha-soft)]" : "bg-transparent",
           )}
         >
-          <Grid2X2
+          <Settings
             className="h-[18px] w-[18px]"
             strokeWidth={moreActive ? 2 : 1.6}
             style={{ color: moreActive ? "var(--green-deep)" : undefined }}

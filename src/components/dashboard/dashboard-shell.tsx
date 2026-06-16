@@ -26,6 +26,7 @@ export function DashboardShell({
   const resolvedPlanLabel =
     planLabel ?? (subscription ? getPlanDisplayLabel(subscription) : "Dùng thử");
   const badgeVariant = subscription ? getPlanBadgeVariant(subscription) : "free";
+  const isPremium = badgeVariant === "active";
 
   return (
     <DashboardShellLayout
@@ -36,6 +37,7 @@ export function DashboardShell({
       title={title}
       subtitle={subtitle}
       isAdmin={isAdmin}
+      isPremium={isPremium}
     >
       {children}
     </DashboardShellLayout>

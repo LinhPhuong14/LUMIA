@@ -19,7 +19,7 @@ type JournalEntry = {
   created_at?: string;
 };
 
-type StickerItem = { id: string; emoji: string; x: number; y: number; size: number };
+type StickerItem = { id: string; emoji: string; imageUrl?: string; x: number; y: number; size: number };
 
 const TEXT_COLORS = [
   { label: "Mặc định", value: "" },
@@ -115,6 +115,9 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
+  // Selection tooltip
+  const [selTooltip, setSelTooltip] = useState<{ x: number; y: number } | null>(null);
+
   // Drag state for stickers
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -123,6 +126,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
   const editorRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEntry = entries.find((e) => e.id === activeId) ?? null;
 
@@ -242,6 +246,21 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     setShowStickerPicker(false);
   }
 
+  function insertImageSticker(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      const wrapper = editorWrapperRef.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const x = 40 + Math.random() * (rect.width - 160);
+      const y = 40 + Math.random() * 80;
+      setStickers((prev) => [...prev, { id: nanoid(), emoji: "", imageUrl, x, y, size: 96 }]);
+    };
+    reader.readAsDataURL(file);
+    setShowStickerPicker(false);
+  }
+
   // Sticker drag
   function onStickerMouseDown(e: React.MouseEvent, id: string) {
     e.preventDefault();
@@ -286,6 +305,28 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, [draggingId, dragOffset, resizingId, resizeStart]);
+
+  // Selection tooltip
+  useEffect(() => {
+    function onSelChange() {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount || !editorRef.current) {
+        setSelTooltip(null);
+        return;
+      }
+      if (!editorRef.current.contains(sel.anchorNode)) {
+        setSelTooltip(null);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const wrapperRect = editorWrapperRef.current?.getBoundingClientRect();
+      if (!wrapperRect) return;
+      setSelTooltip({ x: rect.left - wrapperRect.left + rect.width / 2, y: rect.top - wrapperRect.top - 8 });
+    }
+    document.addEventListener("selectionchange", onSelChange);
+    return () => document.removeEventListener("selectionchange", onSelChange);
+  }, []);
 
   const grouped = groupByDate(entries);
 
@@ -675,6 +716,20 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
                       </button>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="mt-2 w-full rounded-lg border border-dashed border-[var(--border)] py-1.5 text-[11px] font-medium text-[var(--muted)] transition hover:border-[var(--green)] hover:text-[var(--green-deep)]"
+                  >
+                    + Upload ảnh
+                  </button>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) insertImageSticker(f); e.target.value = ""; }}
+                  />
                 </div>
               )}
             </div>
@@ -690,15 +745,40 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
         {activeId ? (
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div ref={editorWrapperRef} className="relative mx-auto max-w-2xl px-6 py-8 lg:px-8 lg:py-12">
+              {/* Selection tooltip */}
+              {selTooltip && (
+                <div
+                  className="pointer-events-auto absolute z-50 flex items-center gap-1 rounded-[10px] border border-[var(--border)] bg-[var(--surface-card)] p-1 shadow-xl"
+                  style={{ left: selTooltip.x, top: selTooltip.y, transform: "translate(-50%, -100%)" }}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <button type="button" onClick={() => execFmt("bold")} className="flex h-6 w-6 items-center justify-center rounded-md text-[12px] font-bold hover:bg-[var(--surface)] text-[var(--foreground)]">B</button>
+                  <button type="button" onClick={() => execFmt("italic")} className="flex h-6 w-6 items-center justify-center rounded-md text-[12px] italic hover:bg-[var(--surface)] text-[var(--foreground)]">I</button>
+                  <div className="mx-0.5 h-3 w-px bg-[var(--border)]" />
+                  {TEXT_COLORS.slice(1).map((c) => (
+                    <button key={c.value} type="button" onClick={() => execFmt("foreColor", c.value)} className="h-4 w-4 rounded-full border border-[var(--border)]" style={{ background: c.value }} title={c.label} />
+                  ))}
+                  <div className="mx-0.5 h-3 w-px bg-[var(--border)]" />
+                  {HIGHLIGHT_COLORS.slice(1).map((c) => (
+                    <button key={c.value} type="button" onClick={() => execFmt("hiliteColor", c.value)} className="h-4 w-4 rounded-sm border border-[var(--border)]" style={{ background: c.value }} title={c.label} />
+                  ))}
+                </div>
+              )}
+
               {/* Floating stickers */}
               {stickers.map((s) => (
                 <div
                   key={s.id}
-                  className="absolute select-none"
+                  className="absolute select-none group"
                   style={{ left: s.x, top: s.y, zIndex: 10, cursor: draggingId === s.id ? "grabbing" : "grab" }}
                   onMouseDown={(e) => onStickerMouseDown(e, s.id)}
                 >
-                  <span style={{ fontSize: s.size, lineHeight: 1, display: "block" }}>{s.emoji}</span>
+                  {s.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.imageUrl} alt="sticker" style={{ width: s.size, height: s.size, objectFit: "contain", display: "block" }} draggable={false} />
+                  ) : (
+                    <span style={{ fontSize: s.size, lineHeight: 1, display: "block" }}>{s.emoji}</span>
+                  )}
                   {/* Delete button */}
                   <button
                     type="button"

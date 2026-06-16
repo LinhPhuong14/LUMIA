@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/shell/top-bar";
 import { MobileAppHeader } from "@/components/mobile/mobile-app-header";
 import { FloatingChatBubble } from "@/components/mobile/floating-chat-bubble";
+import { FloatingStoreBubble } from "@/components/mobile/floating-store-bubble";
 import { MobileMoreSheet } from "@/components/mobile/mobile-more-sheet";
 import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
 import type { PlanBadgeVariant } from "@/lib/subscription-labels";
@@ -22,6 +23,7 @@ function DashboardShellInner({
   subtitle,
   children,
   isAdmin,
+  isPremium,
 }: {
   sessionName: string;
   sessionEmail?: string;
@@ -31,6 +33,7 @@ function DashboardShellInner({
   subtitle: string;
   children: ReactNode;
   isAdmin?: boolean;
+  isPremium?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -71,6 +74,7 @@ function DashboardShellInner({
             sessionName={sessionName}
             variant={isHub ? "hub" : "default"}
             onMoreOpen={() => setMoreOpen(true)}
+            isPremium={isPremium}
             />
           </div>
 
@@ -91,6 +95,7 @@ function DashboardShellInner({
       </div>
 
       <FloatingChatBubble />
+      <FloatingStoreBubble />
 
       <MobileMoreSheet
         open={moreOpen}
@@ -113,6 +118,7 @@ export function DashboardShellLayout(props: {
   subtitle: string;
   children: ReactNode;
   isAdmin?: boolean;
+  isPremium?: boolean;
 }) {
   return <DashboardShellInner {...props} />;
 }
