@@ -7,22 +7,15 @@ import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 
-const stickerSchema = z.object({
-  id: z.string(),
-  emoji: z.string(),
-  imageUrl: z.string().max(2_000_000).optional(), // ~1.5 MB base64 limit
-  x: z.number(),
-  y: z.number(),
-  size: z.number().optional(),
-});
-
 const metaSchema = z.object({
+  title: z.string().max(200).optional(),
   fontFamily: z.enum(["serif", "sans", "hand"]).optional(),
   textColor: z.string().optional(),
-  stickers: z.array(stickerSchema).optional(),
+  stickers: z.array(z.any()).optional(),
 });
 
 const schema = z.object({
+  id: z.string().uuid().optional(), // present = update, absent = create
   content: z.string().min(1),
   promptUsed: z.string().optional(),
   date: z
@@ -40,7 +33,6 @@ export async function GET() {
     return NextResponse.json({ error: "Bạn cần đăng nhập để tiếp tục." }, { status: 401 });
   }
 
-  // (#007) Journal read also requires active subscription for consistency
   const snapshot = await getSubscriptionSnapshot(session.id);
   if (!snapshot.isActive) {
     return NextResponse.json({ error: "Cần hành trình active để xem nhật ký." }, { status: 403 });
@@ -55,7 +47,7 @@ export async function GET() {
     .from("journal_entries")
     .select("*")
     .eq("user_id", session.id)
-    .order("date", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: "Không thể tải nhật ký. Vui lòng thử lại." }, { status: 500 });
@@ -84,7 +76,6 @@ export async function POST(request: Request) {
   const today = localDateString();
   const date = parsed.data.date ?? today;
 
-  // Reject future dates
   if (date > today) {
     return NextResponse.json({ error: "Không thể lưu nhật ký cho ngày trong tương lai." }, { status: 400 });
   }
@@ -94,38 +85,90 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Hệ thống dữ liệu chưa sẵn sàng." }, { status: 503 });
   }
 
+  const { id, content, promptUsed, meta } = parsed.data;
+
+  // UPDATE existing entry by id
+  if (id) {
+    const { data, error } = await supabase
+      .from("journal_entries")
+      .update({ content, prompt_used: promptUsed ?? null, meta: meta ?? {}, date })
+      .eq("id", id)
+      .eq("user_id", session.id)
+      .select()
+      .single();
+    if (error) {
+      return NextResponse.json({ error: "Không thể cập nhật nhật ký." }, { status: 500 });
+    }
+    return NextResponse.json(data);
+  }
+
+  // INSERT new entry — try without upsert to allow multiple per day
   const payload = {
     user_id: session.id,
-    content: parsed.data.content,
-    prompt_used: parsed.data.promptUsed ?? null,
-    meta: parsed.data.meta ?? {},
+    content,
+    prompt_used: promptUsed ?? null,
+    meta: meta ?? {},
     date,
   };
 
-  let result = await supabase
+  // Try INSERT first (allows multiple entries per day if DB has no unique constraint)
+  let { data, error } = await supabase
     .from("journal_entries")
-    .upsert(payload, { onConflict: "user_id,date" })
+    .insert(payload)
     .select()
     .single();
 
-  // Fallback: if meta column doesn't exist yet (migration not applied), retry without it
-  if (result.error && (result.error.code === "42703" || result.error.message.includes("meta"))) {
-    console.warn("[journal POST] meta column missing, retrying without meta");
+  // If unique constraint blocks it, fall back to upsert (legacy single-entry-per-day)
+  if (error && (error.code === "23505" || error.message?.includes("unique"))) {
+    const result = await supabase
+      .from("journal_entries")
+      .upsert(payload, { onConflict: "user_id,date" })
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  }
+
+  // meta column missing fallback
+  if (error && (error.code === "42703" || error.message?.includes("meta"))) {
     const { meta: _meta, ...payloadWithoutMeta } = payload;
-    result = await supabase
+    const result = await supabase
       .from("journal_entries")
       .upsert(payloadWithoutMeta, { onConflict: "user_id,date" })
       .select()
       .single();
+    data = result.data;
+    error = result.error;
   }
 
-  const { data, error } = result;
-
   if (error) {
-    console.error("[journal POST] supabase error:", error.code, error.message);
+    console.error("[journal POST]", error.code, error.message);
     return NextResponse.json({ error: "Không thể lưu nhật ký. Vui lòng thử lại." }, { status: 500 });
   }
 
   await logActivity(session.id, "journal");
   return NextResponse.json(data);
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Bạn cần đăng nhập." }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Thiếu id." }, { status: 400 });
+
+  const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Lỗi hệ thống." }, { status: 503 });
+
+  const { error } = await supabase
+    .from("journal_entries")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", session.id);
+
+  if (error) return NextResponse.json({ error: "Không thể xóa." }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

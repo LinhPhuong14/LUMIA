@@ -18,19 +18,9 @@ export default async function JourneyPage() {
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <JourneyPanel
-        userId={session.id}
-        isActive={subscription.isActive}
-        calendarDays={
-          subscription.startedAt && subscription.expiresAt
-            ? Math.min(
-                90,
-                Math.ceil(
-                  (new Date(subscription.expiresAt).getTime() - new Date(subscription.startedAt).getTime()) /
-                    (1000 * 60 * 60 * 24),
-                ),
-              )
-            : 30
-        }
+          userId={session.id}
+          isActive={subscription.isActive}
+          calendarDays={90}
         />
       </div>
     </DashboardShell>

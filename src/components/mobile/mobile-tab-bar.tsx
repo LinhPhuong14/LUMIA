@@ -36,13 +36,13 @@ export function MobileTabBar() {
               <Icon
                 className="h-[18px] w-[18px]"
                 strokeWidth={active ? 2 : 1.6}
-                style={{ color: active ? "var(--matcha-deep)" : "var(--muted)" }}
+                style={{ color: active ? "var(--green-deep)" : undefined }}
               />
             </span>
             <span
               className={cn(
-                "text-[9.5px] font-medium",
-                active ? "font-semibold text-[var(--matcha-deep)]" : "text-[var(--muted)]",
+                "text-[10px]",
+                active ? "font-bold text-[var(--green-deep)]" : "font-medium text-[var(--foreground)] opacity-60",
               )}
             >
               {item.mobileLabel ?? item.label}

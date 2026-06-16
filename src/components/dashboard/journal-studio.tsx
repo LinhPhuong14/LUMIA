@@ -1,71 +1,86 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, History, Sparkles } from "lucide-react";
+import { ChevronLeft, FilePlus, Trash2, Clock, Sparkles } from "lucide-react";
 
-import { JournalHistory } from "@/components/dashboard/journal/journal-history";
-import { JournalPageCanvas } from "@/components/dashboard/journal/journal-page-canvas";
-import { JournalToolbar } from "@/components/dashboard/journal/journal-toolbar";
-import {
-  DEFAULT_JOURNAL_META,
-  type JournalEntry,
-  type JournalMeta,
-  parseJournalMeta,
-} from "@/components/dashboard/journal/journal-types";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 import { cn } from "@/lib/utils";
 
-function newStickerId() {
-  return `s-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+type JournalEntry = {
+  id: string;
+  date: string;
+  content: string;
+  prompt_used?: string | null;
+  meta?: { title?: string } | null;
+  created_at?: string;
+};
+
+function getTitle(entry: JournalEntry) {
+  if (entry.meta?.title?.trim()) return entry.meta.title.trim();
+  const first = entry.content.trim().split("\n")[0] ?? "";
+  return first.slice(0, 60) || "Ghi chú không tiêu đề";
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(`${dateStr}T12:00:00`);
+  return d.toLocaleDateString("vi-VN", { weekday: "short", day: "numeric", month: "long" });
+}
+
+function formatTime(iso?: string) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function groupByDate(entries: JournalEntry[]) {
+  const map = new Map<string, JournalEntry[]>();
+  for (const e of entries) {
+    const list = map.get(e.date) ?? [];
+    list.push(e);
+    map.set(e.date, list);
+  }
+  return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
 }
 
 export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const today = new Date().toISOString().slice(0, 10);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [activeDate, setActiveDate] = useState<string>(today);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [meta, setMeta] = useState<JournalMeta>({ ...DEFAULT_JOURNAL_META });
-  const [promptUsed, setPromptUsed] = useState("");
   const [prompts, setPrompts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [stickerMode, setStickerMode] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeEntry = entries.find((e) => e.id === activeId) ?? null;
 
   const loadEntries = useCallback(async () => {
     if (!isActive) return [];
     const res = await fetch("/api/journal");
     if (!res.ok) return [];
-    const data = (await res.json()) as JournalEntry[];
-    return Array.isArray(data) ? data : [];
+    const data = await res.json();
+    return Array.isArray(data) ? (data as JournalEntry[]) : [];
   }, [isActive]);
-
-  const applyEntry = useCallback((entry: JournalEntry | null, date: string) => {
-    setActiveDate(date);
-    if (entry) {
-      setContent(entry.content);
-      setMeta(parseJournalMeta(entry.meta));
-      setPromptUsed(entry.prompt_used ?? "");
-    } else {
-      setContent("");
-      setMeta({ ...DEFAULT_JOURNAL_META, stickers: [] });
-      setPromptUsed("");
-    }
-  }, []);
 
   useEffect(() => {
     setLoading(true);
     loadEntries()
       .then((list) => {
         setEntries(list);
-        const todayEntry = list.find((e) => e.date === today);
-        applyEntry(todayEntry ?? null, today);
+        // Auto-open today's latest entry or nothing
+        const todayEntries = list.filter((e) => e.date === today);
+        if (todayEntries.length > 0) {
+          const latest = todayEntries[0];
+          setActiveId(latest.id);
+          setTitle(latest.meta?.title ?? "");
+          setContent(latest.content);
+        }
       })
       .finally(() => setLoading(false));
-  }, [applyEntry, loadEntries, today]);
+  }, [loadEntries, today]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -77,253 +92,367 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       .catch(() => null);
   }, [isActive]);
 
-  function flashSaved() {
-    setSaveError(null);
-    setShowSaved(true);
-    window.setTimeout(() => setShowSaved(false), 2200);
+  function openEntry(entry: JournalEntry) {
+    setActiveId(entry.id);
+    setTitle(entry.meta?.title ?? "");
+    setContent(entry.content);
+    setDeleteConfirm(false);
+    setSidebarOpen(false);
   }
 
-  async function savePage() {
-    if (!content.trim()) return;
+  async function createNewEntry() {
     setSaving(true);
-    setSaveError(null);
-    const response = await fetch("/api/journal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content,
-        date: activeDate,
-        promptUsed: promptUsed || undefined,
-        meta,
-      }),
-    });
-    setSaving(false);
-    if (!response.ok) {
-      const j = await response.json().catch(() => ({})) as { error?: string };
-      setSaveError(j.error ?? "Lưu thất bại, vui lòng thử lại.");
-      return;
+    try {
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: " ", date: today, meta: { title: "" } }),
+      });
+      if (!res.ok) return;
+      const newEntry: JournalEntry = await res.json();
+      setEntries((prev) => [newEntry, ...prev]);
+      setActiveId(newEntry.id);
+      setTitle("");
+      setContent("");
+      setSidebarOpen(false);
+    } finally {
+      setSaving(false);
     }
-
-    const saved = (await response.json()) as JournalEntry;
-
-    // Optimistic update - replace or prepend the saved entry without full reload
-    setEntries((prev) => {
-      const exists = prev.some((e) => e.date === saved.date);
-      if (exists) return prev.map((e) => (e.date === saved.date ? saved : e));
-      return [saved, ...prev].sort((a, b) => (a.date < b.date ? 1 : -1));
-    });
-
-    await fetch("/api/streak/log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activityType: "journal" }),
-    }).catch(() => null);
-
-    flashSaved();
   }
 
-  function selectEntry(entry: JournalEntry) {
-    applyEntry(entry, entry.date);
-    setHistoryOpen(false);
-  }
+  // Auto-save with 1.5s debounce
+  useEffect(() => {
+    if (!activeId || (!title && !content)) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        const res = await fetch("/api/journal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: activeId,
+            content: content || " ",
+            date: activeEntry?.date ?? today,
+            meta: { title },
+          }),
+        });
+        if (res.ok) {
+          const updated: JournalEntry = await res.json();
+          setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+          setShowSaved(true);
+          setTimeout(() => setShowSaved(false), 2000);
+        }
+      } finally {
+        setSaving(false);
+      }
+    }, 1500);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, content, activeId]);
 
-  function startToday() {
-    applyEntry(null, today);
-    setHistoryOpen(false);
-  }
-
-  function insertPrompt(prompt: string) {
-    if (activeDate !== today && content.trim()) {
-      const ok = window.confirm(
-        `Bạn đang xem trang ngày ${activeDate}. Thêm gợi ý sẽ chỉnh sửa trang cũ này. Tiếp tục?`,
-      );
-      if (!ok) return;
+  async function deleteEntry() {
+    if (!activeId) return;
+    const res = await fetch(`/api/journal?id=${activeId}`, { method: "DELETE" });
+    if (!res.ok) return;
+    const remaining = entries.filter((e) => e.id !== activeId);
+    setEntries(remaining);
+    const next = remaining[0];
+    if (next) {
+      setActiveId(next.id);
+      setTitle(next.meta?.title ?? "");
+      setContent(next.content);
+    } else {
+      setActiveId(null);
+      setTitle("");
+      setContent("");
     }
-    setPromptUsed(prompt);
-    setContent((prev) => (prev ? `${prev}\n\n${prompt}\n` : `${prompt}\n`));
+    setDeleteConfirm(false);
   }
 
-  function addSticker(emoji: string) {
-    setMeta((m) => ({
-      ...m,
-      stickers: [
-        ...m.stickers,
-        { id: newStickerId(), emoji, x: 12 + Math.random() * 76, y: 18 + Math.random() * 55 },
-      ],
-    }));
-  }
-
-  function addImageSticker(dataUrl: string) {
-    setMeta((m) => ({
-      ...m,
-      stickers: [
-        ...m.stickers,
-        { id: newStickerId(), emoji: "", imageUrl: dataUrl, x: 30 + Math.random() * 40, y: 20 + Math.random() * 40, size: 18 },
-      ],
-    }));
-  }
-
-  const charCount = content.length;
-
-  const studio = (
-    <div className="journal-studio flex min-h-0 flex-1 flex-col gap-4 lg:gap-5">
-      <AnimatePresence>
-        {showSaved ? (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed right-6 top-20 z-50 rounded-full bg-[var(--green-wash)] px-4 py-2 text-[13px] font-medium text-[var(--green-deep)] shadow-sm backdrop-blur-sm md:top-6"
-          >
-            ✓ Đã lưu trang nhật ký
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <div className="flex items-center justify-between gap-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] font-semibold text-[var(--green-deep)]"
-        >
-          <History className="h-4 w-4" />
-          {loading ? "Lịch sử" : `Lịch sử (${entries.length})`}
-        </button>
-        <span className="text-[12px] text-[var(--muted)]">{charCount} ký tự</span>
-      </div>
-
-      <div className="journal-studio-layout min-h-0 flex-1 gap-5 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="hidden lg:block">
-          <JournalHistory
-            entries={entries}
-            activeDate={activeDate}
-            onSelect={selectEntry}
-            onNewToday={startToday}
-          />
-        </div>
-
-        <div className="flex min-h-0 min-w-0 flex-col gap-4">
-          <JournalToolbar
-            meta={meta}
-            onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
-            onAddSticker={addSticker}
-            onAddImageSticker={addImageSticker}
-            stickerMode={stickerMode}
-            onToggleStickerMode={() => setStickerMode((v) => !v)}
-            onSave={savePage}
-            saving={saving}
-            saved={showSaved}
-            canSave={!!content.trim()}
-          />
-
-          {loading ? (
-            <div className="journal-page flex min-h-[400px] items-center justify-center text-sm text-[var(--muted)]">
-              Đang mở trang nhật ký…
-            </div>
-          ) : (
-            <JournalPageCanvas
-              content={content}
-              onContentChange={setContent}
-              meta={meta}
-              onMetaChange={setMeta}
-              promptUsed={promptUsed}
-              activeDate={activeDate}
-              placeholder="Hôm nay có điều gì bạn muốn đặt xuống không?"
-            />
-          )}
-
-          {prompts.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
-                <Sparkles className="h-3.5 w-3.5" />
-                Gợi ý
-              </span>
-              {prompts.slice(0, 4).map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => insertPrompt(prompt)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] transition hover:border-[var(--green)]/40 hover:bg-[var(--green-wash)]",
-                    promptUsed === prompt
-                      ? "border-[var(--green)] bg-[var(--green-wash)] text-[var(--green-deep)]"
-                      : "border-[var(--border)] bg-[var(--surface-card)] text-[var(--muted)]",
-                  )}
-                >
-                  {prompt.length > 42 ? `${prompt.slice(0, 42)}…` : prompt}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <p className="text-[12px] text-[var(--muted)]">{charCount} ký tự</p>
-            {saveError ? (
-              <p className="text-[12px] text-red-500">{saveError}</p>
-            ) : null}
-            {activeDate !== today ? (
-              <button type="button" onClick={startToday} className="button-secondary text-[13px]">
-                Về hôm nay
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {historyOpen ? (
-          <>
-            <motion.button
-              type="button"
-              aria-label="Đóng lịch sử"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-sm lg:hidden"
-              onClick={() => setHistoryOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-[70] flex w-[min(88vw,320px)] flex-col border-r border-[var(--border)] bg-[var(--bg)] p-5 shadow-2xl lg:hidden"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <span className="font-serif text-lg text-[var(--foreground)]">Lịch sử</span>
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen(false)}
-                  className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--green-wash)]"
-                  aria-label="Đóng"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-              </div>
-              <JournalHistory
-                entries={entries}
-                activeDate={activeDate}
-                onSelect={selectEntry}
-                onNewToday={startToday}
-              />
-            </motion.aside>
-          </>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
+  const grouped = groupByDate(entries);
 
   if (!isActive) {
     return (
-      <UpsellOverlay
-        featureName="Nhật ký"
-        description="Lưu từng trang theo ngày, trang trí bằng sticker và font - như một cuốn journal thật."
-        locked
-      >
-        {studio}
-      </UpsellOverlay>
+      <div className="relative flex min-h-[400px] flex-col items-center justify-center">
+        <UpsellOverlay message="Mở khóa nhật ký với gói Premium" />
+      </div>
     );
   }
 
-  return studio;
+  const SidebarContent = (
+    <div className="flex h-full flex-col">
+      {/* New entry button */}
+      <div className="flex-shrink-0 p-4">
+        <button
+          type="button"
+          onClick={createNewEntry}
+          disabled={saving}
+          className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition hover:bg-[var(--green-wash)]"
+          style={{ color: "var(--green-deep)" }}
+        >
+          <FilePlus className="h-4 w-4" />
+          Thêm ghi chú mới
+        </button>
+      </div>
+
+      {/* Entry list grouped by date */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        {loading ? (
+          <div className="space-y-2 px-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--surface)]" />
+            ))}
+          </div>
+        ) : grouped.length === 0 ? (
+          <p className="px-4 py-6 text-center text-[13px]" style={{ color: "var(--muted)" }}>
+            Chưa có ghi chú nào.
+          </p>
+        ) : (
+          grouped.map(([date, dayEntries]) => (
+            <div key={date} className="mb-3">
+              <p
+                className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: "var(--muted)" }}
+              >
+                {formatDate(date)}
+              </p>
+              {dayEntries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => openEntry(entry)}
+                  className={cn(
+                    "w-full rounded-xl px-3 py-2.5 text-left transition",
+                    entry.id === activeId
+                      ? "bg-[var(--green-wash)]"
+                      : "hover:bg-[var(--surface-card)]",
+                  )}
+                >
+                  <p
+                    className="truncate text-[13px] font-medium leading-snug"
+                    style={{ color: entry.id === activeId ? "var(--green-deep)" : "var(--foreground)" }}
+                  >
+                    {getTitle(entry)}
+                  </p>
+                  {entry.created_at && (
+                    <p className="mt-0.5 flex items-center gap-1 text-[11px]" style={{ color: "var(--muted)" }}>
+                      <Clock className="h-2.5 w-2.5" />
+                      {formatTime(entry.created_at)}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-full min-h-0 flex-1">
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden w-64 shrink-0 flex-col border-r lg:flex"
+        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+      >
+        {SidebarContent}
+      </aside>
+
+      {/* Mobile sidebar drawer */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: "spring", stiffness: 380, damping: 38 }}
+              className="fixed inset-y-0 left-0 z-50 w-72 shadow-2xl lg:hidden"
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="flex items-center justify-between border-b px-4 py-3.5" style={{ borderColor: "var(--border)" }}>
+                <span className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  Nhật ký
+                </span>
+                <button type="button" onClick={() => setSidebarOpen(false)}>
+                  <ChevronLeft className="h-5 w-5" style={{ color: "var(--muted)" }} />
+                </button>
+              </div>
+              {SidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Editor */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Toolbar */}
+        <div
+          className="flex shrink-0 items-center gap-2 border-b px-4 py-2.5"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          {/* Mobile sidebar toggle */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-[var(--surface-card)] lg:hidden"
+            style={{ color: "var(--muted)" }}
+          >
+            <ChevronLeft className="h-4 w-4 rotate-180" />
+          </button>
+
+          <div className="flex-1" />
+
+          {/* Save indicator */}
+          <AnimatePresence>
+            {(saving || showSaved) && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-[12px]"
+                style={{ color: "var(--muted)" }}
+              >
+                {saving ? "Đang lưu..." : "✓ Đã lưu"}
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          {/* Delete */}
+          {activeId && (
+            deleteConfirm ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px]" style={{ color: "var(--muted)" }}>Xóa?</span>
+                <button
+                  type="button"
+                  onClick={deleteEntry}
+                  className="rounded-lg px-2.5 py-1 text-[12px] font-semibold text-red-500 transition hover:bg-red-50 dark:hover:bg-red-950/30"
+                >
+                  Xác nhận
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(false)}
+                  className="rounded-lg px-2.5 py-1 text-[12px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  Hủy
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-red-50 dark:hover:bg-red-950/30"
+                style={{ color: "var(--muted)" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )
+          )}
+
+          {/* New entry (mobile) */}
+          <button
+            type="button"
+            onClick={createNewEntry}
+            disabled={saving}
+            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold transition hover:bg-[var(--green-wash)] lg:hidden"
+            style={{ color: "var(--green-deep)" }}
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+            Mới
+          </button>
+        </div>
+
+        {/* Main editor area */}
+        {activeId ? (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-2xl px-6 py-8 lg:px-8 lg:py-12">
+              {/* Entry date */}
+              {activeEntry && (
+                <p className="mb-3 text-[11.5px]" style={{ color: "var(--muted)" }}>
+                  {formatDate(activeEntry.date)}
+                  {activeEntry.created_at && ` · ${formatTime(activeEntry.created_at)}`}
+                </p>
+              )}
+
+              {/* Title */}
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Tiêu đề..."
+                className="mb-4 w-full bg-transparent font-serif text-[26px] font-semibold leading-tight outline-none placeholder:opacity-30 lg:text-[30px]"
+                style={{ color: "var(--foreground)" }}
+              />
+
+              {/* Content */}
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Bắt đầu viết... Hôm nay bạn cảm thấy thế nào?"
+                className="min-h-[50vh] w-full resize-none bg-transparent text-[15px] leading-[1.85] outline-none placeholder:opacity-30"
+                style={{ color: "var(--foreground)" }}
+              />
+
+              {/* Prompts */}
+              {prompts.length > 0 && !content.trim() && (
+                <div className="mt-8 border-t pt-6" style={{ borderColor: "var(--border)" }}>
+                  <div className="mb-3 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--green)" }} />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--green)" }}>
+                      Gợi ý hôm nay
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {prompts.slice(0, 3).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setContent(p + "\n")}
+                        className="block w-full rounded-xl border px-4 py-3 text-left text-[13px] leading-relaxed transition hover:border-[var(--green)]/40 hover:bg-[var(--green-wash)]"
+                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Empty state */
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+            <span className="text-5xl opacity-20">📝</span>
+            <p className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+              Chưa có ghi chú nào
+            </p>
+            <p className="text-[13px]" style={{ color: "var(--muted)" }}>
+              Bắt đầu ngày mới với một trang nhật ký.
+            </p>
+            <button
+              type="button"
+              onClick={createNewEntry}
+              disabled={saving}
+              className="mt-2 flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition hover:opacity-90"
+              style={{ background: "var(--green)" }}
+            >
+              <FilePlus className="h-4 w-4" />
+              Tạo ghi chú đầu tiên
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
