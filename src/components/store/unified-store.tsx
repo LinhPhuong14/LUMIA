@@ -484,9 +484,6 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
         </div>
       </div>
 
-      {/* Trust strip */}
-      <TrustStrip />
-
       {/* Section 0 - Orders & Cart */}
       <section id="don-hang">
         <div className="mb-5 flex items-center justify-between">
