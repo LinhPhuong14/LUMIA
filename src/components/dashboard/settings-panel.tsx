@@ -49,7 +49,7 @@ function Toggle({
     >
       <span className="text-sm text-[var(--foreground)]">{label}</span>
       <span
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-[var(--border)]"}`}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-gray-300 dark:bg-white/25"}`}
       >
         <span
           className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
@@ -207,20 +207,6 @@ export function SettingsPanel({
             </div>
           </div>
         )}
-      </section>
-
-      <section className="dash-panel p-6">
-        <span className="eyebrow">Thông tin cá nhân</span>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <input
-            defaultValue={userName}
-            className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[var(--foreground)] outline-none focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green-wash)]"
-          />
-          <input
-            defaultValue={userEmail}
-            className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[var(--foreground)] outline-none focus:border-[var(--green)] focus:ring-2 focus:ring-[var(--green-wash)]"
-          />
-        </div>
       </section>
 
       <section className="dash-panel p-6">

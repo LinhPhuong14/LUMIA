@@ -9,11 +9,6 @@ import { useVisualViewportOffset } from "@/lib/use-visual-viewport-offset";
 
 type Message = { role: "user" | "assistant"; content: string; id: string };
 
-const starters = [
-  "Tối nay mình thấy hơi quá tải",
-  "Mình đang không biết bắt đầu từ đâu",
-  "Hôm nay mình mệt vì công việc",
-] as const;
 
 function ThinkingOrbs() {
   return (
@@ -254,27 +249,8 @@ export function AiStudio() {
     <div className="chat-container h-full min-h-0 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-4 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)] xl:gap-5">
       {/* ── Left sidebar ── */}
       <section className="dash-panel hidden shrink-0 flex-col p-5 lg:flex">
-        {/* Quick starters (only show when on today) */}
-        {isToday ? (
-          <>
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
-              Bắt đầu nhanh
-            </span>
-            <div className="mt-4 flex flex-col gap-2">
-              {starters.map((text) => (
-                <button
-                  key={text}
-                  type="button"
-                  onClick={() => sendMessage(text)}
-                  disabled={disabled || loading}
-                  className="listen-starter-chip w-full rounded-[18px] px-4 py-3 text-left disabled:opacity-50"
-                >
-                  {text}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
+        {/* Back to today (only when viewing history) */}
+        {!isToday && (
           <button
             type="button"
             onClick={() => setActiveDate(today)}

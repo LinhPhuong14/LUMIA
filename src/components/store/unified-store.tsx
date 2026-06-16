@@ -19,11 +19,14 @@ import {
   RefreshCw,
   ArrowRight,
   Plus,
+  ShoppingCart,
+  ClipboardList,
 } from "lucide-react";
 import type { Route } from "next";
 
 import { getAllPurchasableProducts, type BoxProduct } from "@/data/catalog";
 import { useCart } from "@/lib/cart-context";
+import { CartSheet } from "@/components/store/cart-sheet";
 
 type StoreProduct = {
   id: string;
@@ -373,6 +376,11 @@ function TrustStrip() {
 
 /* ── Main component ── */
 export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store/products", isLoggedIn = true }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string; isLoggedIn?: boolean } = {}) {
+  const { count } = useCart();
+  const [showCart, setShowCart] = useState(false);
+  const [orders, setOrders] = useState<Array<{id: string; status: string; items: unknown[]; total_vnd: number; created_at: string}>>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
   const [planTab, setPlanTab] = useState<PlanTab>("digital");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -380,6 +388,15 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showAllProducts, setShowAllProducts] = useState(false);
+
+  useEffect(() => {
+    setOrdersLoading(true);
+    fetch("/api/store/orders")
+      .then(r => r.json())
+      .then(data => setOrders(data.orders ?? []))
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -469,6 +486,80 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
 
       {/* Trust strip */}
       <TrustStrip />
+
+      {/* Section 0 - Orders & Cart */}
+      <section id="don-hang">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-[var(--green)]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+              Đơn hàng của tôi
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCart(true)}
+            className="relative flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2 text-[13px] font-medium text-[var(--foreground)] transition hover:border-[var(--green)]/50"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Giỏ hàng
+            {count > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--green)] text-[10px] font-bold text-white">
+                {count}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {ordersLoading ? (
+          <div className="space-y-3">
+            {[1,2].map(i => <div key={i} className="h-16 animate-pulse rounded-[16px] bg-[var(--surface)]" />)}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] py-8 text-center">
+            <Package className="h-8 w-8 opacity-30" style={{ color: "var(--muted)" }} />
+            <p className="text-[13px] text-[var(--muted)]">Bạn chưa có đơn hàng nào.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((order) => {
+              const statusLabel: Record<string, string> = {
+                pending_payment: "Chờ thanh toán",
+                paid: "Đã thanh toán",
+                preparing: "Đang chuẩn bị",
+                shipping: "Đang giao hàng",
+                delivered: "Đã giao hàng",
+              };
+              return (
+                <div key={order.id} className="flex items-center justify-between rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-[var(--foreground)]">
+                      Đơn #{order.id.slice(0, 8).toUpperCase()}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+                      {new Date(order.created_at).toLocaleDateString("vi-VN")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[13px] font-semibold text-[var(--foreground)]">
+                      {order.total_vnd.toLocaleString("vi-VN")} ₫
+                    </p>
+                    <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      order.status === "delivered" ? "bg-[var(--green-wash)] text-[var(--green-deep)]" :
+                      order.status === "shipping" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400" :
+                      "bg-[var(--surface)] text-[var(--muted)]"
+                    }`}>
+                      {statusLabel[order.status] ?? "Đang xử lý"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {showCart && <CartSheet onClose={() => setShowCart(false)} />}
+      </section>
 
       {/* Section 1 - Subscription plans */}
       <section id="goi-lumia">
