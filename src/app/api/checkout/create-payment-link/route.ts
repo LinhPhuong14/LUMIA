@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getProductBySlug } from "@/data/catalog";
-import { env, hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
+import { env, hasPayOSConfig, hasSupabaseConfig, hasSupabaseServiceRole } from "@/lib/env";
 import { createOrder } from "@/lib/orders";
 import { isValidTierCode } from "@/lib/product-tiers";
 import { getPayOSClient } from "@/lib/payos";
@@ -92,6 +92,12 @@ export async function POST(request: Request) {
     });
   }
 
+  // Service role required to create orders — check explicitly so we get a clear 503
+  if (!hasSupabaseServiceRole()) {
+    console.error("[checkout] SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY not configured");
+    return NextResponse.json({ error: "Phiên thanh toán chưa sẵn sàng (cấu hình server)." }, { status: 503 });
+  }
+
   // (#002) Use timestamp-based unique order code to prevent collisions
   const orderCode = Date.now();
   const returnUrl = buildAbsoluteUrl("/checkout/success");
@@ -99,7 +105,8 @@ export async function POST(request: Request) {
 
   const payos = getPayOSClient();
   if (!payos) {
-    return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán." }, { status: 500 });
+    console.error("[checkout] PayOS client unavailable — check PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY");
+    return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán." }, { status: 503 });
   }
 
   const description = `${product.name} - ${product.duration}`;
@@ -115,6 +122,7 @@ export async function POST(request: Request) {
       shipping: product.physicalItems.length > 0 ? shipping : undefined,
     });
   } catch (error) {
+    console.error("[checkout] createOrder failed:", error);
     return NextResponse.json({ error: "Không thể tạo đơn hàng. Vui lòng thử lại.", detail: String(error) }, { status: 500 });
   }
 
@@ -134,6 +142,7 @@ export async function POST(request: Request) {
   } catch (error) {
     // DB order was created but PayOS failed - order stays as pending_payment
     // Admin can review and clean up orphan orders
+    console.error("[checkout] PayOS createPaymentLink failed:", error);
     return NextResponse.json(
       { error: "Không thể tạo liên kết thanh toán.", detail: String(error), orderId: dbOrder.id },
       { status: 500 },
