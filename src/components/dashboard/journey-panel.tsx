@@ -374,6 +374,58 @@ export function JourneyPanel({
         })()}
       </section>
 
+      {/* ── Huy hiệu ── */}
+      <section className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-6">
+        <p className="mb-4 text-[13px] font-semibold text-[var(--foreground)]">Huy hiệu</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { days: 3, emoji: "🌱", label: "Khởi đầu tích cực" },
+            { days: 7, emoji: "⭐", label: "Người giữ nhịp" },
+            { days: 14, emoji: "🌙", label: "Người bạn của giấc ngủ" },
+            { days: 30, emoji: "🏆", label: "Chuyên gia thói quen" },
+          ].map(({ days, emoji, label }) => {
+            const earned = streak.longest_streak >= days;
+            return (
+              <div
+                key={days}
+                className={`flex flex-col items-center rounded-[16px] border p-4 text-center transition ${
+                  earned ? "border-[var(--green)]/50 bg-[var(--green-wash)]" : "border-[var(--border)] opacity-40"
+                }`}
+              >
+                <span className="text-2xl">{earned ? emoji : "🔒"}</span>
+                <span className="mt-2 text-[11px] font-semibold text-[var(--foreground)]">{label}</span>
+                <span className="mt-0.5 text-[10px] text-[var(--muted)]">{days} ngày</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress to next badge */}
+        {(() => {
+          const milestones = [3, 7, 14, 30];
+          const next = milestones.find((m) => streak.longest_streak < m);
+          if (!next) return null;
+          const prev = milestones[milestones.indexOf(next) - 1] ?? 0;
+          const pct = Math.min(((streak.longest_streak - prev) / (next - prev)) * 100, 100);
+          return (
+            <div className="mt-4">
+              <div className="flex justify-between text-[11px]" style={{ color: "var(--muted)" }}>
+                <span>Tiến độ đến huy hiệu tiếp theo</span>
+                <span>{streak.longest_streak}/{next} ngày</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface)]">
+                <motion.div
+                  className="h-full rounded-full bg-[var(--green)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
       {/* ── Tabs ── */}
       <div className="flex gap-1 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-1">
         {(["history", "reports"] as Tab[]).map((t) => (

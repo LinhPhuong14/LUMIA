@@ -8,7 +8,7 @@ export type SiteNavLink = {
 };
 
 export const marketingNavLinks: SiteNavLink[] = [
-  { id: "about", label: "Về chúng tôi", href: "/about" as Route },
+  { id: "about", label: "Về chúng tôi", href: "/about" },
   { id: "store", label: "Cửa hàng", href: "/store" },
   { id: "quiz", label: "Tìm gói phù hợp", href: "/quiz" },
 ];
@@ -21,39 +21,40 @@ export const landingAnchorLinks: SiteNavLink[] = [
   { id: "stories", label: "Câu chuyện", href: "#cau-chuyen" },
 ];
 
-export const footerColumns = [
+export type FooterLink =
+  | { label: string; href: Route; external?: false }
+  | { label: string; href: string; external: true };
+
+export type FooterColumn = {
+  title: string;
+  links: FooterLink[];
+};
+
+export const footerColumns: FooterColumn[] = [
   {
-    title: "Sản phẩm",
+    title: "Khám phá Lumia",
     links: [
+      { label: "Trang chủ", href: "/" as Route },
+      { label: "Về chúng tôi", href: "/about" as Route },
+      { label: "Tính năng", href: "/#web-app" as Route },
       { label: "Cửa hàng", href: "/store" as Route },
-      { label: "Tìm gói phù hợp", href: "/quiz" as Route },
-      { label: "Gói Premium", href: "/boxes/premium" as Route },
-    ],
-  },
-  {
-    title: "App",
-    links: [
-      { label: "Không gian của bạn", href: "/dashboard" as Route },
-      { label: "Lắng nghe", href: "/ai" as Route },
-      { label: "Nhật ký", href: "/journal" as Route },
     ],
   },
   {
     title: "Hỗ trợ",
     links: [
-      { label: "Đăng nhập", href: "/login" as Route },
-      { label: "Tạo tài khoản", href: "/register?next=/onboarding" as Route },
       { label: "Cài đặt", href: "/settings" as Route },
+      { label: "Đăng nhập", href: "/login" as Route },
     ],
   },
   {
     title: "Pháp lý",
     links: [
-      { label: "Điều khoản", href: "/store" as Route },
-      { label: "Quyền riêng tư", href: "/store" as Route },
+      { label: "Chính sách bảo mật", href: "/privacy" as Route },
+      { label: "Điều khoản sử dụng", href: "/terms" as Route },
     ],
   },
-] as const;
+];
 
 export const defaultRegisterNext = "/onboarding";
 export const defaultLoginNext = "/dashboard";
