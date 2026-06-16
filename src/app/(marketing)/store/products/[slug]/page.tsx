@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { ProductDetailView } from "@/components/store/product-detail-view";
 import { getProductBySlug, STORE_PRODUCTS_DETAIL } from "@/data/store-products-detail";
+import { getSession } from "@/lib/supabase/auth";
 
 export function generateStaticParams() {
   return STORE_PRODUCTS_DETAIL.map((p) => ({ slug: p.slug }));
@@ -31,5 +32,6 @@ export default async function StoreProductPage({
   const product = getProductBySlug(slug);
   if (!product) notFound();
 
-  return <ProductDetailView product={product} backHref="/store" />;
+  const session = await getSession();
+  return <ProductDetailView product={product} backHref="/store" isLoggedIn={!!session} />;
 }
