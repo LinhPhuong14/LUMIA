@@ -32,7 +32,7 @@ export const desktopNav: DashboardNavItem[] = [
   { id: "coach", href: "/audio/sleep", label: "Sleep Coach", icon: Moon },
   { id: "streak", href: "/journey", label: "Streak", icon: Flame },
   { id: "plan", href: "/account", label: "Gói", icon: Package },
-  { id: "store", href: "/store", label: "Cửa hàng", icon: ShoppingBag },
+  { id: "store", href: "/dashboard/store", label: "Cửa hàng", icon: ShoppingBag },
   { id: "feedback", href: "/feedback", label: "Góp ý", icon: MessageSquareHeart },
   { id: "settings", href: "/settings", label: "Cài đặt", icon: Settings },
 ];

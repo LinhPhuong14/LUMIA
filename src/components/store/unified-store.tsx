@@ -152,43 +152,50 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
 
       {/* Header with gradient */}
       <div
-        className="p-6 pb-5"
+        className="relative p-6 pb-5"
         style={{
           background:
             box.gradient ??
             "linear-gradient(135deg, var(--green-wash) 0%, var(--surface) 100%)",
         }}
       >
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-2xl">{TIER_EMOJI[box.tier] ?? "🌿"}</span>
-          {isHybrid && (
-            <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-              <Package className="h-2.5 w-2.5" />
-              Kèm hộp quà
+        {/* dark mode overlay — neutralises the hardcoded light hex gradient */}
+        <div
+          className="absolute inset-0 hidden dark:block"
+          style={{ background: "linear-gradient(135deg,rgba(10,18,10,0.62) 0%,rgba(18,30,14,0.52) 100%)" }}
+        />
+        <div className="relative z-10">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-2xl">{TIER_EMOJI[box.tier] ?? "🌿"}</span>
+            {isHybrid && (
+              <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                <Package className="h-2.5 w-2.5" />
+                Kèm hộp quà
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
+            {isHybrid ? "GÓI KÈM HỘP QUÀ" : "GÓI SỐ"}
+          </p>
+          <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--green-deep)]">
+            {box.name}
+          </h3>
+          <p className="mt-1 text-[12px] text-[var(--muted)]">{box.tagline}</p>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="font-sans text-[30px] font-bold leading-none text-[var(--foreground)]">
+              {formatVnd(box.price)}
+            </span>
+            {box.priceNote && (
+              <span className="text-[12px] text-[var(--muted)]">{box.priceNote}</span>
+            )}
+          </div>
+          {box.savingsNote && (
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--green-wash)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--green-deep)]">
+              <Sparkles className="h-2.5 w-2.5" />
+              {box.savingsNote}
             </span>
           )}
         </div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
-          {isHybrid ? "GÓI KÈM HỘP QUÀ" : "GÓI SỐ"}
-        </p>
-        <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--green-deep)]">
-          {box.name}
-        </h3>
-        <p className="mt-1 text-[12px] text-[var(--muted)]">{box.tagline}</p>
-        <div className="mt-4 flex items-baseline gap-2">
-          <span className="font-sans text-[30px] font-bold leading-none text-[var(--foreground)]">
-            {formatVnd(box.price)}
-          </span>
-          {box.priceNote && (
-            <span className="text-[12px] text-[var(--muted)]">{box.priceNote}</span>
-          )}
-        </div>
-        {box.savingsNote && (
-          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--green-wash)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--green-deep)]">
-            <Sparkles className="h-2.5 w-2.5" />
-            {box.savingsNote}
-          </span>
-        )}
       </div>
 
       {/* Body */}
@@ -357,7 +364,7 @@ function TrustStrip() {
 }
 
 /* ── Main component ── */
-export function UnifiedStore() {
+export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false }: { stickyTop?: string; hideRegisterCta?: boolean } = {}) {
   const [planTab, setPlanTab] = useState<PlanTab>("digital");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -409,7 +416,7 @@ export function UnifiedStore() {
       <div
         className="sticky z-20 -mx-4 border-b border-[var(--border)] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
         style={{
-          top: "var(--marketing-header-height, 64px)",
+          top: stickyTop,
           background: "color-mix(in srgb, var(--surface) 88%, transparent)",
         }}
       >
@@ -585,8 +592,8 @@ export function UnifiedStore() {
         )}
       </section>
 
-      {/* Section 3 - CTA banner */}
-      <section>
+      {/* Section 3 - CTA banner (hidden inside dashboard for logged-in users) */}
+      {!hideRegisterCta && <section>
         <div
           className="relative overflow-hidden rounded-[28px] p-8 sm:p-12"
           style={{
@@ -616,7 +623,7 @@ export function UnifiedStore() {
             </Link>
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

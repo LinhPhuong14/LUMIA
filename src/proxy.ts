@@ -16,6 +16,7 @@ const authRoutes = [
   "/journey",
   "/audio",
   "/subscription",
+  "/dashboard/store",
 ];
 const adminRoutes = ["/admin", "/api/admin"];
 
