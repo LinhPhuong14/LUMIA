@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, FilePlus, Trash2, Clock, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronLeft, Clock, FilePlus, Sparkles, Trash2 } from "lucide-react";
 
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,15 @@ function getTitle(entry: JournalEntry) {
 function formatDate(dateStr: string) {
   const d = new Date(`${dateStr}T12:00:00`);
   return d.toLocaleDateString("vi-VN", { weekday: "short", day: "numeric", month: "long" });
+}
+
+function formatDateLabel(dateStr: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dateStr === today) return "Hôm nay";
+  if (dateStr === yesterday) return "Hôm qua";
+  const d = new Date(`${dateStr}T12:00:00`);
+  return d.toLocaleDateString("vi-VN", { day: "numeric", month: "long" });
 }
 
 function formatTime(iso?: string) {
@@ -54,6 +63,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [showSaved, setShowSaved] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [view, setView] = useState<"gallery" | "editor">("gallery");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEntry = entries.find((e) => e.id === activeId) ?? null;
 
@@ -70,17 +80,9 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     loadEntries()
       .then((list) => {
         setEntries(list);
-        // Auto-open today's latest entry or nothing
-        const todayEntries = list.filter((e) => e.date === today);
-        if (todayEntries.length > 0) {
-          const latest = todayEntries[0];
-          setActiveId(latest.id);
-          setTitle(latest.meta?.title ?? "");
-          setContent(latest.content);
-        }
       })
       .finally(() => setLoading(false));
-  }, [loadEntries, today]);
+  }, [loadEntries]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -98,6 +100,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     setContent(entry.content);
     setDeleteConfirm(false);
     setSidebarOpen(false);
+    setView("editor");
   }
 
   async function createNewEntry() {
@@ -115,6 +118,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       setTitle("");
       setContent("");
       setSidebarOpen(false);
+      setView("editor");
     } finally {
       setSaving(false);
     }
@@ -157,17 +161,11 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     if (!res.ok) return;
     const remaining = entries.filter((e) => e.id !== activeId);
     setEntries(remaining);
-    const next = remaining[0];
-    if (next) {
-      setActiveId(next.id);
-      setTitle(next.meta?.title ?? "");
-      setContent(next.content);
-    } else {
-      setActiveId(null);
-      setTitle("");
-      setContent("");
-    }
+    setActiveId(null);
+    setTitle("");
+    setContent("");
     setDeleteConfirm(false);
+    setView("gallery");
   }
 
   const grouped = groupByDate(entries);
@@ -180,6 +178,106 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
     );
   }
 
+  // ── GALLERY VIEW ──────────────────────────────────────────────────────────
+  if (view === "gallery") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Top bar */}
+        <div
+          className="flex shrink-0 items-center justify-between border-b px-4 py-3"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <h2 className="font-serif text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+            Nhật ký
+          </h2>
+          <button
+            type="button"
+            onClick={createNewEntry}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
+            style={{ background: "var(--green)" }}
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+            Viết mới
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-32 animate-pulse rounded-[20px] bg-[var(--surface)]" />
+              ))}
+            </div>
+          ) : grouped.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
+              <span className="text-5xl">✍️</span>
+              <p className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+                Chưa có nhật ký nào
+              </p>
+              <button
+                type="button"
+                onClick={createNewEntry}
+                disabled={saving}
+                className="mt-1 flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition hover:opacity-90"
+                style={{ background: "var(--green)" }}
+              >
+                <FilePlus className="h-4 w-4" />
+                Viết nhật ký đầu tiên
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {grouped.map(([date, dayEntries]) => (
+                <div key={date}>
+                  <p
+                    className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em]"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    {formatDateLabel(date)}
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {dayEntries.map((entry) => (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => openEntry(entry)}
+                        className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-4 cursor-pointer hover:border-[var(--green)]/40 hover:shadow-md transition text-left"
+                      >
+                        <p className="font-serif text-[15px] font-semibold text-[var(--foreground)] truncate">
+                          {getTitle(entry)}
+                        </p>
+                        {entry.content.trim() && (
+                          <p
+                            className="text-[13px] mt-1 line-clamp-3"
+                            style={{ color: "var(--muted)" }}
+                          >
+                            {entry.content.trim()}
+                          </p>
+                        )}
+                        {entry.created_at && (
+                          <p
+                            className="mt-3 flex items-center gap-1 text-[11px]"
+                            style={{ color: "var(--muted)" }}
+                          >
+                            <Clock className="h-3 w-3" />
+                            {formatTime(entry.created_at)}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── EDITOR VIEW ───────────────────────────────────────────────────────────
   const SidebarContent = (
     <div className="flex h-full flex-col">
       {/* New entry button */}
@@ -300,6 +398,17 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
           className="flex shrink-0 items-center gap-2 border-b px-4 py-2.5"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         >
+          {/* Back to gallery button */}
+          <button
+            type="button"
+            onClick={() => setView("gallery")}
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1.5 text-[13px] font-medium transition hover:text-[var(--foreground)]"
+            style={{ color: "var(--muted)" }}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Nhật ký
+          </button>
+
           {/* Mobile sidebar toggle */}
           <button
             type="button"
