@@ -1,6 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { ExternalLink, Mail, Phone, Globe, MapPin, Facebook, Instagram } from "lucide-react";
+import { ExternalLink, Mail, Phone, Globe, MapPin } from "lucide-react";
 
 import { ThemeAwareLogo } from "@/components/ui/theme-aware-logo";
 import { footerColumns } from "@/lib/site-nav";
@@ -84,7 +84,6 @@ export function SiteFooter() {
                   className="inline-flex items-center gap-1.5 text-[13px] transition hover:opacity-80"
                   style={{ color: "var(--muted)" }}
                 >
-                  <Facebook className="h-3.5 w-3.5" />
                   Facebook
                   <ExternalLink className="h-3 w-3" />
                 </a>
@@ -97,7 +96,6 @@ export function SiteFooter() {
                   className="inline-flex items-center gap-1.5 text-[13px] transition hover:opacity-80"
                   style={{ color: "var(--muted)" }}
                 >
-                  <Instagram className="h-3.5 w-3.5" />
                   Instagram
                   <ExternalLink className="h-3 w-3" />
                 </a>

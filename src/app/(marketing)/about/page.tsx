@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Heart, Zap, Shield, Target, Rocket, Mail, Globe, MapPin, Facebook } from "lucide-react";
+import { Heart, Zap, Shield, Target, Rocket, Mail, Globe, MapPin, ExternalLink } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Về chúng tôi | Lumia",
@@ -308,7 +308,7 @@ export default function AboutPage() {
                   href: "https://lumia.com.vn",
                 },
                 {
-                  icon: Facebook,
+                  icon: ExternalLink,
                   label: "Facebook",
                   value: "LUMIA - Dong hanh cung giac ngu Viet",
                   href: "https://www.facebook.com/share/181NRssH8n/?mibextid=wwXIfr",
