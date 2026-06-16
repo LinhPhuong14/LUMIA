@@ -54,12 +54,13 @@ function MoodHeatmap({ days, moods }: { days: string[]; moods: MoodEntry[] }) {
   const today = new Date().toISOString().slice(0, 10);
   const moodMap = Object.fromEntries(moods.map((m) => [m.date, m]));
 
-  // Group into weeks
+  // Group into weeks, newest day first
+  const reversed = [...days].reverse();
   const weeks: string[][] = [];
   let week: string[] = [];
-  days.forEach((d, i) => {
+  reversed.forEach((d, i) => {
     week.push(d);
-    if (week.length === 7 || i === days.length - 1) {
+    if (week.length === 7 || i === reversed.length - 1) {
       weeks.push(week);
       week = [];
     }
@@ -459,8 +460,8 @@ export function JourneyPanel({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { icon: Flame, label: "Streak hiện tại", value: `${streak.current_streak}`, sub: "ngày liên tiếp" },
-                { icon: TrendingUp, label: "Mood trung bình", value: avgMood ?? "-", sub: `trong ${calendarDays} ngày` },
-                { icon: CalendarDays, label: "Tổng check-in", value: `${checkedDays}`, sub: `/ ${calendarDays} ngày` },
+                { icon: TrendingUp, label: "Mood trung bình", value: avgMood ?? "-", sub: "15 ngày gần nhất" },
+                { icon: CalendarDays, label: "Tổng check-in", value: `${checkedDays}`, sub: "/ 15 ngày" },
                 { icon: Zap, label: "Kỷ lục streak", value: `${streak.longest_streak}`, sub: "ngày liên tiếp" },
               ].map(({ icon: Icon, label, value, sub }) => (
                 <div key={label} className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-4">

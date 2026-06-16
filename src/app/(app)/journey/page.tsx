@@ -20,7 +20,7 @@ export default async function JourneyPage() {
         <JourneyPanel
           userId={session.id}
           isActive={subscription.isActive}
-          calendarDays={90}
+          calendarDays={15}
         />
       </div>
     </DashboardShell>
