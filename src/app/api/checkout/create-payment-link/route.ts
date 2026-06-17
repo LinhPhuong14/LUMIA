@@ -84,7 +84,11 @@ export async function POST(request: Request) {
 
   if (!hasSupabaseConfig() || !hasPayOSConfig()) {
     if (!env.DEMO_MODE) {
-      return NextResponse.json({ error: "Phiên thanh toán chưa sẵn sàng." }, { status: 503 });
+      console.error("[checkout] config missing — supabase:", hasSupabaseConfig(), "payos:", hasPayOSConfig());
+      return NextResponse.json({
+        error: "Phiên thanh toán chưa sẵn sàng.",
+        debug: { supabase: hasSupabaseConfig(), payos: hasPayOSConfig() },
+      }, { status: 503 });
     }
     return NextResponse.json({
       checkoutUrl: `${buildAbsoluteUrl("/checkout/success")}?demo=1`,
@@ -103,10 +107,16 @@ export async function POST(request: Request) {
   const returnUrl = buildAbsoluteUrl("/checkout/success");
   const cancelUrl = buildAbsoluteUrl("/checkout/cancel");
 
-  const payos = getPayOSClient();
+  let payos;
+  try {
+    payos = getPayOSClient();
+  } catch (e) {
+    console.error("[checkout] PayOS client init threw:", e);
+    return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán (init error).", detail: String(e) }, { status: 503 });
+  }
   if (!payos) {
     console.error("[checkout] PayOS client unavailable — check PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY");
-    return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán." }, { status: 503 });
+    return NextResponse.json({ error: "Không thể khởi tạo phiên thanh toán.", debug: "payos_null" }, { status: 503 });
   }
 
   const description = `${product.name} - ${product.duration}`;
