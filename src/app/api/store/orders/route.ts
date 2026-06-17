@@ -8,6 +8,7 @@ const itemSchema = z.object({
   name: z.string(),
   price_vnd: z.number().int().positive(),
   qty: z.number().int().min(1).max(20),
+  variant: z.string().optional(),
 });
 
 const schema = z.object({
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
+    console.error("[store/orders] validation error:", JSON.stringify(parsed.error.flatten()));
     return NextResponse.json({ error: "Vui lòng điền đầy đủ thông tin" }, { status: 400 });
   }
 
@@ -59,7 +61,10 @@ export async function POST(request: Request) {
     .select("id")
     .single();
 
-  if (error) return NextResponse.json({ error: "Không thể tạo đơn hàng" }, { status: 500 });
+  if (error) {
+    console.error("[store/orders] insert error:", error.message, error.code);
+    return NextResponse.json({ error: "Không thể tạo đơn hàng" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true, orderId: data.id, total_vnd: total, shipping_vnd: shipping });
 }
