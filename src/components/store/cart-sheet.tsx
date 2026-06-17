@@ -117,7 +117,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
                   </div>
                 ))}
               </div>
-              <div className="border-t border-[var(--border)] px-6 py-5 space-y-2">
+              <div className="border-t border-[var(--border)] px-6 pt-5 pb-[calc(var(--mobile-tab-bar-offset,6.5rem)+var(--safe-bottom,0px))] lg:pb-5 space-y-2">
                 <div className="flex justify-between text-[13px] text-[var(--muted)]"><span>Tạm tính</span><span>{formatVnd(subtotal)}</span></div>
                 <div className="flex justify-between text-[13px] text-[var(--muted)]">
                   <span>Phí ship</span>
@@ -179,7 +179,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
               </div>
               {error && <p className="rounded-[10px] bg-red-50 px-4 py-2 text-[13px] text-red-600">{error}</p>}
             </div>
-            <div className="border-t border-[var(--border)] px-6 py-4 flex gap-3">
+            <div className="border-t border-[var(--border)] px-6 pt-4 pb-[calc(var(--mobile-tab-bar-offset,6.5rem)+var(--safe-bottom,0px))] lg:pb-4 flex gap-3">
               <button type="button" onClick={() => setStep("cart")} className="flex-1 rounded-full border border-[var(--border)] py-3 text-[14px] font-semibold text-[var(--foreground)]">← Quay lại</button>
               <button type="submit" disabled={submitting} className="flex-1 rounded-full bg-[var(--green)] py-3 text-[14px] font-semibold text-white disabled:opacity-50">
                 {submitting ? "Đang xử lý…" : "Xác nhận"}

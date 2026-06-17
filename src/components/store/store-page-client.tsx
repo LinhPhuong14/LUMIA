@@ -153,7 +153,7 @@ function CartSheet({
               ))}
             </div>
 
-            <div className="border-t border-[var(--border)] px-6 py-5 space-y-2">
+            <div className="border-t border-[var(--border)] px-6 pt-5 pb-[calc(var(--mobile-tab-bar-offset,6.5rem)+var(--safe-bottom,0px))] lg:pb-5 space-y-2">
               <div className="flex justify-between text-[13px] text-[var(--muted)]">
                 <span>Tạm tính</span>
                 <span>{formatVnd(subtotal)}</span>
