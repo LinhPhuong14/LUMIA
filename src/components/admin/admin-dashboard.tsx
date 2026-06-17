@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BarChart3, BookOpen, Box, ChevronRight, LayoutDashboard,
-  Package, Settings, ShoppingBag, Users, X, Webhook,
+  BarChart3, BookOpen, Box, ChevronRight, ImagePlus, LayoutDashboard,
+  Package, Settings, ShoppingBag, Upload, Users, Webhook, X,
 } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
@@ -11,7 +11,7 @@ import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
 import { PRODUCT_TIERS } from "@/lib/product-tiers";
 import { formatCurrency } from "@/lib/utils";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Stats = { users: number; orders: number; reports: number };
 
@@ -28,8 +28,10 @@ type Order = {
 };
 
 type Product = {
-  id: string; name: string; category: string | null;
-  price_vnd: number; stock_quantity: number; in_stock: boolean; slug: string;
+  id: string; slug: string; name: string; subtitle?: string | null;
+  description?: string | null; category: string | null;
+  price_vnd: number; stock_quantity: number; in_stock: boolean;
+  image_url?: string | null; features?: string[]; sort_order?: number;
 };
 
 type BlogPost = {
@@ -42,9 +44,11 @@ type BlogForm = {
   id?: string; slug: string; title: string; excerpt: string;
   content: string; category: string; emoji: string;
   cover_color: string; read_time: number; published: boolean;
+  cover_image_url: string;
 };
 
 const BLOG_CATEGORIES = ["Wellbeing", "Mindfulness", "Sleep", "Productivity", "Nutrition", "Mental Health"];
+const PRODUCT_CATEGORIES = ["drink", "scent", "sleep", "meditation", "wellness"];
 
 const ORDER_STATUSES = ["paid", "preparing", "shipping", "delivered"] as const;
 const ORDER_STATUS_LABELS: Record<string, string> = {
@@ -65,6 +69,11 @@ function fmtDate(s: string | null) {
   if (!s) return "-";
   return new Date(s).toLocaleDateString("vi-VN");
 }
+
+// ─── Shared styles ────────────────────────────────────────────────────────────
+
+const inputCls = "w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30";
+const labelCls = "mb-1 block text-[12px] font-medium text-[var(--muted)]";
 
 // ─── Tab: Tổng quan ──────────────────────────────────────────────────────────
 
@@ -89,10 +98,10 @@ function OverviewTab({ stats }: { stats: Stats }) {
       <div className="mt-6 soft-card p-6">
         <h3 className="text-sm font-semibold text-[var(--foreground)]">Hướng dẫn nhanh</h3>
         <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">
-          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Người dùng</strong> — tìm và nâng cấp subscription cho user</li>
+          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Người dùng</strong> — tìm, tạo, sửa, nâng cấp subscription cho user</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Đơn hàng</strong> — theo dõi và cập nhật trạng thái giao hàng</li>
-          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Sản phẩm</strong> — quản lý tồn kho và kích hoạt sản phẩm</li>
-          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Blog</strong> — viết và xuất bản bài viết mới</li>
+          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Sản phẩm</strong> — quản lý, thêm, sửa, xóa sản phẩm và tồn kho</li>
+          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Blog</strong> — viết và xuất bản bài viết mới với ảnh bìa</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Hệ thống</strong> — cấu hình webhook PayOS</li>
         </ul>
       </div>
@@ -102,57 +111,128 @@ function OverviewTab({ stats }: { stats: Stats }) {
 
 // ─── Tab: Người dùng ─────────────────────────────────────────────────────────
 
+type UserModalMode = "create" | "edit" | "upgrade";
+
 function UsersTab() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UserRow | null>(null);
-  const [form, setForm] = useState({ tier: "premium", duration_months: 1, has_physical_box: false });
+  const [mode, setMode] = useState<UserModalMode>("upgrade");
+  const [upgradeForm, setUpgradeForm] = useState({ tier: "premium", duration_months: 1, has_physical_box: false });
+  const [editForm, setEditForm] = useState({ full_name: "", role: "user" as "user" | "admin" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", full_name: "", role: "user" as "user" | "admin" });
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
 
-  useEffect(() => {
+  const loadUsers = useCallback(() => {
     fetch("/api/admin/users").then(r => r.json()).then(setUsers).catch(() => setUsers([]));
   }, []);
 
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
   const filtered = useMemo(() =>
-    users.filter(u => u.email.toLowerCase().includes(search.toLowerCase()) ||
+    users.filter(u => u.email?.toLowerCase().includes(search.toLowerCase()) ||
       u.full_name?.toLowerCase().includes(search.toLowerCase())),
     [users, search]);
+
+  function openUpgrade(u: UserRow) { setSelected(u); setMode("upgrade"); setStatus(null); }
+  function openEdit(u: UserRow) {
+    setSelected(u);
+    setEditForm({ full_name: u.full_name ?? "", role: (u.role as "user" | "admin") ?? "user" });
+    setMode("edit");
+    setStatus(null);
+  }
+  function openCreate() {
+    setSelected(null);
+    setCreateForm({ email: "", password: "", full_name: "", role: "user" });
+    setMode("create");
+    setStatus(null);
+  }
+  function closeModal() { setSelected(null); setStatus(null); }
 
   async function upgrade() {
     if (!selected) return;
     setBusy(true); setStatus(null);
     const res = await fetch(`/api/admin/users/${selected.id}/subscription`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(upgradeForm),
     });
-    const data = await res.json();
+    const data = await res.json() as { error?: string };
     setStatus(res.ok ? { ok: true, msg: "Nâng cấp thành công!" } : { ok: false, msg: data.error ?? "Lỗi" });
-    if (res.ok) setUsers(prev => prev.map(u => u.id === selected.id
-      ? { ...u, subscription: { ...u.subscription, status: "active", started_at: new Date().toISOString(), expires_at: null } }
-      : u));
+    if (res.ok) {
+      setUsers(prev => prev.map(u => u.id === selected.id
+        ? { ...u, subscription: { ...u.subscription, status: "active", started_at: new Date().toISOString(), expires_at: null } }
+        : u));
+    }
     setBusy(false);
   }
 
+  async function saveEdit() {
+    if (!selected) return;
+    setBusy(true); setStatus(null);
+    const res = await fetch(`/api/admin/users/${selected.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editForm),
+    });
+    const data = await res.json() as { error?: string };
+    if (res.ok) {
+      setStatus({ ok: true, msg: "Cập nhật thành công!" });
+      setUsers(prev => prev.map(u => u.id === selected.id ? { ...u, ...editForm } : u));
+    } else {
+      setStatus({ ok: false, msg: data.error ?? "Lỗi" });
+    }
+    setBusy(false);
+  }
+
+  async function createUser() {
+    setBusy(true); setStatus(null);
+    const res = await fetch("/api/admin/users", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(createForm),
+    });
+    const data = await res.json() as { error?: string };
+    if (res.ok) {
+      setStatus({ ok: true, msg: "Tạo user thành công!" });
+      loadUsers();
+      setCreateForm({ email: "", password: "", full_name: "", role: "user" });
+    } else {
+      setStatus({ ok: false, msg: data.error ?? "Lỗi tạo user" });
+    }
+    setBusy(false);
+  }
+
+  async function deleteUser(u: UserRow) {
+    setConfirmDelete(null);
+    setBusy(true);
+    await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
+    setUsers(prev => prev.filter(x => x.id !== u.id));
+    setBusy(false);
+  }
+
+  const showModal = mode === "create" || selected !== null;
+
   return (
     <div>
-      <input
-        type="search" placeholder="Tìm theo email hoặc tên..." value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="mb-4 w-full max-w-md rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30"
-      />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <input
+          type="search" placeholder="Tìm theo email hoặc tên..." value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full max-w-sm rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30"
+        />
+        <button type="button" onClick={openCreate} className="button-primary shrink-0 px-4 py-2 text-sm">
+          + Tạo user mới
+        </button>
+      </div>
       <div className="overflow-x-auto rounded-[20px] border border-[var(--border)]">
-        <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-[var(--surface-warm)]">
             <tr className="text-[11px] uppercase tracking-wider text-[var(--muted)]">
-              {["Email", "Tên", "Vai trò", "Gói", "Hết hạn", "Streak"].map(h => (
+              {["Email", "Tên", "Vai trò", "Gói", "Hết hạn", "Streak", ""].map(h => (
                 <th key={h} className="px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.map(u => (
-              <tr key={u.id} onClick={() => { setSelected(u); setStatus(null); }}
-                className="cursor-pointer border-t border-[var(--border)]/50 transition hover:bg-[var(--green-wash)]/40">
+              <tr key={u.id} className="border-t border-[var(--border)]/50 transition hover:bg-[var(--green-wash)]/40">
                 <td className="px-4 py-3 text-[13px]">{u.email}</td>
                 <td className="px-4 py-3">{u.full_name || "-"}</td>
                 <td className="px-4 py-3">
@@ -163,68 +243,177 @@ function UsersTab() {
                 <td className="px-4 py-3">{getSubscriptionStatusLabel(u.subscription?.status ?? "free")}</td>
                 <td className="px-4 py-3 text-[12px] text-[var(--muted)]">{fmtDate(u.subscription?.expires_at ?? null)}</td>
                 <td className="px-4 py-3">{u.streak?.current_streak ?? 0} 🔥</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => openUpgrade(u)}
+                      className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                      Nâng cấp
+                    </button>
+                    <button type="button" onClick={() => openEdit(u)}
+                      className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                      Sửa
+                    </button>
+                    <button type="button" onClick={() => setConfirmDelete(u)} disabled={busy}
+                      className="rounded-full border border-red-200 px-2.5 py-1 text-[11px] text-red-500 transition hover:bg-red-50 disabled:opacity-50">
+                      Xóa
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy user</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy user</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Upgrade Drawer */}
-      {selected ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/25" onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
+      {/* Confirm delete dialog */}
+      {confirmDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-full max-w-sm rounded-[20px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <h3 className="font-semibold text-[var(--foreground)]">Xác nhận xóa user</h3>
+            <p className="mt-2 text-[13px] text-[var(--muted)]">
+              Bạn có chắc muốn xóa <strong>{confirmDelete.email}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setConfirmDelete(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={() => deleteUser(confirmDelete)}
+                className="rounded-[12px] bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600">
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* User modal (create / edit / upgrade) */}
+      {showModal ? (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/25"
+          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
           <div className="flex h-full w-full max-w-sm flex-col overflow-y-auto bg-[var(--surface-card)] p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="font-semibold text-[var(--foreground)]">{selected.full_name || "User"}</h2>
-                <p className="text-[13px] text-[var(--muted)]">{selected.email}</p>
+                <h2 className="font-semibold text-[var(--foreground)]">
+                  {mode === "create" ? "Tạo user mới" : mode === "edit" ? "Sửa thông tin" : (selected?.full_name || "User")}
+                </h2>
+                {mode !== "create" && selected && (
+                  <p className="text-[13px] text-[var(--muted)]">{selected.email}</p>
+                )}
               </div>
-              <button type="button" onClick={() => setSelected(null)} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
+              <button type="button" onClick={closeModal} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
                 <X className="h-4 w-4 text-[var(--muted)]" />
               </button>
             </div>
-            <dl className="mt-5 space-y-2 rounded-[16px] bg-[var(--surface-warm)] px-4 py-3 text-[13px]">
-              <div className="flex justify-between"><dt className="text-[var(--muted)]">Gói hiện tại</dt><dd>{getSubscriptionStatusLabel(selected.subscription?.status ?? "free")}</dd></div>
-              <div className="flex justify-between"><dt className="text-[var(--muted)]">Streak</dt><dd>{selected.streak?.current_streak ?? 0} ngày</dd></div>
-              <div className="flex justify-between"><dt className="text-[var(--muted)]">Hết hạn</dt><dd>{fmtDate(selected.subscription?.expires_at ?? null)}</dd></div>
-            </dl>
-            <div className="mt-6 border-t border-[var(--border)] pt-5">
-              <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Nâng cấp Premium</h3>
-              <div className="space-y-3">
-                {[
-                  { label: "Gói", key: "tier", options: [["saver", "Saver"], ["premium", "Premium"], ["gift", "Gift"]] },
-                  { label: "Thời gian", key: "duration_months", options: [["1", "1 tháng"], ["3", "3 tháng"], ["6", "6 tháng"], ["12", "12 tháng"]] },
-                ].map(({ label, key, options }) => (
-                  <div key={key}>
-                    <label className="mb-1 block text-[12px] text-[var(--muted)]">{label}</label>
-                    <select
-                      value={String(form[key as keyof typeof form])}
-                      onChange={e => setForm(f => ({ ...f, [key]: key === "duration_months" ? Number(e.target.value) : e.target.value }))}
-                      className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30"
-                    >
-                      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                  </div>
-                ))}
-                <label className="flex cursor-pointer items-center gap-2 text-[13px]">
-                  <input type="checkbox" checked={form.has_physical_box}
-                    onChange={e => setForm(f => ({ ...f, has_physical_box: e.target.checked }))}
-                    className="h-4 w-4 accent-[var(--green)]" />
-                  Kèm hộp vật lý
-                </label>
+
+            {/* Create form */}
+            {mode === "create" && (
+              <div className="mt-5 space-y-3">
+                <div>
+                  <label className={labelCls}>Email *</label>
+                  <input type="email" value={createForm.email}
+                    onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Mật khẩu *</label>
+                  <input type="password" value={createForm.password}
+                    onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Họ tên</label>
+                  <input type="text" value={createForm.full_name}
+                    onChange={e => setCreateForm(f => ({ ...f, full_name: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Vai trò</label>
+                  <select value={createForm.role}
+                    onChange={e => setCreateForm(f => ({ ...f, role: e.target.value as "user" | "admin" }))}
+                    className={inputCls}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <button type="button" onClick={createUser} disabled={busy || !createForm.email || !createForm.password}
+                  className="button-primary mt-2 w-full disabled:opacity-60">
+                  {busy ? "Đang tạo…" : "Tạo user"}
+                </button>
               </div>
-              <button type="button" onClick={upgrade} disabled={busy}
-                className="button-primary mt-4 w-full disabled:opacity-60">
-                {busy ? "Đang xử lý…" : "Nâng cấp ngay"}
-              </button>
-              {status && (
-                <p className={`mt-3 rounded-[12px] px-3 py-2 text-[13px] ${status.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
-                  {status.msg}
-                </p>
-              )}
-            </div>
+            )}
+
+            {/* Edit form */}
+            {mode === "edit" && selected && (
+              <div className="mt-5 space-y-3">
+                <div>
+                  <label className={labelCls}>Họ tên</label>
+                  <input type="text" value={editForm.full_name}
+                    onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Vai trò</label>
+                  <select value={editForm.role}
+                    onChange={e => setEditForm(f => ({ ...f, role: e.target.value as "user" | "admin" }))}
+                    className={inputCls}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <button type="button" onClick={saveEdit} disabled={busy}
+                  className="button-primary mt-2 w-full disabled:opacity-60">
+                  {busy ? "Đang lưu…" : "Lưu thay đổi"}
+                </button>
+              </div>
+            )}
+
+            {/* Upgrade form */}
+            {mode === "upgrade" && selected && (
+              <>
+                <dl className="mt-5 space-y-2 rounded-[16px] bg-[var(--surface-warm)] px-4 py-3 text-[13px]">
+                  <div className="flex justify-between"><dt className="text-[var(--muted)]">Gói hiện tại</dt><dd>{getSubscriptionStatusLabel(selected.subscription?.status ?? "free")}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[var(--muted)]">Streak</dt><dd>{selected.streak?.current_streak ?? 0} ngày</dd></div>
+                  <div className="flex justify-between"><dt className="text-[var(--muted)]">Hết hạn</dt><dd>{fmtDate(selected.subscription?.expires_at ?? null)}</dd></div>
+                </dl>
+                <div className="mt-6 border-t border-[var(--border)] pt-5">
+                  <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Nâng cấp Premium</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: "Gói", key: "tier", options: [["saver", "Saver"], ["premium", "Premium"], ["gift", "Gift"]] },
+                      { label: "Thời gian", key: "duration_months", options: [["1", "1 tháng"], ["3", "3 tháng"], ["6", "6 tháng"], ["12", "12 tháng"]] },
+                    ].map(({ label, key, options }) => (
+                      <div key={key}>
+                        <label className="mb-1 block text-[12px] text-[var(--muted)]">{label}</label>
+                        <select
+                          value={String(upgradeForm[key as keyof typeof upgradeForm])}
+                          onChange={e => setUpgradeForm(f => ({ ...f, [key]: key === "duration_months" ? Number(e.target.value) : e.target.value }))}
+                          className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30"
+                        >
+                          {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                    <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                      <input type="checkbox" checked={upgradeForm.has_physical_box}
+                        onChange={e => setUpgradeForm(f => ({ ...f, has_physical_box: e.target.checked }))}
+                        className="h-4 w-4 accent-[var(--green)]" />
+                      Kèm hộp vật lý
+                    </label>
+                  </div>
+                  <button type="button" onClick={upgrade} disabled={busy}
+                    className="button-primary mt-4 w-full disabled:opacity-60">
+                    {busy ? "Đang xử lý…" : "Nâng cấp ngay"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {status && (
+              <p className={`mt-3 rounded-[12px] px-3 py-2 text-[13px] ${status.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
+                {status.msg}
+              </p>
+            )}
           </div>
         </div>
       ) : null}
@@ -308,36 +497,111 @@ function OrdersTab() {
   );
 }
 
-// ─── Tab: Sản phẩm ──────────────────────────────────────────────────────────
+// ─── Tab: Sản phẩm ───────────────────────────────────────────────────────────
+
+type ProductForm = {
+  name: string; slug: string; subtitle: string; description: string;
+  price_vnd: number; category: string; features: string;
+  image_url: string; in_stock: boolean; stock_quantity: number; sort_order: number;
+};
+
+const EMPTY_PRODUCT: ProductForm = {
+  name: "", slug: "", subtitle: "", description: "",
+  price_vnd: 0, category: "drink", features: "",
+  image_url: "", in_stock: true, stock_quantity: 0, sort_order: 0,
+};
 
 function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("Tất cả");
-  const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
-  const [saving, setSaving] = useState<string | null>(null);
+  const [stockEditing, setStockEditing] = useState<{ id: string; value: string } | null>(null);
+  const [patchingSaving, setPatchingSaving] = useState<string | null>(null);
+  const [productForm, setProductForm] = useState<ProductForm | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formBusy, setFormBusy] = useState(false);
+  const [formStatus, setFormStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     fetch("/api/admin/store/products").then(r => r.json()).then(setProducts).catch(() => setProducts([]));
   }, []);
 
+  useEffect(() => { loadProducts(); }, [loadProducts]);
+
   async function patch(id: string, body: { stock_quantity?: number; in_stock?: boolean }) {
-    setSaving(id);
+    setPatchingSaving(id);
     const res = await fetch(`/api/admin/store/products/${id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
     if (res.ok) setProducts(prev => prev.map(p => p.id === id ? { ...p, ...body } : p));
-    setSaving(null);
+    setPatchingSaving(null);
   }
 
   function saveStock(id: string) {
-    if (!editing || editing.id !== id) return;
-    const val = parseInt(editing.value, 10);
+    if (!stockEditing || stockEditing.id !== id) return;
+    const val = parseInt(stockEditing.value, 10);
     if (!isNaN(val) && val >= 0) patch(id, { stock_quantity: val });
-    setEditing(null);
+    setStockEditing(null);
   }
 
-  const CATS = ["Tất cả", "drink", "scent", "sleep", "meditation"];
+  function openNewProduct() {
+    setEditingId(null);
+    setProductForm({ ...EMPTY_PRODUCT });
+    setFormStatus(null);
+  }
+
+  function openEditProduct(p: Product) {
+    setEditingId(p.id);
+    setProductForm({
+      name: p.name, slug: p.slug, subtitle: p.subtitle ?? "",
+      description: p.description ?? "", price_vnd: p.price_vnd,
+      category: p.category ?? "drink",
+      features: (p.features ?? []).join("\n"),
+      image_url: p.image_url ?? "", in_stock: p.in_stock,
+      stock_quantity: p.stock_quantity, sort_order: p.sort_order ?? 0,
+    });
+    setFormStatus(null);
+  }
+
+  function handleProductNameChange(name: string) {
+    setProductForm(f => f ? { ...f, name, slug: editingId ? f.slug : slugify(name) } : f);
+  }
+
+  async function saveProduct() {
+    if (!productForm) return;
+    setFormBusy(true); setFormStatus(null);
+
+    const payload = {
+      ...productForm,
+      features: productForm.features.split("\n").map(s => s.trim()).filter(Boolean),
+    };
+
+    const url = editingId ? `/api/admin/store/products/${editingId}` : "/api/admin/store/products";
+    const method = editingId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    const data = await res.json() as { error?: string };
+
+    if (res.ok) {
+      setFormStatus({ ok: true, msg: editingId ? "Đã cập nhật sản phẩm." : "Đã tạo sản phẩm." });
+      loadProducts();
+      setTimeout(() => setProductForm(null), 800);
+    } else {
+      setFormStatus({ ok: false, msg: data.error ?? "Lỗi lưu sản phẩm." });
+    }
+    setFormBusy(false);
+  }
+
+  async function deleteProduct(p: Product) {
+    setConfirmDelete(null);
+    const res = await fetch(`/api/admin/store/products/${p.id}`, { method: "DELETE" });
+    if (res.ok) setProducts(prev => prev.filter(x => x.id !== p.id));
+  }
+
+  const CATS = ["Tất cả", ...PRODUCT_CATEGORIES];
   const filtered = useMemo(() => products.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = cat === "Tất cả" || p.category === cat;
@@ -346,24 +610,30 @@ function ProductsTab() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input type="search" placeholder="Tìm theo tên sản phẩm..." value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-xs rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
-        <div className="flex flex-wrap gap-2">
-          {CATS.map(c => (
-            <button key={c} type="button" onClick={() => setCat(c)}
-              className={`rounded-full border px-3 py-1 text-[13px] transition ${cat === c ? "border-[var(--green)] bg-[var(--green-wash)] font-semibold text-[var(--green-deep)]" : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50"}`}>
-              {c}
-            </button>
-          ))}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input type="search" placeholder="Tìm theo tên sản phẩm..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full max-w-xs rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+          <div className="flex flex-wrap gap-2">
+            {CATS.map(c => (
+              <button key={c} type="button" onClick={() => setCat(c)}
+                className={`rounded-full border px-3 py-1 text-[13px] transition ${cat === c ? "border-[var(--green)] bg-[var(--green-wash)] font-semibold text-[var(--green-deep)]" : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50"}`}>
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
+        <button type="button" onClick={openNewProduct} className="button-primary shrink-0 px-4 py-2 text-sm">
+          + Thêm sản phẩm
+        </button>
       </div>
+
       <div className="overflow-x-auto rounded-[20px] border border-[var(--border)]">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[780px] border-collapse text-left text-sm">
           <thead className="bg-[var(--surface-warm)]">
             <tr className="text-[11px] uppercase tracking-wider text-[var(--muted)]">
-              {["Tên sản phẩm", "Danh mục", "Giá", "Tồn kho", "Còn hàng", "Link"].map(h => (
+              {["Tên sản phẩm", "Danh mục", "Giá", "Tồn kho", "Còn hàng", "Link", ""].map(h => (
                 <th key={h} className="px-4 py-3">{h}</th>
               ))}
             </tr>
@@ -375,22 +645,22 @@ function ProductsTab() {
                 <td className="px-4 py-3 text-[var(--muted)]">{p.category ?? "-"}</td>
                 <td className="px-4 py-3">{formatCurrency(p.price_vnd)}</td>
                 <td className="px-4 py-3">
-                  {editing?.id === p.id ? (
-                    <input type="number" min={0} value={editing.value} autoFocus
-                      onChange={e => setEditing({ id: p.id, value: e.target.value })}
+                  {stockEditing?.id === p.id ? (
+                    <input type="number" min={0} value={stockEditing.value} autoFocus
+                      onChange={e => setStockEditing({ id: p.id, value: e.target.value })}
                       onBlur={() => saveStock(p.id)}
-                      onKeyDown={e => { if (e.key === "Enter") saveStock(p.id); if (e.key === "Escape") setEditing(null); }}
+                      onKeyDown={e => { if (e.key === "Enter") saveStock(p.id); if (e.key === "Escape") setStockEditing(null); }}
                       className="w-20 rounded-[10px] border border-[var(--border)] bg-white px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
                   ) : (
                     <button type="button" title="Click để chỉnh sửa"
-                      onClick={() => setEditing({ id: p.id, value: String(p.stock_quantity) })}
+                      onClick={() => setStockEditing({ id: p.id, value: String(p.stock_quantity) })}
                       className="rounded px-2 py-0.5 tabular-nums transition hover:bg-[var(--green-wash)]">
                       {p.stock_quantity}
                     </button>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <input type="checkbox" checked={p.in_stock} disabled={saving === p.id}
+                  <input type="checkbox" checked={p.in_stock} disabled={patchingSaving === p.id}
                     onChange={e => patch(p.id, { in_stock: e.target.checked })}
                     className="h-4 w-4 cursor-pointer accent-[var(--green)]" />
                 </td>
@@ -398,14 +668,150 @@ function ProductsTab() {
                   <a href={`/store/${p.slug}`} target="_blank" rel="noopener noreferrer"
                     className="text-[12px] text-[var(--green)] underline hover:opacity-70">Xem</a>
                 </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => openEditProduct(p)}
+                      className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                      Sửa
+                    </button>
+                    <button type="button" onClick={() => setConfirmDelete(p)}
+                      className="rounded-full border border-red-200 px-2.5 py-1 text-[11px] text-red-500 transition hover:bg-red-50">
+                      Xóa
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy sản phẩm</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy sản phẩm</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Confirm delete */}
+      {confirmDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-full max-w-sm rounded-[20px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <h3 className="font-semibold text-[var(--foreground)]">Xác nhận xóa sản phẩm</h3>
+            <p className="mt-2 text-[13px] text-[var(--muted)]">
+              Xóa <strong>{confirmDelete.name}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setConfirmDelete(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={() => deleteProduct(confirmDelete)}
+                className="rounded-[12px] bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600">
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Product form modal */}
+      {productForm ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 py-8">
+          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="font-semibold text-[var(--foreground)]">{editingId ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h2>
+              <button type="button" onClick={() => setProductForm(null)} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
+                <X className="h-4 w-4 text-[var(--muted)]" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Tên sản phẩm *</label>
+                <input type="text" value={productForm.name}
+                  onChange={e => handleProductNameChange(e.target.value)}
+                  className={inputCls} placeholder="Tên sản phẩm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Slug</label>
+                  <input type="text" value={productForm.slug}
+                    onChange={e => setProductForm(f => f ? { ...f, slug: e.target.value } : f)}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Danh mục</label>
+                  <select value={productForm.category}
+                    onChange={e => setProductForm(f => f ? { ...f, category: e.target.value } : f)}
+                    className={inputCls}>
+                    {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Subtitle</label>
+                <input type="text" value={productForm.subtitle}
+                  onChange={e => setProductForm(f => f ? { ...f, subtitle: e.target.value } : f)}
+                  className={inputCls} placeholder="Mô tả ngắn" />
+              </div>
+              <div>
+                <label className={labelCls}>Mô tả</label>
+                <textarea rows={3} value={productForm.description}
+                  onChange={e => setProductForm(f => f ? { ...f, description: e.target.value } : f)}
+                  className={`${inputCls} resize-none`} placeholder="Mô tả đầy đủ sản phẩm" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className={labelCls}>Giá (VND) *</label>
+                  <input type="number" min={0} value={productForm.price_vnd}
+                    onChange={e => setProductForm(f => f ? { ...f, price_vnd: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Tồn kho</label>
+                  <input type="number" min={0} value={productForm.stock_quantity}
+                    onChange={e => setProductForm(f => f ? { ...f, stock_quantity: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Sort order</label>
+                  <input type="number" value={productForm.sort_order}
+                    onChange={e => setProductForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>URL hình ảnh</label>
+                <input type="text" value={productForm.image_url}
+                  onChange={e => setProductForm(f => f ? { ...f, image_url: e.target.value } : f)}
+                  className={inputCls} placeholder="https://..." />
+              </div>
+              <div>
+                <label className={labelCls}>Features (mỗi dòng một feature)</label>
+                <textarea rows={4} value={productForm.features}
+                  onChange={e => setProductForm(f => f ? { ...f, features: e.target.value } : f)}
+                  className={`${inputCls} resize-none font-mono text-[13px]`}
+                  placeholder={"Feature 1\nFeature 2\nFeature 3"} />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                <input type="checkbox" checked={productForm.in_stock}
+                  onChange={e => setProductForm(f => f ? { ...f, in_stock: e.target.checked } : f)}
+                  className="h-4 w-4 accent-[var(--green)]" />
+                Còn hàng
+              </label>
+            </div>
+            <div className="mt-5 flex items-center justify-between gap-4">
+              <div className="flex-1">
+                {formStatus && (
+                  <p className={`rounded-[10px] px-3 py-2 text-[13px] ${formStatus.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
+                    {formStatus.msg}
+                  </p>
+                )}
+              </div>
+              <div className="flex shrink-0 gap-3">
+                <button type="button" onClick={() => setProductForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+                <button type="button" onClick={saveProduct} disabled={formBusy || !productForm.name}
+                  className="button-primary px-4 py-2 text-sm disabled:opacity-60">
+                  {formBusy ? "Đang lưu…" : (editingId ? "Cập nhật" : "Tạo sản phẩm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -416,6 +822,7 @@ const EMPTY_BLOG: BlogForm = {
   slug: "", title: "", excerpt: "", content: "",
   category: "Wellbeing", emoji: "📝",
   cover_color: "linear-gradient(135deg,#e0f2e9,#b8dfc8)", read_time: 3, published: false,
+  cover_image_url: "",
 };
 
 function BlogTab() {
@@ -424,6 +831,8 @@ function BlogTab() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
 
@@ -436,11 +845,31 @@ function BlogTab() {
 
   function openNew() { setForm({ ...EMPTY_BLOG }); }
   function openEdit(p: BlogPost) {
-    setForm({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, content: "", category: p.category, emoji: p.emoji, cover_color: p.cover_color, read_time: p.read_time, published: p.published });
+    setForm({
+      id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt,
+      content: "", category: p.category, emoji: p.emoji,
+      cover_color: p.cover_color, read_time: p.read_time, published: p.published,
+      cover_image_url: "",
+    });
   }
 
   function handleTitleChange(title: string) {
     setForm(f => f ? { ...f, title, slug: slugify(title) } : f);
+  }
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    if (res.ok) {
+      const { url } = await res.json() as { url: string };
+      setForm(f => f ? { ...f, cover_image_url: url } : f);
+      showToast("Tải ảnh lên thành công!");
+    } else {
+      showToast("Lỗi tải ảnh lên.");
+    }
+    setUploading(false);
   }
 
   async function savePost() {
@@ -450,7 +879,7 @@ function BlogTab() {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
     });
     if (res.ok) { showToast(form.id ? "Đã cập nhật bài viết" : "Đã tạo bài viết"); setForm(null); loadPosts(); }
-    else { const d = await res.json(); showToast(d.error ?? "Lỗi lưu bài viết"); }
+    else { const d = await res.json() as { error?: string }; showToast(d.error ?? "Lỗi lưu bài viết"); }
     setSaving(false);
   }
 
@@ -481,7 +910,8 @@ function BlogTab() {
       <div className="space-y-3">
         {posts.map(p => (
           <div key={p.id} className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 transition hover:border-[var(--green)]/40">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] text-xl" style={{ background: p.cover_color.startsWith("linear") ? p.cover_color : undefined, backgroundColor: p.cover_color.startsWith("linear") ? undefined : p.cover_color }}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] text-xl"
+              style={{ background: p.cover_color.startsWith("linear") ? p.cover_color : undefined, backgroundColor: p.cover_color.startsWith("linear") ? undefined : p.cover_color }}>
               {p.emoji}
             </div>
             <div className="min-w-0 flex-1">
@@ -517,7 +947,7 @@ function BlogTab() {
       {/* Blog form modal */}
       {form ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 py-8">
-          <div className="relative w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl mx-4">
+          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold text-[var(--foreground)]">{form.id ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}</h2>
               <button type="button" onClick={() => setForm(null)} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
@@ -526,55 +956,108 @@ function BlogTab() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Tiêu đề *</label>
+                <label className={labelCls}>Tiêu đề *</label>
                 <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="Tiêu đề bài viết"
-                  className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                  className={inputCls} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Slug</label>
+                  <label className={labelCls}>Slug</label>
                   <input type="text" value={form.slug} onChange={e => setForm(f => f ? { ...f, slug: e.target.value } : f)}
-                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                    className={inputCls} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Danh mục</label>
+                  <label className={labelCls}>Danh mục</label>
                   <select value={form.category} onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
-                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30">
+                    className={inputCls}>
                     {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Emoji</label>
+                  <label className={labelCls}>Emoji</label>
                   <input type="text" value={form.emoji} onChange={e => setForm(f => f ? { ...f, emoji: e.target.value } : f)}
-                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                    className={inputCls} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Thời gian đọc (phút)</label>
-                  <input type="number" min={1} value={form.read_time} onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
-                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                  <label className={labelCls}>Thời gian đọc (phút)</label>
+                  <input type="number" min={1} value={form.read_time}
+                    onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
+                    className={inputCls} />
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Màu nền (CSS gradient hoặc hex)</label>
-                <input type="text" value={form.cover_color} onChange={e => setForm(f => f ? { ...f, cover_color: e.target.value } : f)}
-                  className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                <label className={labelCls}>Màu nền (CSS gradient hoặc hex)</label>
+                <input type="text" value={form.cover_color}
+                  onChange={e => setForm(f => f ? { ...f, cover_color: e.target.value } : f)}
+                  className={`${inputCls} font-mono`} />
               </div>
+
+              {/* Cover image upload */}
               <div>
-                <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Tóm tắt *</label>
+                <label className={labelCls}>Ảnh bìa</label>
+                <div className="flex gap-2">
+                  <input type="text" value={form.cover_image_url}
+                    onChange={e => setForm(f => f ? { ...f, cover_image_url: e.target.value } : f)}
+                    placeholder="https://... hoặc tải ảnh lên"
+                    className={`${inputCls} flex-1`} />
+                  <button type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
+                    {uploading
+                      ? <Upload className="h-4 w-4 animate-bounce" />
+                      : <ImagePlus className="h-4 w-4" />}
+                    {uploading ? "Đang tải…" : "Tải lên"}
+                  </button>
+                  <input
+                    ref={fileInputRef} type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadImage(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+                {form.cover_image_url && (
+                  <div className="mt-2 overflow-hidden rounded-[10px] border border-[var(--border)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.cover_image_url} alt="Ảnh bìa" className="h-28 w-full object-cover" />
+                  </div>
+                )}
+                <div
+                  className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[var(--border)] py-5 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) void uploadImage(file);
+                  }}
+                >
+                  <Upload className="mb-1 h-5 w-5 opacity-50" />
+                  Kéo thả ảnh vào đây, hoặc click để chọn
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Tóm tắt *</label>
                 <textarea rows={2} value={form.excerpt} onChange={e => setForm(f => f ? { ...f, excerpt: e.target.value } : f)}
                   placeholder="Mô tả ngắn hiển thị trên trang danh sách"
-                  className="w-full resize-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                  className={`${inputCls} resize-none`} />
               </div>
               <div>
-                <label className="mb-1 block text-[12px] font-medium text-[var(--muted)]">Nội dung (Markdown)</label>
+                <label className={labelCls}>Nội dung (Markdown)</label>
                 <textarea rows={10} value={form.content} onChange={e => setForm(f => f ? { ...f, content: e.target.value } : f)}
                   placeholder="Nội dung bài viết hỗ trợ Markdown..."
-                  className="w-full resize-y rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 font-mono text-[13px] outline-none focus:ring-2 focus:ring-[var(--green)]/30" />
+                  className={`${inputCls} resize-y font-mono text-[13px]`} />
               </div>
               <label className="flex cursor-pointer items-center gap-2 text-[13px]">
-                <input type="checkbox" checked={form.published} onChange={e => setForm(f => f ? { ...f, published: e.target.checked } : f)}
+                <input type="checkbox" checked={form.published}
+                  onChange={e => setForm(f => f ? { ...f, published: e.target.checked } : f)}
                   className="h-4 w-4 accent-[var(--green)]" />
                 Xuất bản ngay
               </label>
@@ -643,7 +1126,7 @@ function SystemTab() {
   async function registerWebhook() {
     setRegistering(true); setMsg(null);
     const res = await fetch("/api/admin/payos-webhook", { method: "POST" });
-    const d = await res.json();
+    const d = await res.json() as { error?: string };
     setMsg(res.ok ? "Đăng ký webhook thành công!" : (d.error ?? "Đăng ký thất bại"));
     if (res.ok) fetch("/api/admin/payos-webhook").then(r => r.json()).then(setWebhookStatus).catch(() => null);
     setRegistering(false);
