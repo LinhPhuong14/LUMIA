@@ -87,7 +87,7 @@ export function ProductDetailView({
       return;
     }
     addItem({
-      id: product.id ?? product.slug,
+      id: product.slug,
       slug: product.slug,
       name: product.name,
       subtitle: product.subtitle,
