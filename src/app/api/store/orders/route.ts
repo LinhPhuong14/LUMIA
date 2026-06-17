@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const itemSchema = z.object({
-  product_id: z.string().uuid(),
+  product_id: z.string().min(1),
   slug: z.string(),
   name: z.string(),
   price_vnd: z.number().int().positive(),
