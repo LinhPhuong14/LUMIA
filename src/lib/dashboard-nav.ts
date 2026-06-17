@@ -27,7 +27,7 @@ export const desktopNav: DashboardNavItem[] = [
   { id: "journal", href: "/journal", label: "Nhật ký", icon: Feather },
   { id: "audio", href: "/audio", label: "Âm thanh", icon: Music },
   { id: "streak", href: "/journey", label: "Hành trình", icon: Flame },
-  { id: "store", href: "/dashboard/store", label: "Cửa hàng", icon: ShoppingBag },
+  { id: "store", href: "/dashboard/store" as Route, label: "Cửa hàng", icon: ShoppingBag },
   { id: "plan", href: "/account", label: "Tôi", icon: User },
 ];
 
