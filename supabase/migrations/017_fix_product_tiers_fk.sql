@@ -1,8 +1,26 @@
--- Fix: ensure new product tier IDs exist before updating FK references.
--- Migration 007 may have partially failed because it tried to UPDATE orders.tier
--- to 'plus' before 'plus' existed in product_tiers (FK violation).
+-- Migration 017: Bring production DB up to date
+-- Covers missing migrations 006 + 007 (product_tiers table + orders columns)
+-- Safe to run multiple times (uses IF NOT EXISTS / ON CONFLICT DO UPDATE)
 
--- Step 1: Upsert all current tiers first (safe to re-run)
+-- ── 1. Create product_tiers table if missing ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.product_tiers (
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL,
+  slug              TEXT NOT NULL UNIQUE,
+  duration_months   INTEGER NOT NULL DEFAULT 1,
+  price_vnd         INTEGER NOT NULL,
+  has_physical_box  BOOLEAN NOT NULL DEFAULT false,
+  physical_box_type TEXT,
+  box_contents      TEXT[] NOT NULL DEFAULT '{}',
+  features          TEXT[] NOT NULL DEFAULT '{}',
+  is_featured       BOOLEAN NOT NULL DEFAULT false,
+  is_first_time_only BOOLEAN NOT NULL DEFAULT false,
+  discount_percent  INTEGER NOT NULL DEFAULT 0,
+  sort_order        INTEGER NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── 2. Upsert all current tiers ──────────────────────────────────────────────
 INSERT INTO public.product_tiers (
   id, name, slug, duration_months, price_vnd, has_physical_box, physical_box_type,
   box_contents, features, is_featured, is_first_time_only, discount_percent, sort_order
@@ -50,26 +68,51 @@ INSERT INTO public.product_tiers (
     false, false, 20, 5
   )
 ON CONFLICT (id) DO UPDATE SET
-  name       = EXCLUDED.name,
-  slug       = EXCLUDED.slug,
-  price_vnd  = EXCLUDED.price_vnd,
-  is_featured = EXCLUDED.is_featured,
-  discount_percent = EXCLUDED.discount_percent,
-  sort_order = EXCLUDED.sort_order;
+  name              = EXCLUDED.name,
+  slug              = EXCLUDED.slug,
+  duration_months   = EXCLUDED.duration_months,
+  price_vnd         = EXCLUDED.price_vnd,
+  has_physical_box  = EXCLUDED.has_physical_box,
+  physical_box_type = EXCLUDED.physical_box_type,
+  box_contents      = EXCLUDED.box_contents,
+  features          = EXCLUDED.features,
+  is_featured       = EXCLUDED.is_featured,
+  discount_percent  = EXCLUDED.discount_percent,
+  sort_order        = EXCLUDED.sort_order;
 
--- Step 2: Now that new tiers exist, migrate old FK references in orders
-UPDATE public.orders SET tier = 'plus'    WHERE tier = 'saver';
-UPDATE public.orders SET tier = 'premium' WHERE tier = 'sleep_well';
+-- RLS for product_tiers
+ALTER TABLE public.product_tiers ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'product_tiers' AND policyname = 'Anyone can read product tiers'
+  ) THEN
+    CREATE POLICY "Anyone can read product tiers" ON public.product_tiers FOR SELECT USING (true);
+  END IF;
+END $$;
+
+-- ── 3. Add missing columns to orders (safe, idempotent) ──────────────────────
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS tier              TEXT,
+  ADD COLUMN IF NOT EXISTS duration_months   INTEGER,
+  ADD COLUMN IF NOT EXISTS has_physical_box  BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS physical_box_type TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_name     TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_phone    TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_address  TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_city     TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_note     TEXT;
+
+-- ── 4. Migrate legacy tier names in orders (if any) ──────────────────────────
+UPDATE public.orders SET tier = 'plus'     WHERE tier = 'saver';
+UPDATE public.orders SET tier = 'premium'  WHERE tier = 'sleep_well';
 UPDATE public.orders SET tier = 'ultimate' WHERE tier = 'master';
-
--- Step 3: Migrate subscriptions too
-UPDATE public.subscriptions SET tier = 'plus'    WHERE tier = 'saver';
-UPDATE public.subscriptions SET tier = 'premium' WHERE tier = 'sleep_well';
-UPDATE public.subscriptions SET tier = 'ultimate' WHERE tier = 'master';
-
--- Step 4: Fix physical_box_type naming if still using old values
 UPDATE public.orders SET physical_box_type = 'sleep_box'  WHERE physical_box_type IN ('sleep_well', 'sleep-well');
 UPDATE public.orders SET physical_box_type = 'master_box' WHERE physical_box_type IN ('master', 'sleep-master');
 
--- Step 5: Remove legacy tier rows (now safe since FK refs have been updated)
-DELETE FROM public.product_tiers WHERE id IN ('saver', 'sleep_well', 'master');
+-- ── 5. Add missing column to subscriptions ───────────────────────────────────
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS tier TEXT;
+
+UPDATE public.subscriptions SET tier = 'plus'     WHERE tier = 'saver';
+UPDATE public.subscriptions SET tier = 'premium'  WHERE tier = 'sleep_well';
+UPDATE public.subscriptions SET tier = 'ultimate' WHERE tier = 'master';
