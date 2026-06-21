@@ -2,12 +2,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { ProductDetailView } from "@/components/store/product-detail-view";
-import { getProductBySlug, STORE_PRODUCTS_DETAIL } from "@/data/store-products-detail";
+import { getProductBySlug } from "@/data/store-products-detail";
 import { getSession } from "@/lib/supabase/auth";
+import { getDbProductBySlug } from "@/lib/store-db";
 
-export function generateStaticParams() {
-  return STORE_PRODUCTS_DETAIL.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -32,6 +31,17 @@ export default async function StoreProductPage({
   const product = getProductBySlug(slug);
   if (!product) notFound();
 
-  const session = await getSession();
-  return <ProductDetailView product={product} backHref="/store" isLoggedIn={!!session} />;
+  const [session, dbProduct] = await Promise.all([
+    getSession(),
+    getDbProductBySlug(slug),
+  ]);
+
+  return (
+    <ProductDetailView
+      product={product}
+      dbProduct={dbProduct ?? undefined}
+      backHref="/store"
+      isLoggedIn={!!session}
+    />
+  );
 }

@@ -107,7 +107,7 @@ function PromoBanner({ box }: { box: BoxProduct }) {
               {box.name}
             </h3>
             <p className="mt-0.5 text-[13px] text-amber-700 dark:text-amber-300">
-              App Premium 1 tháng + Welcome Kit giao tận nhà
+              App Premium 1 tháng + Bộ quà tặng giao tận nhà
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ function PromoBanner({ box }: { box: BoxProduct }) {
 }
 
 /* ── Plan Card ── */
-function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
+function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number; boxImageUrl?: string | null }) {
   const isFeatured = box.featured;
   const isHybrid = box.group === "hybrid";
 
@@ -203,6 +203,12 @@ function PlanCard({ box, index }: { box: BoxProduct; index: number }) {
           )}
         </div>
       </div>
+
+      {/* Box image — hybrid plans only */}
+      {isHybrid && boxImageUrl && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={boxImageUrl} alt="Ảnh hộp quà" className="h-44 w-full object-cover" />
+      )}
 
       {/* Body */}
       <div className="flex flex-1 flex-col bg-[var(--surface-card)] p-5">
@@ -393,6 +399,18 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [dbPlanImages, setDbPlanImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/store/plans")
+      .then(r => r.json())
+      .then((data: Array<{ id: string; box_image_url?: string | null }>) => {
+        const map: Record<string, string> = {};
+        data.forEach(p => { if (p.id && p.box_image_url) map[p.id] = p.box_image_url; });
+        setDbPlanImages(map);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setOrdersLoading(true);
@@ -596,7 +614,7 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
             className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
           >
             {filteredPlans.length > 0 ? (
-              filteredPlans.map((box, i) => <PlanCard key={box.slug} box={box} index={i} />)
+              filteredPlans.map((box, i) => <PlanCard key={box.slug} box={box} index={i} boxImageUrl={dbPlanImages[box.tier]} />)
             ) : (
               <div className="col-span-full flex flex-col items-center gap-3 py-12 text-center">
                 <span className="text-4xl opacity-30">🔍</span>

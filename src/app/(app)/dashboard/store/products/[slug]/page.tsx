@@ -3,13 +3,12 @@ import type { Metadata } from "next";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ProductDetailView } from "@/components/store/product-detail-view";
-import { getProductBySlug, STORE_PRODUCTS_DETAIL } from "@/data/store-products-detail";
+import { getProductBySlug } from "@/data/store-products-detail";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
+import { getDbProductBySlug } from "@/lib/store-db";
 
-export function generateStaticParams() {
-  return STORE_PRODUCTS_DETAIL.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -31,7 +30,10 @@ export default async function DashboardStoreProductPage({
   const product = getProductBySlug(slug);
   if (!product) notFound();
 
-  const session = await requireSession();
+  const [session, dbProduct] = await Promise.all([
+    requireSession(),
+    getDbProductBySlug(slug),
+  ]);
   const subscription = await getSubscriptionSnapshot(session.id);
 
   return (
@@ -43,7 +45,12 @@ export default async function DashboardStoreProductPage({
       subtitle={product.subtitle}
       isAdmin={session.role === "admin"}
     >
-      <ProductDetailView product={product} backHref="/dashboard/store" inDashboard />
+      <ProductDetailView
+        product={product}
+        dbProduct={dbProduct ?? undefined}
+        backHref="/dashboard/store"
+        inDashboard
+      />
     </DashboardShell>
   );
 }

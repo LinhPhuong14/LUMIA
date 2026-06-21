@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { ArrowLeft, Check, ChevronDown, Phone, MapPin, ShoppingCart, Package, LogIn } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Phone, MapPin, ShoppingCart, Package, LogIn } from "lucide-react";
 
 import type { StoreProductDetail } from "@/data/store-products-detail";
 import { SPRAY_PRODUCT_SLUGS } from "@/data/store-products-detail";
+import type { DbProduct } from "@/lib/store-db";
 import { useCart } from "@/lib/cart-context";
 
 function formatVnd(n: number) {
@@ -57,7 +59,7 @@ function Section({ title, items, text }: { title: string; items?: string[]; text
   );
 }
 
-// Spray product variant selector
+// Spray product variant selector (legacy)
 const SPRAY_VARIANTS = [
   { slug: "xit-oai-huong", label: "Oải Hương", emoji: "🌿", color: "#c5a8d8" },
   { slug: "xit-tra-trang", label: "Trà Trắng", emoji: "🍵", color: "#a0d090" },
@@ -65,13 +67,142 @@ const SPRAY_VARIANTS = [
   { slug: "xit-hoa-lai", label: "Hoa Lài", emoji: "🌸", color: "#f0c0e0" },
 ];
 
+function buildImageList(dbProduct?: DbProduct): string[] {
+  if (!dbProduct) return [];
+  const urls: string[] = [];
+  if (dbProduct.image_url) urls.push(dbProduct.image_url);
+  for (const img of dbProduct.images) {
+    if (img.url && !urls.includes(img.url)) urls.push(img.url);
+  }
+  for (const v of dbProduct.variants) {
+    if (v.image_url && !urls.includes(v.image_url)) urls.push(v.image_url);
+  }
+  return urls;
+}
+
+function ImageCarousel({
+  images,
+  externalIndex,
+  onIndexChange,
+}: {
+  images: string[];
+  externalIndex?: number;
+  onIndexChange?: (i: number) => void;
+}) {
+  const [internalIndex, setInternalIndex] = useState(0);
+  const current = externalIndex !== undefined ? externalIndex : internalIndex;
+  const touchStartX = useRef<number | null>(null);
+
+  function goTo(i: number) {
+    const next = (i + images.length) % images.length;
+    setInternalIndex(next);
+    onIndexChange?.(next);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 50) {
+      goTo(delta > 0 ? current + 1 : current - 1);
+    }
+    touchStartX.current = null;
+  }
+
+  return (
+    <div className="mb-6">
+      {/* Main image */}
+      <div
+        className="relative mb-3 overflow-hidden rounded-2xl"
+        style={{ aspectRatio: "1/1", background: "var(--surface-card)" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <Image
+          src={images[current]}
+          alt={`Product image ${current + 1}`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 600px"
+          priority={current === 0}
+        />
+        {/* Counter badge */}
+        <div
+          className="absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+        >
+          {current + 1} / {images.length}
+        </div>
+        {/* Arrow buttons */}
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous image"
+              onClick={() => goTo(current - 1)}
+              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:opacity-90"
+              style={{ background: "rgba(0,0,0,0.4)" }}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next image"
+              onClick={() => goTo(current + 1)}
+              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:opacity-90"
+              style={{ background: "rgba(0,0,0,0.4)" }}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Thumbnail strip */}
+      {images.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {images.map((src, i) => (
+            <button
+              key={src}
+              type="button"
+              onClick={() => goTo(i)}
+              className="relative shrink-0 overflow-hidden rounded-lg transition"
+              style={{
+                width: 60,
+                height: 60,
+                outline: i === current ? "2px solid var(--green)" : "2px solid transparent",
+                outlineOffset: 2,
+                background: "var(--surface-card)",
+              }}
+              aria-label={`Go to image ${i + 1}`}
+            >
+              <Image
+                src={src}
+                alt={`Thumbnail ${i + 1}`}
+                fill
+                className="object-cover"
+                sizes="60px"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProductDetailView({
   product,
+  dbProduct,
   backHref,
   inDashboard = false,
   isLoggedIn = true,
 }: {
   product: StoreProductDetail;
+  dbProduct?: DbProduct;
   backHref: string;
   inDashboard?: boolean;
   isLoggedIn?: boolean;
@@ -79,7 +210,24 @@ export function ProductDetailView({
   const { addItem, items } = useCart();
   const router = useRouter();
   const [added, setAdded] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const isSpray = SPRAY_PRODUCT_SLUGS.includes(product.slug);
+
+  const allImages = buildImageList(dbProduct);
+  const hasImages = allImages.length > 0;
+  const hasDbVariants = (dbProduct?.variants ?? []).length > 0;
+
+  // Map variant name -> image index in allImages
+  const variantImageIndexMap: Record<string, number> = {};
+  if (dbProduct) {
+    for (const v of dbProduct.variants) {
+      if (v.image_url) {
+        const idx = allImages.indexOf(v.image_url);
+        if (idx !== -1) variantImageIndexMap[v.name] = idx;
+      }
+    }
+  }
 
   function handleAdd() {
     if (!isLoggedIn) {
@@ -87,13 +235,13 @@ export function ProductDetailView({
       return;
     }
     addItem({
-      id: product.slug,
+      id: dbProduct?.id ?? product.slug,
       slug: product.slug,
       name: product.name,
       subtitle: product.subtitle,
       price_vnd: product.price_vnd,
-      image_url: null,
-      variant: null,
+      image_url: allImages[0] ?? null,
+      variant: selectedVariant,
       qty: 1,
     });
     setAdded(true);
@@ -126,30 +274,90 @@ export function ProductDetailView({
             Cửa hàng
           </Link>
         )}
-        {/* Hero */}
-        <div
-          className="relative mb-6 overflow-hidden rounded-[28px] p-8 sm:p-12"
-          style={{ background: product.color }}
-        >
-          <div className="absolute inset-0 hidden dark:block" style={{ background: "linear-gradient(135deg,rgba(8,14,10,0.55) 0%,rgba(14,22,12,0.45) 100%)" }} />
-          <div className="relative z-10 flex items-center gap-6">
-            <span className="text-7xl drop-shadow-sm">{product.emoji}</span>
-            <div>
+
+        {/* Image carousel (DB images) or emoji hero fallback */}
+        {hasImages ? (
+          <>
+            <ImageCarousel
+              images={allImages}
+              externalIndex={carouselIndex}
+              onIndexChange={setCarouselIndex}
+            />
+            <div className="mb-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--green)" }}>
                 Lumia Store
               </p>
-              <h1 className="mt-1 font-serif text-[26px] font-semibold leading-tight sm:text-[30px]" style={{ color: "var(--foreground)" }}>
+              <h1 className="mt-1 font-serif text-[24px] font-semibold leading-tight sm:text-[28px]" style={{ color: "var(--foreground)" }}>
                 {product.name}
               </h1>
               <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
                 {product.subtitle}
               </p>
             </div>
+          </>
+        ) : (
+          <div
+            className="relative mb-6 overflow-hidden rounded-[28px] p-8 sm:p-12"
+            style={{ background: product.color }}
+          >
+            <div className="absolute inset-0 hidden dark:block" style={{ background: "linear-gradient(135deg,rgba(8,14,10,0.55) 0%,rgba(14,22,12,0.45) 100%)" }} />
+            <div className="relative z-10 flex items-center gap-6">
+              <span className="text-7xl drop-shadow-sm">{product.emoji}</span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--green)" }}>
+                  Lumia Store
+                </p>
+                <h1 className="mt-1 font-serif text-[26px] font-semibold leading-tight sm:text-[30px]" style={{ color: "var(--foreground)" }}>
+                  {product.name}
+                </h1>
+                <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
+                  {product.subtitle}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Spray variant picker */}
-        {isSpray && (
+        {/* DB Variant selector */}
+        {hasDbVariants && dbProduct && (
+          <div className="mb-6">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--muted)" }}>
+              Phân loại
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {dbProduct.variants.map((v) => {
+                const isActive = selectedVariant === v.name;
+                return (
+                  <button
+                    key={v.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedVariant(isActive ? null : v.name);
+                      const idx = variantImageIndexMap[v.name];
+                      if (idx !== undefined) setCarouselIndex(idx);
+                    }}
+                    className="flex items-center gap-2 rounded-full border px-3.5 py-2 text-[12.5px] font-medium transition"
+                    style={{
+                      borderColor: isActive ? "var(--green)" : "var(--border)",
+                      background: isActive ? "var(--green-wash)" : "var(--surface-card)",
+                      color: isActive ? "var(--green-deep)" : "var(--foreground)",
+                    }}
+                  >
+                    {v.image_url && (
+                      <span className="relative block shrink-0 overflow-hidden rounded" style={{ width: 28, height: 28 }}>
+                        <Image src={v.image_url} alt={v.name} fill className="object-cover" sizes="28px" />
+                      </span>
+                    )}
+                    {v.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Spray variant picker (legacy — only if no DB variants) */}
+        {isSpray && !hasDbVariants && (
           <div className="mb-6">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--muted)" }}>
               Chọn mùi hương
@@ -296,6 +504,11 @@ export function ProductDetailView({
                 {product.weight && (
                   <p className="mt-1 text-[12px]" style={{ color: "var(--muted)" }}>
                     {product.weight}
+                  </p>
+                )}
+                {selectedVariant && (
+                  <p className="mt-2 text-[12.5px] font-medium" style={{ color: "var(--green-deep)" }}>
+                    Loại: {selectedVariant}
                   </p>
                 )}
               </div>

@@ -39,6 +39,18 @@ export function AccountPanel({
 }) {
   const [tab, setTab] = useState<Tab>("box");
   const [orders, setOrders] = useState(initialOrders);
+  const [boxImageUrl, setBoxImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!subscription.tier || !subscription.hasPhysicalBox) return;
+    fetch("/api/store/plans")
+      .then(r => r.json())
+      .then((data: Array<{ id: string; box_image_url?: string | null }>) => {
+        const plan = data.find(p => p.id === subscription.tier);
+        if (plan?.box_image_url) setBoxImageUrl(plan.box_image_url);
+      })
+      .catch(() => {});
+  }, [subscription.tier, subscription.hasPhysicalBox]);
 
   const refreshOrders = useCallback(() => {
     fetch("/api/orders")
@@ -93,14 +105,20 @@ export function AccountPanel({
           ) : null}
 
           {subscription.hasPhysicalBox ? (
-            <div className="mt-8 rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5">
-              <p className="text-sm font-medium text-matcha-deep">Hộp quà của bạn</p>
-              <p className="mt-2 text-sm text-muted">
-                {getPhysicalBoxStatusLabel(subscription.physicalBoxStatus)}
-              </p>
-              <p className="mt-2 text-[12px] text-muted">
-                Truy cập app không phụ thuộc vào việc nhận hộp - bạn có thể dùng LUMIA ngay sau thanh toán.
-              </p>
+            <div className="mt-8 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface)]">
+              {boxImageUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={boxImageUrl} alt="Hộp quà LUMIA" className="h-52 w-full object-cover" />
+              )}
+              <div className="p-5">
+                <p className="text-sm font-medium text-matcha-deep">Hộp quà của bạn</p>
+                <p className="mt-2 text-sm text-muted">
+                  {getPhysicalBoxStatusLabel(subscription.physicalBoxStatus)}
+                </p>
+                <p className="mt-2 text-[12px] text-muted">
+                  Truy cập app không phụ thuộc vào việc nhận hộp — bạn có thể dùng LUMIA ngay sau thanh toán.
+                </p>
+              </div>
             </div>
           ) : null}
 

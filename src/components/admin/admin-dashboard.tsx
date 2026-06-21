@@ -984,7 +984,7 @@ function ProductsTab() {
                         className={inputCls} />
                     </div>
                     <div>
-                      <label className={labelCls}>Sort order</label>
+                      <label className={labelCls}>Thứ tự hiển thị</label>
                       <input type="number" value={productForm.sort_order}
                         onChange={e => setProductForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
                         className={inputCls} />
@@ -1408,22 +1408,24 @@ function BlogTab() {
               ) : (
                 /* Gradient + drag-drop cover */
                 <div
-                  className="group relative flex h-44 cursor-pointer flex-col items-center justify-center transition"
+                  className="relative flex h-44 cursor-pointer flex-col items-center justify-center transition"
                   style={{ background: form.cover_color }}
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) void uploadCoverImage(f); }}
                 >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 transition group-hover:opacity-100">
-                    <div className="flex items-center gap-2 rounded-full bg-black/30 px-4 py-2 text-white backdrop-blur-sm">
-                      <ImagePlus className="h-4 w-4" />
-                      <span className="text-[13px] font-medium">
-                        {uploading ? "Đang tải ảnh lên…" : "Thêm ảnh bìa — kéo thả hoặc click"}
+                  {/* Always-visible upload CTA */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+                    <span className="text-5xl opacity-70">{form.emoji || "📝"}</span>
+                    <div className="flex items-center gap-2 rounded-full bg-black/35 px-4 py-2 text-white backdrop-blur-sm shadow">
+                      {uploading
+                        ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        : <ImagePlus className="h-3.5 w-3.5" />}
+                      <span className="text-[12px] font-medium">
+                        {uploading ? "Đang tải ảnh lên…" : "Click hoặc kéo thả ảnh bìa vào đây"}
                       </span>
                     </div>
                   </div>
-                  {/* Emoji preview */}
-                  <span className="text-5xl opacity-80">{form.emoji || "📝"}</span>
                 </div>
               )}
 
@@ -1564,7 +1566,8 @@ function BlogTab() {
 type Plan = {
   id: string; name: string; description?: string | null; group_name: string;
   price_vnd: number; duration_months: number; has_physical_box: boolean;
-  physical_box_type?: string | null; discount_percent: number; is_featured: boolean;
+  physical_box_type?: string | null; box_image_url?: string | null;
+  discount_percent: number; is_featured: boolean;
   is_first_time_only: boolean; is_active: boolean; features: string[]; sort_order: number;
 };
 
@@ -1573,7 +1576,7 @@ type PlanForm = Omit<Plan, "features"> & { features: string };
 const EMPTY_PLAN: PlanForm = {
   id: "", name: "", description: "", group_name: "digital",
   price_vnd: 0, duration_months: 1, has_physical_box: false,
-  physical_box_type: "", discount_percent: 0, is_featured: false,
+  physical_box_type: "", box_image_url: "", discount_percent: 0, is_featured: false,
   is_first_time_only: false, is_active: true, features: "", sort_order: 0,
 };
 
@@ -1584,6 +1587,7 @@ function PlansTab() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Plan | null>(null);
+  const [uploadingBox, setUploadingBox] = useState(false);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
 
@@ -1600,7 +1604,27 @@ function PlansTab() {
 
   function openEdit(p: Plan) {
     setIsNew(false);
-    setForm({ ...p, features: p.features.join("\n") });
+    setForm({ ...p, features: p.features.join("\n"), box_image_url: p.box_image_url ?? "" });
+  }
+
+  async function uploadBoxImage() {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = async () => {
+      const raw = input.files?.[0]; if (!raw) return;
+      setUploadingBox(true);
+      const file = await compressImage(raw);
+      const urlRes = await fetch("/api/admin/upload-url", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      });
+      if (urlRes.ok) {
+        const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+        if (await signedUpload(signedUrl, file)) setForm(f => f ? { ...f, box_image_url: publicUrl } : f);
+      }
+      setUploadingBox(false);
+    };
+    input.click();
   }
 
   async function savePlan() {
@@ -1627,6 +1651,9 @@ function PlansTab() {
     digital: "bg-[var(--green-wash)] text-[var(--green-deep)]",
     hybrid: "bg-amber-50 text-amber-700",
   };
+  const groupLabel: Record<string, string> = {
+    promo: "Khuyến mãi", digital: "Gói số", hybrid: "Kèm hộp",
+  };
 
   return (
     <div>
@@ -1650,7 +1677,7 @@ function PlansTab() {
             </div>
             <div className="pr-14">
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${groupColor[p.group_name] ?? "bg-[var(--surface-warm)] text-[var(--muted)]"}`}>
-                {p.group_name}
+                {groupLabel[p.group_name] ?? p.group_name}
               </span>
               <h3 className="mt-1.5 font-semibold text-[var(--foreground)]">{p.name}</h3>
             </div>
@@ -1659,10 +1686,14 @@ function PlansTab() {
               {p.duration_months} tháng
               {p.discount_percent > 0 && ` · Tiết kiệm ${p.discount_percent}%`}
             </div>
+            {p.has_physical_box && p.box_image_url && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={p.box_image_url} alt="Ảnh hộp" className="mt-3 h-24 w-full rounded-[10px] object-cover" />
+            )}
             <div className="mt-2 flex flex-wrap gap-1">
               {p.is_featured && <span className="rounded-full bg-[var(--green-wash)] px-2 py-0.5 text-[10px] font-bold text-[var(--green-deep)]">Nổi bật</span>}
               {p.has_physical_box && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">Hộp vật lý</span>}
-              {p.is_first_time_only && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700">First-time</span>}
+              {p.is_first_time_only && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700">Người dùng mới</span>}
               {!p.is_active && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] text-red-500">Ẩn</span>}
             </div>
           </div>
@@ -1723,9 +1754,9 @@ function PlansTab() {
                 <select value={form.group_name}
                   onChange={e => setForm(f => f ? { ...f, group_name: e.target.value } : f)}
                   className={inputCls}>
-                  <option value="promo">Promo (khuyến mãi)</option>
-                  <option value="digital">Digital</option>
-                  <option value="hybrid">Hybrid (có hộp)</option>
+                  <option value="promo">Khuyến mãi (Promo)</option>
+                  <option value="digital">Gói số (Digital)</option>
+                  <option value="hybrid">Kèm hộp vật lý (Hybrid)</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1777,11 +1808,41 @@ function PlansTab() {
                   Kèm hộp vật lý
                 </label>
                 {form.has_physical_box && (
-                  <div className="pl-6">
-                    <label className={labelCls}>Loại hộp</label>
-                    <input type="text" value={form.physical_box_type ?? ""}
-                      onChange={e => setForm(f => f ? { ...f, physical_box_type: e.target.value } : f)}
-                      className={inputCls} placeholder="sleep_box, master_box, mini_wellcome..." />
+                  <div className="pl-6 space-y-3">
+                    <div>
+                      <label className={labelCls}>Loại hộp</label>
+                      <input type="text" value={form.physical_box_type ?? ""}
+                        onChange={e => setForm(f => f ? { ...f, physical_box_type: e.target.value } : f)}
+                        className={inputCls} placeholder="sleep_box, master_box, mini_wellcome..." />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Ảnh hộp vật lý</label>
+                      {form.box_image_url ? (
+                        <div className="relative mt-1 overflow-hidden rounded-[12px] border border-[var(--border)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={form.box_image_url} alt="Ảnh hộp" className="h-36 w-full object-cover" />
+                          <div className="absolute right-2 top-2 flex gap-1.5">
+                            <button type="button" disabled={uploadingBox} onClick={uploadBoxImage}
+                              className="rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white hover:bg-black/80">
+                              {uploadingBox ? "Đang tải…" : "Đổi ảnh"}
+                            </button>
+                            <button type="button"
+                              onClick={() => setForm(f => f ? { ...f, box_image_url: "" } : f)}
+                              className="rounded-full bg-black/60 p-1 text-white hover:bg-red-700">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" disabled={uploadingBox} onClick={uploadBoxImage}
+                          className="mt-1 flex w-full items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-[var(--border)] py-5 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)] disabled:opacity-50">
+                          {uploadingBox
+                            ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
+                            : <ImagePlus className="h-4 w-4" />}
+                          {uploadingBox ? "Đang tải ảnh lên…" : "Tải ảnh hộp lên"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 <label className="flex cursor-pointer items-center gap-2 text-[13px]">
