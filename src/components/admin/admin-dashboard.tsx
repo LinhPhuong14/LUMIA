@@ -58,6 +58,14 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+async function signedUpload(signedUrl: string, file: File): Promise<boolean> {
+  const fd = new FormData();
+  fd.append("cacheControl", "3600");
+  fd.append("", file);
+  const res = await fetch(signedUrl, { method: "PUT", body: fd, headers: { "x-upsert": "false" } });
+  return res.ok;
+}
+
 function slugify(str: string) {
   return str.toLowerCase().trim()
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -661,8 +669,7 @@ function ProductsTab() {
       });
       if (urlRes.ok) {
         const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-        const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-        if (uploadRes.ok) onUrl(publicUrl);
+        if (await signedUpload(signedUrl, file)) onUrl(publicUrl);
       }
       setUploadingIdx(null);
     };
@@ -1172,8 +1179,7 @@ function BlogTab() {
     });
     if (urlRes.ok) {
       const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-      const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      if (uploadRes.ok) {
+      if (await signedUpload(signedUrl, file)) {
         setForm(f => f ? { ...f, cover_image_url: publicUrl } : f);
         showToast("Tải ảnh lên thành công!");
       } else {
@@ -1415,8 +1421,7 @@ function BlogTab() {
                     });
                     if (!urlRes.ok) return "";
                     const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-                    const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-                    return uploadRes.ok ? publicUrl : "";
+                    return await signedUpload(signedUrl, file) ? publicUrl : "";
                   }}
                   placeholder="Bắt đầu viết nội dung bài viết..."
                   minHeight={360}
@@ -1790,8 +1795,7 @@ function MediaTab() {
     });
     if (!urlRes.ok) { showToast("Tải lên thất bại."); setUploading(null); return; }
     const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-    const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-    if (!uploadRes.ok) { showToast("Tải lên thất bại."); setUploading(null); return; }
+    if (!await signedUpload(signedUrl, file)) { showToast("Tải lên thất bại."); setUploading(null); return; }
     const url = publicUrl;
     if (kind === "video") {
       const { title } = parseMetaFromFilename(file.name);
