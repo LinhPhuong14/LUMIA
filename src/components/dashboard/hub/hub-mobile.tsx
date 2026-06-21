@@ -172,7 +172,18 @@ export function HubMobile({
         />
       </div>
 
-      {insights ? <HubInsightsStatRow insights={insights} /> : null}
+      {insights ? (
+        <HubInsightsStatRow insights={insights} />
+      ) : (
+        <div className="animate-pulse">
+          <div className="mb-3 h-3 w-24 rounded-full bg-[var(--surface)]" />
+          <div className="grid grid-cols-3 gap-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[88px] rounded-[20px] bg-[var(--surface)]" />
+            ))}
+          </div>
+        </div>
+      )}
 
       <StoreWidget />
     </div>

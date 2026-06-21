@@ -1,9 +1,34 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getRecentPosts } from "@/data/blog-posts";
+import { createClient } from "@/lib/supabase/server";
 
-export function BlogSection() {
-  const posts = getRecentPosts(3);
+type DbPost = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  emoji: string | null;
+  cover_color: string | null;
+  read_time: number | null;
+  cover_image_url?: string | null;
+};
+
+async function getRecentDbPosts(limit = 3): Promise<DbPost[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("blog_posts")
+    .select("slug,title,excerpt,category,emoji,cover_color,read_time,cover_image_url")
+    .eq("published", true)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
+
+export async function BlogSection() {
+  const posts = await getRecentDbPosts(3);
+  if (posts.length === 0) return null;
+
   return (
     <section className="px-4 py-20 sm:py-28" style={{ background: "var(--surface)" }}>
       <div className="shell">
@@ -23,15 +48,25 @@ export function BlogSection() {
               href={`/blog/${post.slug}`}
               className="group flex flex-col overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] transition hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]"
             >
-              <div className="flex h-40 items-center justify-center text-5xl" style={{ background: post.coverColor }}>
-                {post.emoji}
-              </div>
+              {post.cover_image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.cover_image_url} alt={post.title} className="h-40 w-full object-cover" />
+              ) : (
+                <div
+                  className="flex h-40 items-center justify-center text-5xl"
+                  style={{ background: post.cover_color ?? "var(--green-wash)" }}
+                >
+                  {post.emoji ?? "🌿"}
+                </div>
+              )}
               <div className="flex flex-1 flex-col gap-3 p-5">
                 <div className="flex items-center gap-2">
                   <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ background: "var(--green-wash)", color: "var(--green-deep)" }}>
                     {post.category}
                   </span>
-                  <span className="text-[11px] text-[var(--muted)]">{post.readTime} phút đọc</span>
+                  {post.read_time && (
+                    <span className="text-[11px] text-[var(--muted)]">{post.read_time} phút đọc</span>
+                  )}
                 </div>
                 <h3 className="font-serif text-[17px] font-semibold leading-snug text-[var(--foreground)] group-hover:text-[var(--green-deep)] transition-colors">
                   {post.title}

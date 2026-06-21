@@ -41,6 +41,7 @@ export function DashboardHome({
   userId?: string;
 }) {
   const [insights, setInsights] = useState<DashboardInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(true);
   const [selectedScore, setSelectedScore] = useState<MoodScore | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isFree = !subscription.isActive;
@@ -50,10 +51,11 @@ export function DashboardHome({
     if (!response.ok) return;
     const data = (await response.json()) as DashboardInsights;
     setInsights(data);
+    setInsightsLoading(false);
   }, []);
 
   useEffect(() => {
-    loadInsights().catch(() => null);
+    loadInsights().catch(() => setInsightsLoading(false));
   }, [loadInsights]);
 
   const savedScore = insights?.today?.score ?? null;
@@ -134,7 +136,9 @@ export function DashboardHome({
     <div className="flex min-h-0 flex-1 flex-col">
       <UpsellBanner show={isFree} />
 
-      {isDesktop ? (
+      {insightsLoading ? (
+        <DashboardSkeleton />
+      ) : isDesktop ? (
         <HubDesktop {...hubProps} />
       ) : (
         <HubMobile userName={userName} {...hubProps} />

@@ -73,7 +73,15 @@ export function HubDesktop({
         </Panel>
       </div>
 
-      {insights ? <HubInsightsRow insights={insights} /> : null}
+      {insights ? (
+        <HubInsightsRow insights={insights} />
+      ) : (
+        <div className="grid animate-pulse grid-cols-1 gap-[18px] sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-[100px] rounded-[24px] bg-[var(--surface)]" />
+          ))}
+        </div>
+      )}
 
       <StoreWidget />
     </div>
