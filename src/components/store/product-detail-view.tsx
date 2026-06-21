@@ -364,7 +364,7 @@ export function ProductDetailView({
             </p>
             <div className="flex flex-wrap gap-2">
               {SPRAY_VARIANTS.map((v) => {
-                const href = inDashboard ? `/dashboard/store/products/${v.slug}` : `/store/products/${v.slug}`;
+                const href = `/store/${v.slug}`;
                 const isActive = v.slug === product.slug;
                 return (
                   <Link

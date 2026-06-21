@@ -253,7 +253,7 @@ function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number;
 }
 
 /* ── Product Card ── */
-function ProductCard({ product, index, basePath = "/store/products", isLoggedIn = true }: { product: StoreProduct; index: number; basePath?: string; isLoggedIn?: boolean }) {
+function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }: { product: StoreProduct; index: number; basePath?: string; isLoggedIn?: boolean }) {
   const { addItem } = useCart();
   const router = useRouter();
   const [added, setAdded] = useState(false);
@@ -386,7 +386,7 @@ function TrustStrip() {
 }
 
 /* ── Main component ── */
-export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store/products", isLoggedIn = true }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string; isLoggedIn?: boolean } = {}) {
+export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store", isLoggedIn = true }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string; isLoggedIn?: boolean } = {}) {
   const { count } = useCart();
   const [showCart, setShowCart] = useState(false);
   const [orders, setOrders] = useState<Array<{id: string; status: string; items: unknown[]; total_vnd: number; created_at: string}>>([]);

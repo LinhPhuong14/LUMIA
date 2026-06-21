@@ -22,7 +22,7 @@ export default async function DashboardStorePage() {
       subtitle="Gói thành viên & sản phẩm wellbeing"
       isAdmin={session.role === "admin"}
     >
-      <UnifiedStore stickyTop="0px" hideRegisterCta productBasePath="/dashboard/store/products" />
+      <UnifiedStore stickyTop="0px" hideRegisterCta />
     </DashboardShell>
   );
 }
