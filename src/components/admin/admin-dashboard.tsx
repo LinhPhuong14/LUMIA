@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
+  ArrowLeft, BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
   Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
