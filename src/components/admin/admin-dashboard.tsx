@@ -47,7 +47,7 @@ type BlogForm = {
   cover_image_url: string;
 };
 
-const BLOG_CATEGORIES = ["Wellbeing", "Mindfulness", "Sleep", "Productivity", "Nutrition", "Mental Health"];
+const BLOG_CATEGORIES = ["Sức khỏe", "Thiền định", "Giấc ngủ", "Năng suất", "Dinh dưỡng", "Sức khỏe tâm lý"];
 const PRODUCT_CATEGORIES = ["drink", "scent", "sleep", "meditation", "wellness"];
 
 const ORDER_STATUSES = ["paid", "preparing", "shipping", "delivered"] as const;
@@ -1321,7 +1321,7 @@ function ProductsTab() {
 
 const EMPTY_BLOG: BlogForm = {
   slug: "", title: "", excerpt: "", content: "",
-  category: "Wellbeing", emoji: "📝",
+  category: "Sức khỏe", emoji: "📝",
   cover_color: "linear-gradient(135deg,#e0f2e9,#b8dfc8)", read_time: 3, published: false,
   cover_image_url: "",
 };
@@ -1419,127 +1419,159 @@ function BlogTab() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-[13px] text-[var(--muted)]">{posts.length} bài viết</span>
-        <button type="button" onClick={openNew} className="button-primary px-4 py-2 text-sm">+ Bài viết mới</button>
+      {/* ── Danh sách bài viết ── */}
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-[13px] font-semibold text-[var(--foreground)]">Bài viết</p>
+          <p className="text-[12px] text-[var(--muted)]">{posts.length} bài · {posts.filter(p => p.published).length} đã xuất bản</p>
+        </div>
+        <button type="button" onClick={openNew}
+          className="flex items-center gap-1.5 rounded-full bg-[var(--green)] px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90">
+          <Plus className="h-3.5 w-3.5" /> Viết bài mới
+        </button>
       </div>
 
-      <div className="space-y-3">
-        {posts.map(p => (
-          <div key={p.id} className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 transition hover:border-[var(--green)]/40">
-            <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-xl"
-              style={{ background: p.cover_color }}>
-              {p.emoji}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="truncate font-medium text-[var(--foreground)]">{p.title}</span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${p.published ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-[var(--surface-warm)] text-[var(--muted)]"}`}>
-                  {p.published ? "Đã xuất bản" : "Bản nháp"}
-                </span>
+      {posts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-[20px] border border-dashed border-[var(--border)] py-16 text-center">
+          <span className="text-4xl">✍️</span>
+          <p className="mt-3 font-serif text-[17px] text-[var(--foreground)]">Chưa có bài viết nào</p>
+          <p className="mt-1 text-[13px] text-[var(--muted)]">Nhấn "Viết bài mới" để bắt đầu</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {posts.map(p => (
+            <div key={p.id}
+              className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 transition hover:border-[var(--green)]/30">
+              {/* Cover thumbnail */}
+              <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px]"
+                style={{ background: p.cover_color }}>
+                <span className="absolute inset-0 flex items-center justify-center text-xl">{p.emoji}</span>
               </div>
-              <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">{p.category} · {p.read_time} phút · {fmtDate(p.created_at)}</p>
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{p.title || "(Chưa có tiêu đề)"}</p>
+                <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">
+                  {p.category} · {p.read_time} phút đọc · {fmtDate(p.created_at)}
+                </p>
+              </div>
+              {/* Status badge */}
+              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${p.published ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-[var(--surface-warm)] text-[var(--muted)]"}`}>
+                {p.published ? "Đã xuất bản" : "Bản nháp"}
+              </span>
+              {/* Actions */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button type="button" onClick={() => openEdit(p)}
+                  className="rounded-full border border-[var(--border)] px-3 py-1.5 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                  Chỉnh sửa
+                </button>
+                <button type="button" onClick={() => togglePublish(p)}
+                  className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition ${p.published ? "border-[var(--border)] text-[var(--muted)] hover:border-red-200 hover:text-red-500" : "border-[var(--green)]/40 text-[var(--green-deep)] hover:bg-[var(--green-wash)]"}`}>
+                  {p.published ? "Ẩn" : "Xuất bản"}
+                </button>
+                <button type="button" onClick={() => deletePost(p.id)} disabled={deleting === p.id}
+                  className="rounded-full p-1.5 text-[var(--muted)] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-40">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={() => togglePublish(p)}
-                className="rounded-full border border-[var(--border)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
-                {p.published ? "Ẩn" : "Xuất bản"}
+          ))}
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[var(--green-deep)] px-5 py-2.5 text-[13px] font-medium text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      {/* ── Blog editor (full-screen overlay) ── */}
+      {form && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--surface)]">
+
+          {/* Sticky top bar */}
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)]/95 px-6 py-3 backdrop-blur-xl">
+            <button type="button" onClick={() => setForm(null)}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--foreground)]">
+              <ArrowLeft className="h-3.5 w-3.5" /> Quay lại
+            </button>
+            <div className="flex items-center gap-3">
+              {/* Draft / Published toggle */}
+              <button type="button"
+                onClick={() => setForm(f => f ? { ...f, published: !f.published } : f)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${form.published ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "border border-[var(--border)] text-[var(--muted)]"}`}>
+                {form.published ? "✓ Đã xuất bản" : "○ Bản nháp"}
               </button>
-              <button type="button" onClick={() => openEdit(p)}
-                className="rounded-full border border-[var(--border)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
-                Sửa
-              </button>
-              <button type="button" onClick={() => deletePost(p.id)} disabled={deleting === p.id}
-                className="rounded-full border border-red-200 px-3 py-1 text-[12px] text-red-500 transition hover:bg-red-50 disabled:opacity-50">
-                Xóa
+              <button type="button" onClick={savePost}
+                disabled={saving || uploading || !form.title || !form.excerpt}
+                className="rounded-full bg-[var(--green)] px-5 py-1.5 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+                {saving ? "Đang lưu…" : uploading ? "Đang tải ảnh…" : form.id ? "Lưu thay đổi" : "Đăng bài"}
               </button>
             </div>
           </div>
-        ))}
-        {posts.length === 0 && <div className="py-12 text-center text-[var(--muted)]">Chưa có bài viết nào. Hãy tạo bài đầu tiên!</div>}
-      </div>
 
-      {toast && <div className="mt-3 rounded-[12px] bg-[var(--green-wash)] px-4 py-2 text-[13px] text-[var(--green-deep)]">{toast}</div>}
+          <div className="mx-auto max-w-2xl px-4 pb-24 pt-8">
 
-      {/* Blog form — right-side panel */}
-      {form ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm"
-          onClick={e => { if (e.target === e.currentTarget) setForm(null); }}>
-          <div className="relative flex h-full w-full max-w-3xl flex-col overflow-y-auto bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.25)]">
-
-            {/* ── Cover banner zone ─────────────────────────── */}
-            <div className="relative overflow-hidden rounded-t-[28px]">
+            {/* ── Ảnh bìa ── */}
+            <div className="mb-6 overflow-hidden rounded-[20px] border border-[var(--border)]">
               {form.cover_image_url ? (
-                /* Photo cover */
-                <div className="group relative h-52">
+                <div className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={form.cover_image_url} alt="Ảnh bìa"
-                    className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/20" />
-                  {/* floating action bar */}
-                  <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 transition group-hover:opacity-100">
+                  <img src={form.cover_image_url} alt="Ảnh bìa" className="h-56 w-full object-cover" />
+                  {/* Always-visible action strip */}
+                  <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5">
+                    <ImagePlus className="h-3.5 w-3.5 text-[var(--muted)]" />
+                    <span className="flex-1 text-[12px] text-[var(--muted)]">Ảnh bìa đã tải lên</span>
                     <button type="button" disabled={uploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm hover:bg-black/80">
-                      <Upload className="h-3.5 w-3.5" />
+                      className="flex items-center gap-1 rounded-full border border-[var(--border)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                      <Upload className="h-3 w-3" />
                       {uploading ? "Đang tải…" : "Đổi ảnh"}
                     </button>
                     <button type="button"
                       onClick={() => setForm(f => f ? { ...f, cover_image_url: "" } : f)}
-                      className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm hover:bg-red-700">
-                      <X className="h-3.5 w-3.5" />
-                      Xóa ảnh
+                      className="flex items-center gap-1 rounded-full border border-red-200 px-3 py-1 text-[12px] text-red-500 transition hover:bg-red-50">
+                      <X className="h-3 w-3" /> Xóa
                     </button>
                   </div>
                 </div>
               ) : (
-                /* Gradient + drag-drop cover */
-                <div
-                  className="relative flex h-44 cursor-pointer flex-col items-center justify-center transition"
-                  style={{ background: form.cover_color }}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) void uploadCoverImage(f); }}
-                >
-                  {/* Always-visible upload CTA */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                    <span className="text-5xl opacity-70">{form.emoji || "📝"}</span>
-                    <div className="flex items-center gap-2 rounded-full bg-black/35 px-4 py-2 text-white backdrop-blur-sm shadow">
+                <div>
+                  {/* Drag-drop zone */}
+                  <div
+                    className="flex cursor-pointer flex-col items-center justify-center gap-3 py-10 transition hover:bg-[var(--surface-warm)]"
+                    style={{ background: form.cover_color }}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) void uploadCoverImage(f); }}>
+                    <span className="text-4xl opacity-60">{form.emoji || "📝"}</span>
+                    <div className="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-[13px] font-medium text-[var(--foreground)] shadow-sm backdrop-blur-sm dark:bg-black/50 dark:text-white">
                       {uploading
-                        ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        : <ImagePlus className="h-3.5 w-3.5" />}
-                      <span className="text-[12px] font-medium">
-                        {uploading ? "Đang tải ảnh lên…" : "Click hoặc kéo thả ảnh bìa vào đây"}
-                      </span>
+                        ? <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> Đang tải ảnh lên…</>
+                        : <><ImagePlus className="h-3.5 w-3.5" /> Click hoặc kéo thả ảnh bìa vào đây</>}
                     </div>
+                    <p className="text-[11px] text-white/70 dark:text-white/50">JPG, PNG, WebP · Tối đa 10MB</p>
                   </div>
-                </div>
-              )}
-
-              {/* Color presets bar — shown when no photo */}
-              {!form.cover_image_url && (
-                <div className="flex items-center gap-2 border-t border-white/20 bg-black/5 px-4 py-2">
-                  <span className="text-[11px] font-medium text-[var(--muted)]">Màu nền:</span>
-                  <div className="flex gap-1.5">
+                  {/* Color + upload strip */}
+                  <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5">
+                    <span className="text-[11px] text-[var(--muted)]">Màu nền:</span>
                     {COVER_PRESETS.map(preset => (
                       <button key={preset} type="button"
                         onClick={() => setForm(f => f ? { ...f, cover_color: preset } : f)}
-                        className={`h-6 w-6 rounded-full border-2 transition ${form.cover_color === preset ? "border-[var(--green)] scale-110" : "border-white/40 hover:border-white"}`}
+                        className={`h-5 w-5 rounded-full border-2 transition ${form.cover_color === preset ? "scale-125 border-[var(--green)]" : "border-transparent hover:scale-110"}`}
                         style={{ background: preset }} />
                     ))}
-                    <label className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-white/40 bg-white/20 text-[10px] font-bold text-white hover:border-white"
-                      title="Màu tuỳ chỉnh">
+                    <label className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-warm)] text-[10px] text-[var(--muted)]" title="Màu tuỳ chỉnh">
                       #
                       <input type="color" className="absolute h-0 w-0 opacity-0"
                         onChange={e => setForm(f => f ? { ...f, cover_color: e.target.value } : f)} />
                     </label>
+                    <button type="button" disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ml-auto flex items-center gap-1.5 rounded-full bg-[var(--green)] px-3 py-1 text-[11px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+                      <ImagePlus className="h-3 w-3" />
+                      {uploading ? "Đang tải…" : "Upload ảnh bìa"}
+                    </button>
                   </div>
-                  <button type="button" disabled={uploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="ml-auto flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1 text-[11px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
-                    <ImagePlus className="h-3 w-3" />
-                    {uploading ? "Đang tải…" : "Upload ảnh bìa"}
-                  </button>
                 </div>
               )}
             </div>
@@ -1548,102 +1580,71 @@ function BlogTab() {
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCoverImage(f); e.target.value = ""; }} />
 
-            {/* ── Page body ────────────────────────────────── */}
-            <div className="px-8 pb-0 pt-6">
-              {/* Emoji + close */}
-              <div className="mb-3 flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <input type="text" value={form.emoji}
-                    onChange={e => setForm(f => f ? { ...f, emoji: e.target.value } : f)}
-                    className="w-14 rounded-[10px] border border-transparent bg-transparent text-3xl outline-none hover:border-[var(--border)] hover:bg-[var(--surface-warm)] focus:border-[var(--border)] focus:bg-[var(--surface-warm)]"
-                    maxLength={4} title="Emoji đại diện" />
-                  <div>
-                    <select value={form.category} onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
-                      className="rounded-full border border-[var(--border)] bg-[var(--surface-warm)] px-3 py-1 text-[12px] text-[var(--muted)] outline-none">
-                      {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setForm(null)}
-                  className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
-                  <X className="h-4 w-4 text-[var(--muted)]" />
-                </button>
+            {/* ── Metadata strip ── */}
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              {/* Emoji */}
+              <input type="text" value={form.emoji}
+                onChange={e => setForm(f => f ? { ...f, emoji: e.target.value } : f)}
+                className="w-10 rounded-[10px] border border-transparent bg-transparent text-center text-2xl outline-none hover:border-[var(--border)] hover:bg-[var(--surface-warm)] focus:border-[var(--border)]"
+                maxLength={4} title="Emoji đại diện" />
+              {/* Category */}
+              <select value={form.category} onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
+                className="rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1.5 text-[12px] text-[var(--foreground)] outline-none focus:border-[var(--green)]/50">
+                {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {/* Read time */}
+              <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1.5">
+                <input type="number" min={1} value={form.read_time}
+                  onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
+                  className="w-8 bg-transparent text-center text-[12px] text-[var(--foreground)] outline-none" />
+                <span className="text-[12px] text-[var(--muted)]">phút đọc</span>
               </div>
-
-              {/* Title */}
-              <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
-                placeholder="Tiêu đề bài viết..."
-                className="w-full bg-transparent text-[28px] font-bold text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/50" />
-
-              {/* Meta row */}
-              <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] text-[var(--muted)]">Slug:</span>
-                  <input type="text" value={form.slug} onChange={e => setForm(f => f ? { ...f, slug: e.target.value } : f)}
-                    className="rounded-[8px] border border-transparent bg-[var(--surface-warm)] px-2 py-0.5 font-mono text-[12px] text-[var(--muted)] outline-none focus:border-[var(--border)]" />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] text-[var(--muted)]">Đọc:</span>
-                  <input type="number" min={1} value={form.read_time}
-                    onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
-                    className="w-14 rounded-[8px] border border-transparent bg-[var(--surface-warm)] px-2 py-0.5 text-[12px] text-[var(--muted)] outline-none focus:border-[var(--border)]" />
-                  <span className="text-[12px] text-[var(--muted)]">phút</span>
-                </div>
-                <label className="flex cursor-pointer items-center gap-1.5 text-[12px]">
-                  <input type="checkbox" checked={form.published}
-                    onChange={e => setForm(f => f ? { ...f, published: e.target.checked } : f)}
-                    className="h-3.5 w-3.5 accent-[var(--green)]" />
-                  <span className={form.published ? "font-semibold text-[var(--green-deep)]" : "text-[var(--muted)]"}>
-                    {form.published ? "Đã xuất bản" : "Bản nháp"}
-                  </span>
-                </label>
-              </div>
-
-              {/* Excerpt */}
-              <div className="mt-4">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Tóm tắt *</p>
-                <textarea rows={2} value={form.excerpt} onChange={e => setForm(f => f ? { ...f, excerpt: e.target.value } : f)}
-                  placeholder="Mô tả ngắn hiển thị trên trang danh sách bài viết..."
-                  className="w-full resize-none bg-transparent text-[14px] leading-relaxed text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/50" />
-              </div>
-
-              {/* Content */}
-              <div className="mt-2">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Nội dung</p>
-                <RichEditor
-                  value={form.content}
-                  onChange={html => setForm(f => f ? { ...f, content: html } : f)}
-                  onImageUpload={async (raw) => {
-                    const file = await compressImage(raw);
-                    const urlRes = await fetch("/api/admin/upload-url", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ filename: file.name, contentType: file.type }),
-                    });
-                    if (!urlRes.ok) return "";
-                    const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-                    return await signedUpload(signedUrl, file) ? publicUrl : "";
-                  }}
-                  placeholder="Bắt đầu viết nội dung bài viết..."
-                  minHeight={360}
-                />
+              {/* Slug */}
+              <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1.5">
+                <span className="text-[11px] text-[var(--muted)]">slug:</span>
+                <input type="text" value={form.slug} onChange={e => setForm(f => f ? { ...f, slug: e.target.value } : f)}
+                  className="w-32 bg-transparent font-mono text-[11px] text-[var(--muted)] outline-none" />
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface-card)] px-8 py-4">
-              <p className="text-[12px] text-[var(--muted)]">{form.id ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
-                <button type="button" onClick={savePost} disabled={saving || uploading || !form.title || !form.excerpt}
-                  className="button-primary px-4 py-2 text-sm disabled:opacity-60">
-                  {saving ? "Đang lưu…" : uploading ? "Đang tải ảnh…" : (form.id ? "Cập nhật" : "Xuất bản")}
-                </button>
-              </div>
+            {/* ── Tiêu đề ── */}
+            <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
+              placeholder="Tiêu đề bài viết..."
+              className="w-full bg-transparent font-serif text-[32px] font-bold leading-tight text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/40" />
+
+            {/* ── Tóm tắt ── */}
+            <textarea rows={2} value={form.excerpt} onChange={e => setForm(f => f ? { ...f, excerpt: e.target.value } : f)}
+              placeholder="Viết tóm tắt ngắn — hiển thị trên trang danh sách và landing page..."
+              className="mt-3 w-full resize-none bg-transparent text-[16px] leading-relaxed text-[var(--muted)] outline-none placeholder:text-[var(--muted)]/40" />
+
+            {/* ── Divider ── */}
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Nội dung</span>
+              <div className="h-px flex-1 bg-[var(--border)]" />
             </div>
+
+            {/* ── Rich editor ── */}
+            <RichEditor
+              value={form.content}
+              onChange={html => setForm(f => f ? { ...f, content: html } : f)}
+              onImageUpload={async (raw) => {
+                const file = await compressImage(raw);
+                const urlRes = await fetch("/api/admin/upload-url", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ filename: file.name, contentType: file.type }),
+                });
+                if (!urlRes.ok) return "";
+                const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+                return await signedUpload(signedUrl, file) ? publicUrl : "";
+              }}
+              placeholder="Bắt đầu viết nội dung bài viết..."
+              minHeight={400}
+            />
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
