@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Feather, MessageCircle, Music, Wind } from "lucide-react";
+import { ClipboardList, Feather, MessageCircle, Music, SmilePlus, Wind } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
 import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
@@ -105,29 +105,54 @@ export function HubMobile({
       <div className="mobile-hero-misty relative overflow-hidden" style={{ height: 340 }}>
         <MistyScene />
         <div className="absolute inset-0 flex flex-col justify-between p-[22px]">
-          <div className="flex items-center justify-between">
-            <span className="dash-scene-chip self-start rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] backdrop-blur-md">
-              Nghi thức tối
-            </span>
-            {suggestion && (
-              <span className="max-w-[140px] rounded-full bg-black/25 px-2.5 py-1 text-[10px] leading-snug text-white/90 backdrop-blur-sm">
-                {suggestion.slice(0, 40)}…
-              </span>
-            )}
-          </div>
-          <div>
-            <h2 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-white">
-              Thung lũng sương
-            </h2>
-            <p className="mt-1 text-[13px] text-white/80">Soundscape · 18 phút</p>
-            <Link
-              href="/audio/sleep"
-              className="dash-accent-btn mt-4 w-full py-3.5"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              ▶ Bắt đầu nghi thức
-            </Link>
-          </div>
+          <span className="dash-scene-chip self-start rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] backdrop-blur-md">
+            Nghi thức tối
+          </span>
+          {savedScore !== null ? (
+            /* Has check-in → show audio recommendation */
+            <div>
+              {suggestion && (
+                <p className="mb-2 w-fit rounded-full bg-black/25 px-2.5 py-1 text-[10px] leading-snug text-white/85 backdrop-blur-sm">
+                  {suggestion}
+                </p>
+              )}
+              <h2 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-white">
+                Thung lũng sương
+              </h2>
+              <p className="mt-1 text-[13px] text-white/80">Soundscape · 18 phút</p>
+              <Link
+                href="/audio/sleep"
+                className="dash-accent-btn mt-4 w-full py-3.5"
+                style={{ background: "var(--gradient-primary)" }}
+              >
+                ▶ Bắt đầu nghi thức
+              </Link>
+            </div>
+          ) : (
+            /* No check-in → CTA */
+            <div>
+              <p className="text-[12px] text-white/70">Gợi ý âm thanh hôm nay</p>
+              <h2 className="mt-1 font-serif text-[20px] font-normal tracking-[-0.01em] text-white">
+                Check-in để nhận gợi ý<br />phù hợp tâm trạng
+              </h2>
+              <div className="mt-4 flex gap-2">
+                <Link
+                  href="/journey?tab=reports"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/20 py-2.5 text-[12px] font-semibold text-white backdrop-blur-sm"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Làm bài test
+                </Link>
+                <Link
+                  href="#mood-checkin"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/20 py-2.5 text-[12px] font-semibold text-white backdrop-blur-sm"
+                >
+                  <SmilePlus className="h-3.5 w-3.5" />
+                  Check-in mood
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

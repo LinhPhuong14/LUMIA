@@ -5,6 +5,7 @@ import { CategoriesSection } from "@/components/landing/sections/categories-sect
 import { HeroSection } from "@/components/landing/sections/hero-section";
 import { JoinSection } from "@/components/landing/sections/join-section";
 import { PromoSection } from "@/components/landing/sections/promo-section";
+import { ProductsCarouselSection } from "@/components/landing/sections/products-carousel-section";
 import { QuizSection } from "@/components/landing/sections/quiz-section";
 import { RitualAccordionSection } from "@/components/landing/sections/ritual-accordion-section";
 import { TestimonialsSection } from "@/components/landing/sections/testimonials-section";
@@ -22,6 +23,7 @@ export default function HomePage() {
       <RitualAccordionSection />
       <BoxesShowcaseSection />
       <PromoSection />
+      <ProductsCarouselSection />
       <AiListeningSection />
       <WebappDemoSection />
       <TestimonialsSection />

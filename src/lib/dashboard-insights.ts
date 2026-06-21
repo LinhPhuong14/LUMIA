@@ -87,7 +87,7 @@ export function buildSuggestion(
   streak: number,
 ): string {
   if (todayScore === null) {
-    return "Ghi nhận cảm xúc hôm nay giúp LUMIA đọc nhịp của bạn chính xác hơn - chỉ mất vài giây.";
+    return "";
   }
   if (todayScore <= 2) {
     return "Hôm nay có vẻ nặng. Thử 3 phút thở sâu, viết một dòng journal, hoặc mở LUMIA lắng nghe khi bạn sẵn sàng.";
