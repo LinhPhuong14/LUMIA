@@ -84,11 +84,18 @@ export async function POST(request: Request) {
 
   if (!hasSupabaseConfig() || !hasPayOSConfig()) {
     if (!env.DEMO_MODE) {
-      console.error("[checkout] config missing — supabase:", hasSupabaseConfig(), "payos:", hasPayOSConfig());
-      return NextResponse.json({
-        error: "Phiên thanh toán chưa sẵn sàng.",
-        debug: { supabase: hasSupabaseConfig(), payos: hasPayOSConfig() },
-      }, { status: 503 });
+      const envCheck = {
+        SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL),
+        SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY),
+        SUPABASE_SERVICE_ROLE: Boolean(process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY),
+        PAYOS_CLIENT_ID: Boolean(process.env.PAYOS_CLIENT_ID),
+        PAYOS_API_KEY: Boolean(process.env.PAYOS_API_KEY),
+        PAYOS_CHECKSUM_KEY: Boolean(process.env.PAYOS_CHECKSUM_KEY),
+        VERCEL_ENV: process.env.VERCEL_ENV,
+        DEMO_MODE: env.DEMO_MODE,
+      };
+      console.error("[checkout] config missing:", JSON.stringify(envCheck));
+      return NextResponse.json({ error: "Phiên thanh toán chưa sẵn sàng.", debug: envCheck }, { status: 503 });
     }
     return NextResponse.json({
       checkoutUrl: `${buildAbsoluteUrl("/checkout/success")}?demo=1`,
@@ -99,7 +106,10 @@ export async function POST(request: Request) {
   // Service role required to create orders — check explicitly so we get a clear 503
   if (!hasSupabaseServiceRole()) {
     console.error("[checkout] SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY not configured");
-    return NextResponse.json({ error: "Phiên thanh toán chưa sẵn sàng (cấu hình server)." }, { status: 503 });
+    return NextResponse.json({
+      error: "Phiên thanh toán chưa sẵn sàng (cấu hình server).",
+      debug: "missing_service_role",
+    }, { status: 503 });
   }
 
   // (#002) Use timestamp-based unique order code to prevent collisions
