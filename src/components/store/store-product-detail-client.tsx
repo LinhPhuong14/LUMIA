@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Check, ShoppingCart, LogIn,
-  Package, MapPin, Phone, Clock,
+  Package, MapPin, Clock,
 } from "lucide-react";
 
 import { useCart } from "@/lib/cart-context";
+import { CartSheet } from "@/components/store/cart-sheet";
 import { StoreProductTabs } from "@/components/store/store-product-tabs";
 import type { FullProduct } from "@/app/store/[slug]/page";
 
@@ -115,12 +116,13 @@ export function StoreProductDetailClient({
   product: FullProduct;
   isLoggedIn: boolean;
 }) {
-  const { addItem, items } = useCart();
+  const { addItem, items, count } = useCart();
   const router = useRouter();
   const [selectedVariant, setSelectedVariant] = useState<string | null>(
     product.variants.length > 0 ? product.variants[0].name : null,
   );
   const [added, setAdded] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   // Build ordered image list: banner → gallery → variant images
   const allImages: string[] = [];
@@ -154,6 +156,8 @@ export function StoreProductDetailClient({
 
   return (
     <div className="min-h-screen bg-[var(--surface)]">
+      {cartOpen && <CartSheet onClose={() => setCartOpen(false)} />}
+
       {/* Sticky top bar */}
       <div
         className="sticky top-0 z-20 border-b px-4 py-3"
@@ -173,7 +177,19 @@ export function StoreProductDetailClient({
             Quay lại cửa hàng
           </Link>
           <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{product.name}</p>
-          <div className="w-20" />
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-card)] text-[var(--foreground)] transition hover:border-[var(--green)] hover:text-[var(--green)]"
+            aria-label="Giỏ hàng"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--green)] text-[10px] font-bold text-white">
+                {count > 9 ? "9+" : count}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
