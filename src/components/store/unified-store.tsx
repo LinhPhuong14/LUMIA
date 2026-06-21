@@ -28,6 +28,8 @@ import { getAllPurchasableProducts, type BoxProduct } from "@/data/catalog";
 import { useCart } from "@/lib/cart-context";
 import { CartSheet } from "@/components/store/cart-sheet";
 
+type StoreVariant = { name: string; image_url?: string | null; stock_quantity?: number | null };
+
 type StoreProduct = {
   id: string;
   slug: string;
@@ -37,6 +39,7 @@ type StoreProduct = {
   category: string;
   image_url: string | null;
   in_stock: boolean;
+  variants?: StoreVariant[] | null;
 };
 
 type PlanTab = "digital" | "hybrid";
@@ -252,11 +255,82 @@ function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number;
   );
 }
 
+/* ── Variant Picker Modal ── */
+function VariantPickerModal({
+  product,
+  onClose,
+  onSelect,
+}: {
+  product: StoreProduct;
+  onClose: () => void;
+  onSelect: (variant: StoreVariant) => void;
+}) {
+  const variants = product.variants ?? [];
+  return (
+    <>
+      <button
+        type="button"
+        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        aria-label="Đóng"
+        onClick={onClose}
+      />
+      <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-lg rounded-t-[24px] bg-[var(--surface)] p-6 shadow-[0_-24px_60px_rgba(0,0,0,0.18)] lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[24px]">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--green)]">Chọn phân loại</p>
+            <h3 className="mt-0.5 font-serif text-[18px] font-semibold text-[var(--foreground)]">{product.name}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--foreground)]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {variants.map((v) => (
+            <button
+              key={v.name}
+              type="button"
+              onClick={() => onSelect(v)}
+              className="flex flex-col items-center gap-2 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] p-3 transition hover:border-[var(--green)] hover:bg-[var(--green-wash)]"
+            >
+              {v.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={v.image_url} alt={v.name} className="h-16 w-16 rounded-[10px] object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-[10px] bg-[var(--green-wash)] text-2xl">🌿</div>
+              )}
+              <span className="text-center text-[12.5px] font-medium leading-tight text-[var(--foreground)]">{v.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ── Product Card ── */
 function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }: { product: StoreProduct; index: number; basePath?: string; isLoggedIn?: boolean }) {
   const { addItem } = useCart();
   const router = useRouter();
   const [added, setAdded] = useState(false);
+  const [showVariantPicker, setShowVariantPicker] = useState(false);
+
+  const variants = product.variants?.filter(v => v.name.trim()) ?? [];
+  const hasVariants = variants.length > 1;
+
+  function doAdd(variant: StoreVariant | null) {
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      subtitle: product.subtitle,
+      price_vnd: product.price_vnd,
+      image_url: variant?.image_url ?? product.image_url,
+      variant: variant?.name ?? null,
+      qty: 1,
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
 
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
@@ -264,18 +338,11 @@ function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }:
       router.push("/login?next=/store");
       return;
     }
-    addItem({
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      subtitle: product.subtitle,
-      price_vnd: product.price_vnd,
-      image_url: product.image_url,
-      variant: null,
-      qty: 1,
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    if (hasVariants) {
+      setShowVariantPicker(true);
+      return;
+    }
+    doAdd(variants[0] ?? null);
   }
 
   return (
@@ -349,7 +416,7 @@ function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }:
                 </>
               ) : (
                 <>
-                  <Plus className="h-3 w-3" /> Thêm
+                  <Plus className="h-3 w-3" /> {hasVariants ? "Chọn loại" : "Thêm"}
                 </>
               )}
             </button>
@@ -359,6 +426,14 @@ function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }:
           </div>
         </div>
       </Link>
+
+      {showVariantPicker && (
+        <VariantPickerModal
+          product={product}
+          onClose={() => setShowVariantPicker(false)}
+          onSelect={(v) => { setShowVariantPicker(false); doAdd(v); }}
+        />
+      )}
     </motion.div>
   );
 }
