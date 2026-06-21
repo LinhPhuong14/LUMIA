@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BarChart3, BookOpen, Box, ChevronRight, ImagePlus, LayoutDashboard,
-  Package, Settings, ShoppingBag, Upload, Users, Webhook, X,
+  BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
+  Package, Settings, ShoppingBag, Upload, Users, Video, Webhook, X,
 } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
@@ -1439,6 +1439,334 @@ function SystemTab() {
   );
 }
 
+// ─── Tab: Media (Audio / Video) ───────────────────────────────────────────────
+
+const AUDIO_CATEGORIES = [
+  { value: "guided_meditation", label: "Thiền hướng dẫn" },
+  { value: "mini_meditation", label: "Thiền mini" },
+  { value: "sleep_sound", label: "Âm thanh ngủ" },
+  { value: "sleep_cast", label: "Sleep cast" },
+  { value: "sleep_music", label: "Nhạc ngủ" },
+  { value: "wind_down", label: "Wind down" },
+  { value: "breathing", label: "Hít thở" },
+  { value: "timer_ambient", label: "Timer ambient" },
+];
+
+type AudioTrack = {
+  id: string; title: string; description?: string | null; category: string;
+  duration_seconds?: number | null; file_url?: string | null; thumbnail_url?: string | null;
+  is_free: boolean; sort_order: number; created_at: string;
+};
+
+type TrackForm = {
+  id?: string; title: string; description: string; category: string;
+  duration_seconds: number; file_url: string; thumbnail_url: string; is_free: boolean; sort_order: number;
+};
+
+const EMPTY_TRACK: TrackForm = {
+  title: "", description: "", category: "guided_meditation",
+  duration_seconds: 0, file_url: "", thumbnail_url: "", is_free: false, sort_order: 0,
+};
+
+function fmtDuration(s: number | null | undefined) {
+  if (!s) return "-";
+  const m = Math.floor(s / 60); const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+function MediaTab() {
+  const [tracks, setTracks] = useState<AudioTrack[]>([]);
+  const [catFilter, setCatFilter] = useState("Tất cả");
+  const [form, setForm] = useState<TrackForm | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<AudioTrack | null>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
+  const thumbFileRef = useRef<HTMLInputElement>(null);
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
+
+  const loadTracks = useCallback(() => {
+    fetch("/api/admin/media").then(r => r.json())
+      .then(d => setTracks(d.tracks ?? [])).catch(() => setTracks([]));
+  }, []);
+
+  useEffect(() => { loadTracks(); }, [loadTracks]);
+
+  const filtered = useMemo(() => catFilter === "Tất cả" ? tracks : tracks.filter(t => t.category === catFilter), [tracks, catFilter]);
+
+  async function uploadFile(file: File, kind: "video" | "thumb") {
+    setUploading(kind);
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/admin/upload-media", { method: "POST", body: fd });
+    if (res.ok) {
+      const { url } = await res.json() as { url: string };
+      if (kind === "video") setForm(f => f ? { ...f, file_url: url } : f);
+      else setForm(f => f ? { ...f, thumbnail_url: url } : f);
+      showToast("Tải lên thành công!");
+    } else showToast("Tải lên thất bại.");
+    setUploading(null);
+  }
+
+  async function saveTrack() {
+    if (!form) return;
+    setBusy(true);
+    const url = form.id ? `/api/admin/media/${form.id}` : "/api/admin/media";
+    const method = form.id ? "PUT" : "POST";
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    if (res.ok) { showToast(form.id ? "Đã cập nhật" : "Đã tạo track"); setForm(null); loadTracks(); }
+    else { const d = await res.json() as { error?: string }; showToast(d.error ?? "Lỗi lưu."); }
+    setBusy(false);
+  }
+
+  async function deleteTrack(t: AudioTrack) {
+    setConfirmDelete(null);
+    const res = await fetch(`/api/admin/media/${t.id}`, { method: "DELETE" });
+    if (res.ok) { setTracks(prev => prev.filter(x => x.id !== t.id)); showToast("Đã xóa."); }
+    else showToast("Xóa thất bại.");
+  }
+
+  const allCats = ["Tất cả", ...AUDIO_CATEGORIES.map(c => c.value)];
+  const catLabel = (v: string) => AUDIO_CATEGORIES.find(c => c.value === v)?.label ?? v;
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {allCats.map(c => (
+            <button key={c} type="button" onClick={() => setCatFilter(c)}
+              className={`rounded-full border px-3 py-1 text-[13px] transition ${catFilter === c ? "border-[var(--green)] bg-[var(--green-wash)] font-semibold text-[var(--green-deep)]" : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50"}`}>
+              {c === "Tất cả" ? "Tất cả" : catLabel(c)}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => setForm({ ...EMPTY_TRACK })}
+          className="button-primary shrink-0 px-4 py-2 text-sm">
+          + Thêm track
+        </button>
+      </div>
+
+      {/* Track list */}
+      <div className="space-y-3">
+        {filtered.map(t => (
+          <div key={t.id} className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 transition hover:border-[var(--green)]/30">
+            {/* Thumbnail / video icon */}
+            <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-[var(--surface-warm)]">
+              {t.thumbnail_url
+                ? /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={t.thumbnail_url} alt={t.title} className="h-full w-full object-cover" />
+                : <Film className="absolute inset-0 m-auto h-6 w-6 text-[var(--muted)]" />}
+              {t.file_url && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                  <Video className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate font-medium text-[var(--foreground)]">{t.title}</span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${t.is_free ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-[var(--surface-warm)] text-[var(--muted)]"}`}>
+                  {t.is_free ? "Miễn phí" : "Premium"}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12px] text-[var(--muted)]">
+                {catLabel(t.category)} · {fmtDuration(t.duration_seconds)} · {fmtDate(t.created_at)}
+                {!t.file_url && <span className="ml-2 text-amber-600">⚠ Chưa có file</span>}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex shrink-0 items-center gap-2">
+              {t.file_url && (
+                <a href={t.file_url} target="_blank" rel="noopener noreferrer"
+                  className="rounded-full border border-[var(--border)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                  Nghe/Xem
+                </a>
+              )}
+              <button type="button"
+                onClick={() => setForm({ id: t.id, title: t.title, description: t.description ?? "", category: t.category, duration_seconds: t.duration_seconds ?? 0, file_url: t.file_url ?? "", thumbnail_url: t.thumbnail_url ?? "", is_free: t.is_free, sort_order: t.sort_order })}
+                className="rounded-full border border-[var(--border)] px-3 py-1 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                Sửa
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(t)}
+                className="rounded-full border border-red-200 px-3 py-1 text-[12px] text-red-500 transition hover:bg-red-50">
+                Xóa
+              </button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-[var(--muted)]">Chưa có track nào. Tạo track đầu tiên!</div>
+        )}
+      </div>
+
+      {toast && <div className="mt-3 rounded-[12px] bg-[var(--green-wash)] px-4 py-2 text-[13px] text-[var(--green-deep)]">{toast}</div>}
+
+      {/* Delete confirm */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="mx-4 w-full max-w-sm rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <p className="font-semibold text-[var(--foreground)]">Xóa track này?</p>
+            <p className="mt-1 text-[13px] text-[var(--muted)]">"{confirmDelete.title}" sẽ bị xóa vĩnh viễn.</p>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={() => setConfirmDelete(null)} className="button-secondary flex-1 px-4 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={() => deleteTrack(confirmDelete)}
+                className="flex-1 rounded-[12px] bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600">Xóa</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Track form modal */}
+      {form && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-8">
+          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[24px] border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+              <h2 className="font-semibold text-[var(--foreground)]">{form.id ? "Sửa track" : "Thêm track mới"}</h2>
+              <button type="button" onClick={() => setForm(null)} className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
+                <X className="h-4 w-4 text-[var(--muted)]" />
+              </button>
+            </div>
+
+            <div className="space-y-5 p-6">
+              {/* Basic info */}
+              <div className="space-y-3">
+                <div>
+                  <label className={labelCls}>Tiêu đề *</label>
+                  <input type="text" value={form.title}
+                    onChange={e => setForm(f => f ? { ...f, title: e.target.value } : f)}
+                    className={inputCls} placeholder="Tên bài thiền / âm thanh" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Danh mục</label>
+                    <select value={form.category}
+                      onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
+                      className={inputCls}>
+                      {AUDIO_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Thời lượng (giây)</label>
+                    <input type="number" min={0} value={form.duration_seconds}
+                      onChange={e => setForm(f => f ? { ...f, duration_seconds: Number(e.target.value) } : f)}
+                      className={inputCls} placeholder="600 = 10 phút" />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Mô tả</label>
+                  <textarea rows={2} value={form.description}
+                    onChange={e => setForm(f => f ? { ...f, description: e.target.value } : f)}
+                    className={`${inputCls} resize-none`} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Sort order</label>
+                    <input type="number" value={form.sort_order}
+                      onChange={e => setForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
+                      className={inputCls} />
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 self-end pb-2.5 text-[13px]">
+                    <input type="checkbox" checked={form.is_free}
+                      onChange={e => setForm(f => f ? { ...f, is_free: e.target.checked } : f)}
+                      className="h-4 w-4 accent-[var(--green)]" />
+                    Miễn phí (không cần subscription)
+                  </label>
+                </div>
+              </div>
+
+              {/* Video file upload */}
+              <div>
+                <label className={labelCls}>File video / audio</label>
+                <div className="rounded-[16px] border-2 border-dashed border-[var(--border)] p-4">
+                  {form.file_url ? (
+                    <div className="mb-3">
+                      <video src={form.file_url} controls className="w-full rounded-[10px]" style={{ maxHeight: "200px" }} />
+                      <button type="button"
+                        onClick={() => setForm(f => f ? { ...f, file_url: "" } : f)}
+                        className="mt-2 text-[12px] text-red-500 underline">
+                        Xóa file
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="group mb-3 flex cursor-pointer flex-col items-center justify-center rounded-[12px] bg-[var(--surface-warm)] py-10 transition hover:bg-[var(--green-wash)]/30"
+                      onClick={() => videoFileRef.current?.click()}>
+                      <Film className="mb-2 h-10 w-10 text-[var(--muted)] group-hover:text-[var(--green)]" />
+                      <p className="text-[13px] font-medium text-[var(--muted)] group-hover:text-[var(--green-deep)]">
+                        {uploading === "video" ? "Đang tải lên…" : "Click để chọn video / audio"}
+                      </p>
+                      <p className="mt-1 text-[11px] text-[var(--muted)]">MP4, WebM, MP3, OGG · Tối đa 500MB</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input type="text" value={form.file_url}
+                      onChange={e => setForm(f => f ? { ...f, file_url: e.target.value } : f)}
+                      placeholder="Hoặc paste URL trực tiếp..."
+                      className={`${inputCls} flex-1 text-[13px]`} />
+                    <button type="button" disabled={uploading === "video"}
+                      onClick={() => videoFileRef.current?.click()}
+                      className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
+                      {uploading === "video" ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
+                      {uploading === "video" ? "Đang tải…" : "Upload"}
+                    </button>
+                  </div>
+                  <input ref={videoFileRef} type="file" accept="video/*,audio/*" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) void uploadFile(f, "video"); e.target.value = ""; }} />
+                </div>
+              </div>
+
+              {/* Thumbnail upload */}
+              <div>
+                <label className={labelCls}>Ảnh thumbnail</label>
+                <div className="flex gap-3">
+                  {form.thumbnail_url && (
+                    <div className="relative shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={form.thumbnail_url} alt="thumb" className="h-20 w-28 rounded-[10px] object-cover" />
+                      <button type="button"
+                        onClick={() => setForm(f => f ? { ...f, thumbnail_url: "" } : f)}
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-black/60 p-0.5 text-white">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex flex-1 gap-2">
+                    <input type="text" value={form.thumbnail_url}
+                      onChange={e => setForm(f => f ? { ...f, thumbnail_url: e.target.value } : f)}
+                      placeholder="URL ảnh hoặc upload..."
+                      className={`${inputCls} flex-1`} />
+                    <button type="button" disabled={uploading === "thumb"}
+                      onClick={() => thumbFileRef.current?.click()}
+                      className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
+                      {uploading === "thumb" ? <Upload className="h-4 w-4 animate-bounce" /> : <ImagePlus className="h-4 w-4" />}
+                      {uploading === "thumb" ? "Đang tải…" : "Ảnh"}
+                    </button>
+                    <input ref={thumbFileRef} type="file" accept="image/*" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) void uploadFile(f, "thumb"); e.target.value = ""; }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 rounded-b-[24px] border-t border-[var(--border)] px-6 py-4">
+              <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={saveTrack} disabled={busy || !form.title}
+                className="button-primary px-4 py-2 text-sm disabled:opacity-60">
+                {busy ? "Đang lưu…" : (form.id ? "Cập nhật" : "Tạo track")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 const TABS = [
@@ -1447,6 +1775,7 @@ const TABS = [
   { id: "orders", label: "Đơn hàng", icon: ShoppingBag },
   { id: "products", label: "Sản phẩm", icon: Package },
   { id: "blog", label: "Blog", icon: BookOpen },
+  { id: "media", label: "Media", icon: Film },
   { id: "plans", label: "Gói dịch vụ", icon: Box },
   { id: "system", label: "Hệ thống", icon: Settings },
 ] as const;
@@ -1483,6 +1812,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         {tab === "orders" && <OrdersTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "blog" && <BlogTab />}
+        {tab === "media" && <MediaTab />}
         {tab === "plans" && <PlansTab />}
         {tab === "system" && <SystemTab />}
       </div>

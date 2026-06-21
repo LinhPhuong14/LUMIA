@@ -158,7 +158,15 @@ export async function POST(request: Request) {
       items: [{ name: product.name.slice(0, 25), quantity: 1, price: product.price }],
     });
 
-    return NextResponse.json({ checkoutUrl: paymentLink.checkoutUrl, orderCode: paymentLink.orderCode });
+    return NextResponse.json({
+      checkoutUrl: paymentLink.checkoutUrl,
+      orderCode: paymentLink.orderCode,
+      qrCode: paymentLink.qrCode,
+      accountNumber: paymentLink.accountNumber,
+      accountName: paymentLink.accountName,
+      bin: paymentLink.bin,
+      amount: paymentLink.amount,
+    });
   } catch (error) {
     // DB order was created but PayOS failed - order stays as pending_payment
     // Admin can review and clean up orphan orders
