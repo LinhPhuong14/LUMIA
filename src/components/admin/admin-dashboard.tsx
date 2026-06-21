@@ -654,12 +654,15 @@ function ProductsTab() {
       const file = input.files?.[0];
       if (!file) return;
       setUploadingIdx(kind);
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      if (res.ok) {
-        const { url } = await res.json() as { url: string };
-        onUrl(url);
+      const urlRes = await fetch("/api/admin/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      });
+      if (urlRes.ok) {
+        const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+        const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        if (uploadRes.ok) onUrl(publicUrl);
       }
       setUploadingIdx(null);
     };
@@ -1162,13 +1165,20 @@ function BlogTab() {
 
   async function uploadCoverImage(file: File) {
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    if (res.ok) {
-      const { url } = await res.json() as { url: string };
-      setForm(f => f ? { ...f, cover_image_url: url } : f);
-      showToast("Tải ảnh lên thành công!");
+    const urlRes = await fetch("/api/admin/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    });
+    if (urlRes.ok) {
+      const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+      const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (uploadRes.ok) {
+        setForm(f => f ? { ...f, cover_image_url: publicUrl } : f);
+        showToast("Tải ảnh lên thành công!");
+      } else {
+        showToast("Lỗi tải ảnh lên.");
+      }
     } else {
       showToast("Lỗi tải ảnh lên.");
     }
@@ -1398,10 +1408,15 @@ function BlogTab() {
                   value={form.content}
                   onChange={html => setForm(f => f ? { ...f, content: html } : f)}
                   onImageUpload={async (file) => {
-                    const fd = new FormData(); fd.append("file", file);
-                    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-                    if (res.ok) { const { url } = await res.json() as { url: string }; return url; }
-                    return "";
+                    const urlRes = await fetch("/api/admin/upload-url", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+                    });
+                    if (!urlRes.ok) return "";
+                    const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+                    const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+                    return uploadRes.ok ? publicUrl : "";
                   }}
                   placeholder="Bắt đầu viết nội dung bài viết..."
                   minHeight={360}
@@ -1768,29 +1783,34 @@ function MediaTab() {
 
   async function uploadFile(file: File, kind: "video" | "thumb") {
     setUploading(kind);
-    const fd = new FormData(); fd.append("file", file);
-    const res = await fetch("/api/admin/upload-media", { method: "POST", body: fd });
-    if (res.ok) {
-      const { url } = await res.json() as { url: string };
-      if (kind === "video") {
-        const { title } = parseMetaFromFilename(file.name);
-        const isAudio = file.type.startsWith("audio/");
-        let duration = 0;
-        if (isAudio || file.type.startsWith("video/")) {
-          duration = await readAudioDuration(url);
-        }
-        setForm(f => {
-          if (!f) return f;
-          const updates: Partial<TrackForm> = { file_url: url };
-          if (!f.title) updates.title = title;
-          if (!f.duration_seconds && duration > 0) updates.duration_seconds = duration;
-          return { ...f, ...updates };
-        });
-      } else {
-        setForm(f => f ? { ...f, thumbnail_url: url } : f);
+    const urlRes = await fetch("/api/admin/upload-media-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    });
+    if (!urlRes.ok) { showToast("Tải lên thất bại."); setUploading(null); return; }
+    const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+    const uploadRes = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+    if (!uploadRes.ok) { showToast("Tải lên thất bại."); setUploading(null); return; }
+    const url = publicUrl;
+    if (kind === "video") {
+      const { title } = parseMetaFromFilename(file.name);
+      const isAudio = file.type.startsWith("audio/");
+      let duration = 0;
+      if (isAudio || file.type.startsWith("video/")) {
+        duration = await readAudioDuration(url);
       }
-      showToast("Tải lên thành công!");
-    } else showToast("Tải lên thất bại.");
+      setForm(f => {
+        if (!f) return f;
+        const updates: Partial<TrackForm> = { file_url: url };
+        if (!f.title) updates.title = title;
+        if (!f.duration_seconds && duration > 0) updates.duration_seconds = duration;
+        return { ...f, ...updates };
+      });
+    } else {
+      setForm(f => f ? { ...f, thumbnail_url: url } : f);
+    }
+    showToast("Tải lên thành công!");
     setUploading(null);
   }
 
