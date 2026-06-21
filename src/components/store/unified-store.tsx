@@ -274,7 +274,8 @@ function VariantPickerModal({
         aria-label="Đóng"
         onClick={onClose}
       />
-      <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-lg rounded-t-[24px] bg-[var(--surface)] p-6 shadow-[0_-24px_60px_rgba(0,0,0,0.18)] lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[24px]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-[24px] bg-[var(--surface)] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--green)]">Chọn phân loại</p>
@@ -301,6 +302,7 @@ function VariantPickerModal({
               <span className="text-center text-[12.5px] font-medium leading-tight text-[var(--foreground)]">{v.name}</span>
             </button>
           ))}
+        </div>
         </div>
       </div>
     </>
