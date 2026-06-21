@@ -66,6 +66,57 @@ async function signedUpload(signedUrl: string, file: File): Promise<boolean> {
   return res.ok;
 }
 
+// Resize + compress image to stay under targetMB at maxPx wide/tall.
+// Returns a new File of type image/webp (or image/jpeg for JPEG inputs).
+async function compressImage(file: File, maxPx = 1920, targetMB = 4): Promise<File> {
+  const targetBytes = targetMB * 1024 * 1024;
+  if (file.size <= targetBytes && !file.type.includes("png")) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        const ratio = Math.min(maxPx / width, maxPx / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+
+      const outType = file.type === "image/png" ? "image/webp" : file.type;
+      const ext = outType === "image/webp" ? "webp" : "jpg";
+      // Try progressively lower quality until under target
+      let quality = 0.85;
+      const tryCompress = () => {
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(file); return; }
+          if (blob.size <= targetBytes || quality <= 0.4) {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, `.${ext}`), { type: outType }));
+          } else {
+            quality -= 0.1;
+            tryCompress();
+          }
+        }, outType, quality);
+      };
+      tryCompress();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+// Returns an error string if the media file exceeds Supabase free-tier limit (50 MB).
+function validateMediaSize(file: File): string | null {
+  const MB = file.size / (1024 * 1024);
+  if (MB > 50) return `File quá lớn (${MB.toFixed(1)} MB). Giới hạn tối đa 50 MB.`;
+  return null;
+}
+
 function slugify(str: string) {
   return str.toLowerCase().trim()
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -659,9 +710,10 @@ function ProductsTab() {
     input.type = "file";
     input.accept = "image/jpeg,image/png,image/webp";
     input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+      const raw = input.files?.[0];
+      if (!raw) return;
       setUploadingIdx(kind);
+      const file = await compressImage(raw);
       const urlRes = await fetch("/api/admin/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1170,8 +1222,9 @@ function BlogTab() {
     setForm(f => f ? { ...f, title, slug: slugify(title) } : f);
   }
 
-  async function uploadCoverImage(file: File) {
+  async function uploadCoverImage(raw: File) {
     setUploading(true);
+    const file = await compressImage(raw);
     const urlRes = await fetch("/api/admin/upload-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1413,7 +1466,8 @@ function BlogTab() {
                 <RichEditor
                   value={form.content}
                   onChange={html => setForm(f => f ? { ...f, content: html } : f)}
-                  onImageUpload={async (file) => {
+                  onImageUpload={async (raw) => {
+                    const file = await compressImage(raw);
                     const urlRes = await fetch("/api/admin/upload-url", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1786,8 +1840,11 @@ function MediaTab() {
     });
   }
 
-  async function uploadFile(file: File, kind: "video" | "thumb") {
+  async function uploadFile(raw: File, kind: "video" | "thumb") {
     setUploading(kind);
+    const sizeErr = validateMediaSize(raw);
+    if (sizeErr) { showToast(sizeErr); setUploading(null); return; }
+    const file = kind === "thumb" ? await compressImage(raw) : raw;
     const urlRes = await fetch("/api/admin/upload-media-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
