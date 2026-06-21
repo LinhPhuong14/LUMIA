@@ -5,8 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const check = await requireRole(["admin"]);
-  if (check) return check;
+  await requireRole(["admin"]);
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Hệ thống chưa sẵn sàng." }, { status: 503 });
@@ -28,8 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const check = await requireRole(["admin"]);
-  if (check) return check;
+  await requireRole(["admin"]);
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Hệ thống chưa sẵn sàng." }, { status: 503 });
