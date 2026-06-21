@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Gift, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/supabase/auth";
 
 type PromoPlan = {
   id: string;
@@ -37,13 +38,38 @@ async function getFirstTimePlan(): Promise<PromoPlan | null> {
   return data;
 }
 
+async function isFirstTimeBuyer(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  if (!supabase) return true;
+  // Check for any paid box orders
+  const { count: orderCount } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("has_physical_box", true)
+    .in("status", ["paid", "shipped", "delivered"]);
+  if ((orderCount ?? 0) > 0) return false;
+  // Check for any past or active non-free subscriptions
+  const { count: subCount } = await supabase
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .in("status", ["active", "expired", "cancelled"]);
+  return (subCount ?? 0) === 0;
+}
+
 function formatVnd(n: number) {
   return n.toLocaleString("vi-VN") + " ₫";
 }
 
 export async function PromoSection() {
-  const plan = await getFirstTimePlan();
+  const [plan, session] = await Promise.all([getFirstTimePlan(), getSession()]);
   if (!plan) return null;
+  // Hide promo for logged-in users who have already purchased
+  if (session?.id) {
+    const eligible = await isFirstTimeBuyer(session.id);
+    if (!eligible) return null;
+  }
 
   const features: string[] = plan.features ?? [];
 
