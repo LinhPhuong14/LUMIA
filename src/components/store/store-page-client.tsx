@@ -35,14 +35,19 @@ function formatVnd(n: number) {
 function ProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] shadow-[0_8px_24px_rgba(95,111,82,0.07)] transition hover:shadow-[0_12px_32px_rgba(95,111,82,0.12)]">
-      {/* Image placeholder */}
+      {/* Image */}
       <div className="relative flex h-52 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--surface)] to-[var(--green-wash)]">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-2 opacity-30">
-            <span className="text-5xl">🌿</span>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[52px] leading-none" style={{ filter: "saturate(0.7) opacity(0.5)" }}>
+              {({ drink: "🍵", scent: "🕯️", sleep: "🌙", meditation: "✨", wellness: "🌿" } as Record<string, string>)[product.category] ?? "🌿"}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--green-deep)] opacity-40">
+              {product.category}
+            </span>
           </div>
         )}
         <span className="absolute left-3 top-3 rounded-full bg-[var(--green)] px-3 py-1 text-[11px] font-bold text-white shadow">

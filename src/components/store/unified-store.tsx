@@ -292,9 +292,14 @@ function ProductCard({ product, index, basePath = "/store/products", isLoggedIn 
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <span className="text-5xl opacity-30">
-              {CATEGORY_EMOJI[product.category] ?? "🌿"}
-            </span>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[52px] leading-none drop-shadow-sm" style={{ filter: "saturate(0.7) opacity(0.55)" }}>
+                {CATEGORY_EMOJI[product.category] ?? "🌿"}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--green-deep)] opacity-40">
+                {CATEGORIES.find(c => c.id === product.category)?.label ?? "Sản phẩm"}
+              </span>
+            </div>
           )}
           {!product.in_stock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">

@@ -754,6 +754,35 @@ function ProductsTab() {
               </button>
             </div>
 
+            {/* Live card preview */}
+            <div className="border-b border-[var(--border)] bg-[var(--surface-warm)] px-6 py-4">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Xem trước thẻ sản phẩm</p>
+              <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface-card)] shadow-sm" style={{ maxWidth: 220 }}>
+                <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--green-wash)] to-[var(--surface)]">
+                  {productForm.image_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={productForm.image_url} alt={productForm.name || "Sản phẩm"} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-4xl leading-none" style={{ filter: "saturate(0.7) opacity(0.5)" }}>
+                        {({ drink: "🍵", scent: "🕯️", sleep: "🌙", meditation: "✨", wellness: "🌿" } as Record<string, string>)[productForm.category] ?? "🌿"}
+                      </span>
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--green-deep)] opacity-40">
+                        {productForm.category || "Sản phẩm"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{productForm.name || "Tên sản phẩm"}</p>
+                  {productForm.subtitle && <p className="mt-0.5 truncate text-[11px] text-[var(--muted)]">{productForm.subtitle}</p>}
+                  <p className="mt-1.5 text-[13px] font-bold text-[var(--foreground)]">
+                    {productForm.price_vnd > 0 ? productForm.price_vnd.toLocaleString("vi-VN") + " ₫" : "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-6 p-6">
               {/* Basic info */}
               <section>
@@ -1147,10 +1176,11 @@ function BlogTab() {
 
       {toast && <div className="mt-3 rounded-[12px] bg-[var(--green-wash)] px-4 py-2 text-[13px] text-[var(--green-deep)]">{toast}</div>}
 
-      {/* Blog form modal — Notion-style */}
+      {/* Blog form — right-side panel */}
       {form ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm">
-          <div className="relative mx-4 my-8 w-full max-w-3xl rounded-[28px] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.25)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm"
+          onClick={e => { if (e.target === e.currentTarget) setForm(null); }}>
+          <div className="relative flex h-full w-full max-w-3xl flex-col overflow-y-auto bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.25)]">
 
             {/* ── Cover banner zone ─────────────────────────── */}
             <div className="relative overflow-hidden rounded-t-[28px]">
@@ -1309,7 +1339,7 @@ function BlogTab() {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-4 rounded-b-[28px] border-t border-[var(--border)] bg-[var(--surface-card)] px-8 py-4">
+            <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface-card)] px-8 py-4">
               <p className="text-[12px] text-[var(--muted)]">{form.id ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
@@ -1891,11 +1921,12 @@ function MediaTab() {
         </div>
       )}
 
-      {/* Track form modal */}
+      {/* Track form — right-side panel */}
       {form && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-8">
-          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[24px] border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30"
+          onClick={e => { if (e.target === e.currentTarget) setForm(null); }}>
+          <div className="relative flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-[var(--surface-card)] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <h2 className="font-semibold text-[var(--foreground)]">{form.id ? "Sửa track" : "Thêm track mới"}</h2>
               <button type="button" onClick={() => setForm(null)} className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
                 <X className="h-4 w-4 text-[var(--muted)]" />
@@ -2023,7 +2054,7 @@ function MediaTab() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 rounded-b-[24px] border-t border-[var(--border)] px-6 py-4">
+            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
               <button type="button" onClick={saveTrack} disabled={busy || !form.title}
                 className="button-primary px-4 py-2 text-sm disabled:opacity-60">
