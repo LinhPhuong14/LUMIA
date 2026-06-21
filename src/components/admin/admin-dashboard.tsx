@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
-  Package, Settings, ShoppingBag, Upload, Users, Video, Webhook, X,
+  Package, Settings, ShoppingBag, Upload, Users, Video, Webhook, X, Edit2, Plus,
 } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
+import { RichEditor } from "@/components/admin/rich-editor";
 import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
-import { PRODUCT_TIERS } from "@/lib/product-tiers";
 import { formatCurrency } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -741,12 +741,13 @@ function ProductsTab() {
         </div>
       ) : null}
 
-      {/* Product form modal */}
+      {/* Product form side panel */}
       {productForm ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-8">
-          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] shadow-2xl">
-            {/* Modal header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[24px] border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30"
+          onClick={e => { if (e.target === e.currentTarget) setProductForm(null); }}>
+          <div className="relative flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-[var(--surface-card)] shadow-2xl">
+            {/* Panel header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <h2 className="font-semibold text-[var(--foreground)]">{editingId ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h2>
               <button type="button" onClick={() => setProductForm(null)} className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
                 <X className="h-4 w-4 text-[var(--muted)]" />
@@ -986,7 +987,7 @@ function ProductsTab() {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-4 rounded-b-[24px] border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+            <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <div className="flex-1">
                 {formStatus && (
                   <p className={`rounded-[10px] px-3 py-2 text-[13px] ${formStatus.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
@@ -1291,10 +1292,19 @@ function BlogTab() {
 
               {/* Content */}
               <div className="mt-2">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Nội dung (Markdown)</p>
-                <textarea rows={14} value={form.content} onChange={e => setForm(f => f ? { ...f, content: e.target.value } : f)}
-                  placeholder="Bắt đầu viết... hỗ trợ **Markdown**, ## Tiêu đề, - Danh sách, > Trích dẫn..."
-                  className={`w-full resize-y rounded-[14px] border border-[var(--border)] bg-[var(--surface-warm)] p-4 font-mono text-[13px] leading-relaxed text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--green)]/20 placeholder:text-[var(--muted)]/40`} />
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Nội dung</p>
+                <RichEditor
+                  value={form.content}
+                  onChange={html => setForm(f => f ? { ...f, content: html } : f)}
+                  onImageUpload={async (file) => {
+                    const fd = new FormData(); fd.append("file", file);
+                    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                    if (res.ok) { const { url } = await res.json() as { url: string }; return url; }
+                    return "";
+                  }}
+                  placeholder="Bắt đầu viết nội dung bài viết..."
+                  minHeight={360}
+                />
               </div>
             </div>
 
@@ -1318,36 +1328,260 @@ function BlogTab() {
 
 // ─── Tab: Gói dịch vụ ────────────────────────────────────────────────────────
 
+type Plan = {
+  id: string; name: string; description?: string | null; group_name: string;
+  price_vnd: number; duration_months: number; has_physical_box: boolean;
+  physical_box_type?: string | null; discount_percent: number; is_featured: boolean;
+  is_first_time_only: boolean; is_active: boolean; features: string[]; sort_order: number;
+};
+
+type PlanForm = Omit<Plan, "features"> & { features: string };
+
+const EMPTY_PLAN: PlanForm = {
+  id: "", name: "", description: "", group_name: "digital",
+  price_vnd: 0, duration_months: 1, has_physical_box: false,
+  physical_box_type: "", discount_percent: 0, is_featured: false,
+  is_first_time_only: false, is_active: true, features: "", sort_order: 0,
+};
+
 function PlansTab() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [form, setForm] = useState<PlanForm | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Plan | null>(null);
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
+
+  const loadPlans = useCallback(() => {
+    fetch("/api/admin/plans").then(r => r.json()).then(d => setPlans(Array.isArray(d) ? d : [])).catch(() => setPlans([]));
+  }, []);
+
+  useEffect(() => { loadPlans(); }, [loadPlans]);
+
+  function openNew() {
+    setIsNew(true);
+    setForm({ ...EMPTY_PLAN, id: `plan_${Date.now()}` });
+  }
+
+  function openEdit(p: Plan) {
+    setIsNew(false);
+    setForm({ ...p, features: p.features.join("\n") });
+  }
+
+  async function savePlan() {
+    if (!form) return;
+    setBusy(true);
+    const payload = { ...form, features: form.features.split("\n").map(s => s.trim()).filter(Boolean) };
+    const url = isNew ? "/api/admin/plans" : `/api/admin/plans/${form.id}`;
+    const method = isNew ? "POST" : "PUT";
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (res.ok) { showToast(isNew ? "Đã tạo gói." : "Đã cập nhật."); setForm(null); loadPlans(); }
+    else { const d = await res.json() as { error?: string }; showToast(d.error ?? "Lỗi lưu."); }
+    setBusy(false);
+  }
+
+  async function deletePlan(p: Plan) {
+    setConfirmDelete(null);
+    const res = await fetch(`/api/admin/plans/${p.id}`, { method: "DELETE" });
+    if (res.ok) { setPlans(prev => prev.filter(x => x.id !== p.id)); showToast("Đã xóa."); }
+    else showToast("Xóa thất bại.");
+  }
+
+  const groupColor: Record<string, string> = {
+    promo: "bg-blue-50 text-blue-700",
+    digital: "bg-[var(--green-wash)] text-[var(--green-deep)]",
+    hybrid: "bg-amber-50 text-amber-700",
+  };
+
   return (
     <div>
-      <p className="mb-4 text-[13px] text-[var(--muted)]">Danh sách gói dịch vụ hiện tại. Để thay đổi giá, chỉnh sửa <code className="rounded bg-[var(--surface-warm)] px-1 text-[12px]">src/lib/product-tiers.ts</code>.</p>
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-[13px] text-[var(--muted)]">{plans.length} gói dịch vụ</span>
+        <button type="button" onClick={openNew} className="button-primary px-4 py-2 text-sm">+ Thêm gói mới</button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {PRODUCT_TIERS.map(t => (
-          <div key={t.id} className={`soft-card p-5 ${t.isFeatured ? "ring-2 ring-[var(--green)]" : ""}`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">{t.group}</p>
-                <h3 className="mt-1 font-semibold text-[var(--foreground)]">{t.name}</h3>
-              </div>
-              {t.isFeatured && <span className="rounded-full bg-[var(--green-wash)] px-2 py-0.5 text-[10px] font-bold text-[var(--green-deep)]">Nổi bật</span>}
+        {plans.map(p => (
+          <div key={p.id} className={`soft-card relative p-5 ${p.is_featured ? "ring-2 ring-[var(--green)]" : ""} ${!p.is_active ? "opacity-50" : ""}`}>
+            <div className="absolute right-3 top-3 flex gap-1.5">
+              <button type="button" onClick={() => openEdit(p)}
+                className="rounded-full p-1.5 hover:bg-[var(--surface-warm)] text-[var(--muted)] hover:text-[var(--green-deep)]">
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(p)}
+                className="rounded-full p-1.5 hover:bg-red-50 text-[var(--muted)] hover:text-red-500">
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <div className="mt-4 text-2xl font-bold text-[var(--foreground)]">
-              {formatCurrency(t.priceVnd)}
+            <div className="pr-14">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${groupColor[p.group_name] ?? "bg-[var(--surface-warm)] text-[var(--muted)]"}`}>
+                {p.group_name}
+              </span>
+              <h3 className="mt-1.5 font-semibold text-[var(--foreground)]">{p.name}</h3>
             </div>
-            <div className="mt-0.5 text-[12px] text-[var(--muted)]">{t.durationMonths} tháng · {t.discountPercent > 0 ? `Tiết kiệm ${t.discountPercent}%` : "Giá gốc"}</div>
-            <div className="mt-3 flex flex-wrap gap-1">
-              {t.hasPhysicalBox && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hộp vật lý</span>}
-              {t.isFirstTimeOnly && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">First-time only</span>}
+            <div className="mt-3 text-2xl font-bold text-[var(--foreground)]">{formatCurrency(p.price_vnd)}</div>
+            <div className="mt-0.5 text-[12px] text-[var(--muted)]">
+              {p.duration_months} tháng
+              {p.discount_percent > 0 && ` · Tiết kiệm ${p.discount_percent}%`}
             </div>
-            {t.boxContents.length > 0 && (
-              <ul className="mt-3 space-y-1 text-[12px] text-[var(--muted)]">
-                {t.boxContents.map(c => <li key={c} className="flex items-center gap-1"><span className="text-[var(--green)]">·</span> {c}</li>)}
-              </ul>
-            )}
+            <div className="mt-2 flex flex-wrap gap-1">
+              {p.is_featured && <span className="rounded-full bg-[var(--green-wash)] px-2 py-0.5 text-[10px] font-bold text-[var(--green-deep)]">Nổi bật</span>}
+              {p.has_physical_box && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">Hộp vật lý</span>}
+              {p.is_first_time_only && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700">First-time</span>}
+              {!p.is_active && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] text-red-500">Ẩn</span>}
+            </div>
           </div>
         ))}
+        <button type="button" onClick={openNew}
+          className="flex min-h-[140px] flex-col items-center justify-center rounded-[20px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]">
+          <Plus className="mb-1 h-5 w-5" />
+          <span className="text-[13px]">Thêm gói mới</span>
+        </button>
       </div>
+
+      {toast && <div className="mt-4 rounded-[12px] bg-[var(--green-wash)] px-4 py-2 text-[13px] text-[var(--green-deep)]">{toast}</div>}
+
+      {/* Confirm delete */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="mx-4 w-full max-w-sm rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <p className="font-semibold">Xóa gói "{confirmDelete.name}"?</p>
+            <p className="mt-1 text-[13px] text-[var(--muted)]">Hành động này không thể hoàn tác.</p>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={() => setConfirmDelete(null)} className="button-secondary flex-1 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={() => deletePlan(confirmDelete)}
+                className="flex-1 rounded-[12px] bg-red-500 py-2 text-sm font-medium text-white hover:bg-red-600">Xóa</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plan form side panel */}
+      {form && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30"
+          onClick={e => { if (e.target === e.currentTarget) setForm(null); }}>
+          <div className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-[var(--surface-card)] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+              <h2 className="font-semibold">{isNew ? "Thêm gói mới" : "Chỉnh sửa gói"}</h2>
+              <button type="button" onClick={() => setForm(null)} className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
+                <X className="h-4 w-4 text-[var(--muted)]" />
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 p-6">
+              <div>
+                <label className={labelCls}>ID (slug) *</label>
+                <input type="text" value={form.id}
+                  onChange={e => setForm(f => f ? { ...f, id: e.target.value } : f)}
+                  disabled={!isNew}
+                  className={`${inputCls} ${!isNew ? "opacity-60" : ""}`}
+                  placeholder="vd: standard, pro, premium" />
+              </div>
+              <div>
+                <label className={labelCls}>Tên gói *</label>
+                <input type="text" value={form.name}
+                  onChange={e => setForm(f => f ? { ...f, name: e.target.value } : f)}
+                  className={inputCls} placeholder="LUMIA PRO" />
+              </div>
+              <div>
+                <label className={labelCls}>Nhóm</label>
+                <select value={form.group_name}
+                  onChange={e => setForm(f => f ? { ...f, group_name: e.target.value } : f)}
+                  className={inputCls}>
+                  <option value="promo">Promo (khuyến mãi)</option>
+                  <option value="digital">Digital</option>
+                  <option value="hybrid">Hybrid (có hộp)</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Giá (VND) *</label>
+                  <input type="number" min={0} value={form.price_vnd}
+                    onChange={e => setForm(f => f ? { ...f, price_vnd: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Thời hạn (tháng)</label>
+                  <input type="number" min={1} value={form.duration_months}
+                    onChange={e => setForm(f => f ? { ...f, duration_months: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Giảm giá (%)</label>
+                  <input type="number" min={0} max={100} value={form.discount_percent}
+                    onChange={e => setForm(f => f ? { ...f, discount_percent: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Sort order</label>
+                  <input type="number" value={form.sort_order}
+                    onChange={e => setForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
+                    className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Mô tả</label>
+                <textarea rows={2} value={form.description ?? ""}
+                  onChange={e => setForm(f => f ? { ...f, description: e.target.value } : f)}
+                  className={`${inputCls} resize-none`} />
+              </div>
+              <div>
+                <label className={labelCls}>Features (mỗi dòng một mục)</label>
+                <textarea rows={4} value={form.features}
+                  onChange={e => setForm(f => f ? { ...f, features: e.target.value } : f)}
+                  className={`${inputCls} resize-none font-mono text-[13px]`}
+                  placeholder={"Thiền không giới hạn\nNgủ sâu hơn\nHỗ trợ AI"} />
+              </div>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                  <input type="checkbox" checked={form.has_physical_box}
+                    onChange={e => setForm(f => f ? { ...f, has_physical_box: e.target.checked } : f)}
+                    className="h-4 w-4 accent-[var(--green)]" />
+                  Kèm hộp vật lý
+                </label>
+                {form.has_physical_box && (
+                  <div className="pl-6">
+                    <label className={labelCls}>Loại hộp</label>
+                    <input type="text" value={form.physical_box_type ?? ""}
+                      onChange={e => setForm(f => f ? { ...f, physical_box_type: e.target.value } : f)}
+                      className={inputCls} placeholder="sleep_box, master_box, mini_wellcome..." />
+                  </div>
+                )}
+                <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                  <input type="checkbox" checked={form.is_featured}
+                    onChange={e => setForm(f => f ? { ...f, is_featured: e.target.checked } : f)}
+                    className="h-4 w-4 accent-[var(--green)]" />
+                  Gói nổi bật (hiển thị badge)
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                  <input type="checkbox" checked={form.is_first_time_only}
+                    onChange={e => setForm(f => f ? { ...f, is_first_time_only: e.target.checked } : f)}
+                    className="h-4 w-4 accent-[var(--green)]" />
+                  Chỉ dành cho người dùng mới
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                  <input type="checkbox" checked={form.is_active}
+                    onChange={e => setForm(f => f ? { ...f, is_active: e.target.checked } : f)}
+                    className="h-4 w-4 accent-[var(--green)]" />
+                  Hiển thị (active)
+                </label>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 flex gap-3 border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
+              <button type="button" onClick={() => setForm(null)} className="button-secondary flex-1 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={savePlan} disabled={busy || !form.name || !form.id}
+                className="button-primary flex-1 py-2 text-sm disabled:opacity-60">
+                {busy ? "Đang lưu…" : (isNew ? "Tạo gói" : "Cập nhật")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1496,14 +1730,50 @@ function MediaTab() {
 
   const filtered = useMemo(() => catFilter === "Tất cả" ? tracks : tracks.filter(t => t.category === catFilter), [tracks, catFilter]);
 
+  function parseMetaFromFilename(name: string): { title: string } {
+    const base = name.replace(/\.[^.]+$/, "");
+    const clean = base
+      .replace(/[-_]/g, " ")
+      .replace(/\b\d+\s*(min|phut|giay|sec|s|m)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const title = clean.replace(/\b\w/g, c => c.toUpperCase());
+    return { title };
+  }
+
+  function readAudioDuration(url: string): Promise<number> {
+    return new Promise(resolve => {
+      const audio = document.createElement("audio");
+      audio.preload = "metadata";
+      audio.onloadedmetadata = () => resolve(Math.round(audio.duration) || 0);
+      audio.onerror = () => resolve(0);
+      audio.src = url;
+    });
+  }
+
   async function uploadFile(file: File, kind: "video" | "thumb") {
     setUploading(kind);
     const fd = new FormData(); fd.append("file", file);
     const res = await fetch("/api/admin/upload-media", { method: "POST", body: fd });
     if (res.ok) {
       const { url } = await res.json() as { url: string };
-      if (kind === "video") setForm(f => f ? { ...f, file_url: url } : f);
-      else setForm(f => f ? { ...f, thumbnail_url: url } : f);
+      if (kind === "video") {
+        const { title } = parseMetaFromFilename(file.name);
+        const isAudio = file.type.startsWith("audio/");
+        let duration = 0;
+        if (isAudio || file.type.startsWith("video/")) {
+          duration = await readAudioDuration(url);
+        }
+        setForm(f => {
+          if (!f) return f;
+          const updates: Partial<TrackForm> = { file_url: url };
+          if (!f.title) updates.title = title;
+          if (!f.duration_seconds && duration > 0) updates.duration_seconds = duration;
+          return { ...f, ...updates };
+        });
+      } else {
+        setForm(f => f ? { ...f, thumbnail_url: url } : f);
+      }
       showToast("Tải lên thành công!");
     } else showToast("Tải lên thất bại.");
     setUploading(null);
