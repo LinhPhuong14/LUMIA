@@ -117,6 +117,83 @@ function validateMediaSize(file: File): string | null {
   return null;
 }
 
+// Compress audio to Opus/WebM at targetBitrate (default 64 kbps).
+// Decodes → mono resample via OfflineAudioContext (fast) → re-encode via MediaRecorder (real-time).
+// Returns same file if MediaRecorder or AudioContext is unavailable.
+async function compressAudio(
+  file: File,
+  targetBitrate = 64_000,
+  onProgress?: (pct: number) => void,
+): Promise<File> {
+  if (typeof AudioContext === "undefined" || typeof MediaRecorder === "undefined") return file;
+
+  // Decode
+  const decodeCtx = new AudioContext();
+  let audioBuffer: AudioBuffer;
+  try {
+    audioBuffer = await decodeCtx.decodeAudioData(await file.arrayBuffer());
+  } catch {
+    await decodeCtx.close();
+    return file;
+  }
+  await decodeCtx.close();
+
+  // Downsample to mono at 44100 Hz (runs faster than real-time)
+  const sampleRate = Math.min(44100, audioBuffer.sampleRate);
+  const totalSamples = Math.ceil(audioBuffer.duration * sampleRate);
+  const offCtx = new OfflineAudioContext(1, totalSamples, sampleRate);
+  const offSrc = offCtx.createBufferSource();
+  offSrc.buffer = audioBuffer;
+  offSrc.connect(offCtx.destination);
+  offSrc.start();
+  const mono = await offCtx.startRendering();
+
+  // Pick best supported mime type
+  const mimeType = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm"].find(
+    (t) => MediaRecorder.isTypeSupported(t),
+  ) ?? "audio/webm";
+
+  return new Promise((resolve) => {
+    const liveCtx = new AudioContext({ sampleRate });
+    const dest = liveCtx.createMediaStreamDestination();
+    const src = liveCtx.createBufferSource();
+    src.buffer = mono;
+    src.connect(dest);
+
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(dest.stream, { mimeType, audioBitsPerSecond: targetBitrate });
+    } catch {
+      liveCtx.close();
+      resolve(file);
+      return;
+    }
+
+    const chunks: Blob[] = [];
+    const durationMs = mono.duration * 1000;
+    const startedAt = Date.now();
+
+    const tick = setInterval(() => {
+      onProgress?.(Math.min(95, ((Date.now() - startedAt) / durationMs) * 100));
+    }, 500);
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      clearInterval(tick);
+      liveCtx.close();
+      onProgress?.(100);
+      const blob = new Blob(chunks, { type: mimeType });
+      const ext = mimeType.includes("ogg") ? "ogg" : "webm";
+      resolve(new File([blob], file.name.replace(/\.[^.]+$/, `.${ext}`), { type: mimeType }));
+    };
+    recorder.onerror = () => { clearInterval(tick); liveCtx.close(); resolve(file); };
+
+    recorder.start(250);
+    src.start();
+    src.onended = () => recorder.stop();
+  });
+}
+
 function slugify(str: string) {
   return str.toLowerCase().trim()
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -1933,6 +2010,7 @@ function MediaTab() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
+  const [compressionProgress, setCompressionProgress] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AudioTrack | null>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const thumbFileRef = useRef<HTMLInputElement>(null);
@@ -1971,9 +2049,23 @@ function MediaTab() {
 
   async function uploadFile(raw: File, kind: "video" | "thumb") {
     setUploading(kind);
-    const sizeErr = validateMediaSize(raw);
+    const AUDIO_COMPRESS_THRESHOLD_MB = 10;
+    const isAudioFile = raw.type.startsWith("audio/");
+    const needsCompress = kind === "video" && isAudioFile && raw.size > AUDIO_COMPRESS_THRESHOLD_MB * 1024 * 1024;
+    let file = raw;
+    if (needsCompress) {
+      setCompressionProgress(0);
+      const originalMB = (raw.size / 1024 / 1024).toFixed(1);
+      showToast(`Đang nén audio ${originalMB} MB… Ước tính ${Math.ceil(raw.size / 1024 / 1024 / 0.48 / 60)} phút.`);
+      file = await compressAudio(raw, 64_000, (pct) => setCompressionProgress(Math.round(pct)));
+      setCompressionProgress(null);
+      const newMB = (file.size / 1024 / 1024).toFixed(1);
+      showToast(`Nén xong: ${originalMB} MB → ${newMB} MB`);
+    } else if (kind === "thumb") {
+      file = await compressImage(raw);
+    }
+    const sizeErr = validateMediaSize(file);
     if (sizeErr) { showToast(sizeErr); setUploading(null); return; }
-    const file = kind === "thumb" ? await compressImage(raw) : raw;
     const urlRes = await fetch("/api/admin/upload-media-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2194,9 +2286,22 @@ function MediaTab() {
                       onClick={() => !uploading && videoFileRef.current?.click()}>
                       <Film className="mb-2 h-10 w-10 text-[var(--muted)] group-hover:text-[var(--green)]" />
                       <p className="text-[13px] font-medium text-[var(--muted)] group-hover:text-[var(--green-deep)]">
-                        {uploading === "video" ? "Đang tải lên…" : "Click để chọn video / audio"}
+                        {compressionProgress !== null
+                          ? `Đang nén audio… ${compressionProgress}%`
+                          : uploading === "video"
+                          ? "Đang tải lên…"
+                          : "Click để chọn video / audio"}
                       </p>
-                      <p className="mt-1 text-[11px] text-[var(--muted)]">MP4, WebM, MP3, OGG · Tối đa 500MB</p>
+                      {compressionProgress !== null ? (
+                        <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-[var(--border)]">
+                          <div
+                            className="h-full rounded-full bg-[var(--green)] transition-all duration-300"
+                            style={{ width: `${compressionProgress}%` }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-[var(--muted)]">MP4, WebM, MP3, OGG · Tối đa 50 MB (audio tự động nén)</p>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -2207,8 +2312,8 @@ function MediaTab() {
                     <button type="button" disabled={!!uploading}
                       onClick={() => videoFileRef.current?.click()}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
-                      {uploading === "video" ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
-                      {uploading === "video" ? "Đang tải…" : "Upload"}
+                      {(uploading === "video" || compressionProgress !== null) ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
+                      {compressionProgress !== null ? `Nén ${compressionProgress}%` : uploading === "video" ? "Đang tải…" : "Upload"}
                     </button>
                   </div>
                   <input ref={videoFileRef} type="file" accept="video/*,audio/*" className="hidden"
