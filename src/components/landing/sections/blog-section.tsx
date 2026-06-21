@@ -27,8 +27,6 @@ async function getRecentDbPosts(limit = 3): Promise<DbPost[]> {
 
 export async function BlogSection() {
   const posts = await getRecentDbPosts(3);
-  if (posts.length === 0) return null;
-
   return (
     <section className="px-4 py-20 sm:py-28" style={{ background: "var(--surface)" }}>
       <div className="shell">
@@ -41,6 +39,13 @@ export async function BlogSection() {
             Xem tất cả <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+        {posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-[var(--border)] py-16 text-center">
+            <span className="text-4xl">🌱</span>
+            <p className="mt-4 font-serif text-[18px] text-[var(--foreground)]">Nội dung đang được chuẩn bị</p>
+            <p className="mt-2 text-[13px] text-[var(--muted)]">Những bài viết đầu tiên sẽ sớm xuất hiện ở đây.</p>
+          </div>
+        ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
             <Link
@@ -79,6 +84,7 @@ export async function BlogSection() {
             </Link>
           ))}
         </div>
+        )}
       </div>
     </section>
   );
