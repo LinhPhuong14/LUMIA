@@ -705,6 +705,18 @@ function ProductsTab() {
     setFormStatus(null);
   }
 
+  async function uploadOneImage(raw: File): Promise<string | null> {
+    const file = await compressImage(raw);
+    const urlRes = await fetch("/api/admin/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    });
+    if (!urlRes.ok) return null;
+    const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+    return await signedUpload(signedUrl, file) ? publicUrl : null;
+  }
+
   async function uploadProductImage(kind: string, onUrl: (url: string) => void) {
     const input = document.createElement("input");
     input.type = "file";
@@ -713,19 +725,22 @@ function ProductsTab() {
       const raw = input.files?.[0];
       if (!raw) return;
       setUploadingIdx(kind);
-      const file = await compressImage(raw);
-      const urlRes = await fetch("/api/admin/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, contentType: file.type }),
-      });
-      if (urlRes.ok) {
-        const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-        if (await signedUpload(signedUrl, file)) onUrl(publicUrl);
-      }
+      const url = await uploadOneImage(raw);
+      if (url) onUrl(url);
       setUploadingIdx(null);
     };
     input.click();
+  }
+
+  async function uploadGalleryImages(files: File[]) {
+    if (!files.length) return;
+    setUploadingIdx("gallery");
+    const results = await Promise.all(files.map(f => uploadOneImage(f)));
+    const urls = results.filter((u): u is string => !!u);
+    if (urls.length) {
+      setProductForm(f => f ? { ...f, images: [...f.images, ...urls.map(url => ({ url, label: "" }))] } : f);
+    }
+    setUploadingIdx(null);
   }
 
   function handleProductNameChange(name: string) {
@@ -1032,24 +1047,59 @@ function ProductsTab() {
               {/* Gallery images */}
               <section>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Thư viện ảnh ({productForm.images.length})</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Thư viện ảnh ({productForm.images.length})
+                  </p>
                   <button type="button"
-                    disabled={uploadingIdx?.startsWith("gallery")}
-                    onClick={() => uploadProductImage("gallery-new", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}
+                    disabled={uploadingIdx === "gallery"}
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file"; input.multiple = true;
+                      input.accept = "image/jpeg,image/png,image/webp";
+                      input.onchange = () => { if (input.files) uploadGalleryImages(Array.from(input.files)); };
+                      input.click();
+                    }}
                     className="flex items-center gap-1.5 rounded-[10px] border border-[var(--border)] px-3 py-1.5 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
-                    <ImagePlus className="h-3.5 w-3.5" />
-                    Thêm ảnh
+                    {uploadingIdx === "gallery" ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
+                    ) : (
+                      <ImagePlus className="h-3.5 w-3.5" />
+                    )}
+                    {uploadingIdx === "gallery" ? "Đang tải…" : "Thêm nhiều ảnh"}
                   </button>
                 </div>
                 {productForm.images.length === 0 ? (
                   <div
                     className="flex cursor-pointer flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--border)] py-8 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]"
-                    onClick={() => uploadProductImage("gallery-new", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}>
-                    <ImagePlus className="mb-2 h-6 w-6 opacity-40" />
-                    Click hoặc kéo thả ảnh vào đây
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file"; input.multiple = true;
+                      input.accept = "image/jpeg,image/png,image/webp";
+                      input.onchange = () => { if (input.files) uploadGalleryImages(Array.from(input.files)); };
+                      input.click();
+                    }}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                      uploadGalleryImages(files);
+                    }}>
+                    {uploadingIdx === "gallery" ? (
+                      <span className="mb-2 h-6 w-6 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
+                    ) : (
+                      <ImagePlus className="mb-2 h-6 w-6 opacity-40" />
+                    )}
+                    {uploadingIdx === "gallery" ? "Đang tải lên…" : "Click hoặc kéo thả nhiều ảnh vào đây"}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div
+                    className="grid grid-cols-3 gap-3"
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                      uploadGalleryImages(files);
+                    }}>
                     {productForm.images.map((img, idx) => (
                       <div key={idx} className="group relative">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1068,10 +1118,18 @@ function ProductsTab() {
                       </div>
                     ))}
                     {/* Add more slot */}
-                    <button type="button"
-                      onClick={() => uploadProductImage("gallery-add", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}
-                      className="flex h-24 items-center justify-center rounded-[12px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]">
-                      <ImagePlus className="h-5 w-5" />
+                    <button type="button" disabled={uploadingIdx === "gallery"}
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file"; input.multiple = true;
+                        input.accept = "image/jpeg,image/png,image/webp";
+                        input.onchange = () => { if (input.files) uploadGalleryImages(Array.from(input.files)); };
+                        input.click();
+                      }}
+                      className="flex h-24 items-center justify-center rounded-[12px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)] disabled:opacity-40">
+                      {uploadingIdx === "gallery"
+                        ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--green)] border-t-transparent" />
+                        : <ImagePlus className="h-5 w-5" />}
                     </button>
                   </div>
                 )}
