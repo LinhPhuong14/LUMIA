@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
-  Package, Settings, ShoppingBag, Upload, Users, Video, Webhook, X, Edit2, Plus,
+  Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
@@ -102,7 +102,6 @@ function OverviewTab({ stats }: { stats: Stats }) {
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Đơn hàng</strong> — theo dõi và cập nhật trạng thái giao hàng</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Sản phẩm</strong> — quản lý, thêm, sửa, xóa sản phẩm và tồn kho</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Blog</strong> — viết và xuất bản bài viết mới với ảnh bìa</li>
-          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Hệ thống</strong> — cấu hình webhook PayOS</li>
         </ul>
       </div>
     </div>
@@ -110,6 +109,75 @@ function OverviewTab({ stats }: { stats: Stats }) {
 }
 
 // ─── Tab: Người dùng ─────────────────────────────────────────────────────────
+
+function ResetPasswordSection({ userId }: { userId: string }) {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleReset() {
+    if (pw.length < 8) { setMsg({ ok: false, text: "Mật khẩu phải có ít nhất 8 ký tự." }); return; }
+    setBusy(true); setMsg(null);
+    const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw }),
+    });
+    const data = await res.json() as { error?: string };
+    if (res.ok) {
+      setMsg({ ok: true, text: "Đã đặt lại mật khẩu thành công." });
+      setPw(""); setOpen(false);
+    } else {
+      setMsg({ ok: false, text: data.error ?? "Thất bại." });
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="border-t border-[var(--border)] pt-3">
+      {!open ? (
+        <button type="button" onClick={() => { setOpen(true); setMsg(null); }}
+          className="w-full rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-700 transition hover:bg-amber-100">
+          🔑 Đặt lại mật khẩu thủ công
+        </button>
+      ) : (
+        <div className="space-y-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">Đặt mật khẩu mới</p>
+          <p className="text-[12px] text-[var(--muted)]">Dùng khi email tự động không gửi được. Thông báo cho user sau khi đặt.</p>
+          <div className="relative">
+            <input
+              type={show ? "text" : "password"}
+              value={pw}
+              onChange={e => setPw(e.target.value)}
+              placeholder="Tối thiểu 8 ký tự"
+              className={`${inputCls} pr-14`}
+            />
+            <button type="button" onClick={() => setShow(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[var(--muted)] hover:text-[var(--foreground)]">
+              {show ? "Ẩn" : "Hiện"}
+            </button>
+          </div>
+          {pw && pw.length < 8 && (
+            <p className="text-[12px] text-red-500">Còn thiếu {8 - pw.length} ký tự.</p>
+          )}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { setOpen(false); setPw(""); setMsg(null); }}
+              className="button-secondary flex-1 py-2 text-sm">Hủy</button>
+            <button type="button" onClick={handleReset} disabled={busy || pw.length < 8}
+              className="flex-1 rounded-[12px] bg-amber-500 py-2 text-sm font-medium text-white transition hover:bg-amber-600 disabled:opacity-50">
+              {busy ? "Đang lưu…" : "Xác nhận"}
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && (
+        <p className={`mt-2 rounded-[10px] px-3 py-2 text-[12px] ${msg.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
 
 type UserModalMode = "create" | "edit" | "upgrade";
 
@@ -365,6 +433,9 @@ function UsersTab() {
                   className="button-primary mt-2 w-full disabled:opacity-60">
                   {busy ? "Đang lưu…" : "Lưu thay đổi"}
                 </button>
+
+                {/* Manual password reset */}
+                <ResetPasswordSection userId={selected.id} />
               </div>
             )}
 
@@ -1616,92 +1687,6 @@ function PlansTab() {
   );
 }
 
-// ─── Tab: Hệ thống ────────────────────────────────────────────────────────────
-
-function SystemTab() {
-  const [webhookStatus, setWebhookStatus] = useState<{ configured: boolean; webhookUrl?: string; clientId?: string } | null>(null);
-  const [registering, setRegistering] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/admin/payos-webhook").then(r => r.json()).then(setWebhookStatus).catch(() => null);
-  }, []);
-
-  async function registerWebhook() {
-    setRegistering(true); setMsg(null);
-    const res = await fetch("/api/admin/payos-webhook", { method: "POST" });
-    const d = await res.json() as { error?: string };
-    setMsg(res.ok ? "Đăng ký webhook thành công!" : (d.error ?? "Đăng ký thất bại"));
-    if (res.ok) fetch("/api/admin/payos-webhook").then(r => r.json()).then(setWebhookStatus).catch(() => null);
-    setRegistering(false);
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="soft-card p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--green-wash)] text-[var(--green-deep)]">
-            <Webhook className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-[var(--foreground)]">PayOS Webhook</h3>
-            <p className="text-[12px] text-[var(--muted)]">Cấu hình nhận thông báo thanh toán từ PayOS</p>
-          </div>
-        </div>
-        {webhookStatus ? (
-          <dl className="mt-5 space-y-2 rounded-[16px] bg-[var(--surface-warm)] px-4 py-3 text-[13px]">
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Trạng thái</dt>
-              <dd>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${webhookStatus.configured ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
-                  {webhookStatus.configured ? "Đã cấu hình" : "Chưa cấu hình"}
-                </span>
-              </dd>
-            </div>
-            {webhookStatus.webhookUrl && (
-              <div className="flex justify-between gap-4">
-                <dt className="shrink-0 text-[var(--muted)]">Webhook URL</dt>
-                <dd className="truncate font-mono text-[11px]">{webhookStatus.webhookUrl}</dd>
-              </div>
-            )}
-            {webhookStatus.clientId && (
-              <div className="flex justify-between">
-                <dt className="text-[var(--muted)]">Client ID</dt>
-                <dd className="font-mono text-[12px]">{webhookStatus.clientId}</dd>
-              </div>
-            )}
-          </dl>
-        ) : (
-          <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--surface-warm)]" />
-        )}
-        <button type="button" onClick={registerWebhook} disabled={registering}
-          className="button-primary mt-4 px-5 py-2.5 text-sm disabled:opacity-60">
-          {registering ? "Đang đăng ký…" : "Đăng ký / Cập nhật webhook"}
-        </button>
-        {msg && <p className={`mt-3 rounded-[12px] px-3 py-2 text-[13px] ${msg.includes("thành công") ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>{msg}</p>}
-      </div>
-
-      <div className="soft-card p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--surface-warm)]">
-            <Settings className="h-5 w-5 text-[var(--muted)]" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-[var(--foreground)]">Biến môi trường</h3>
-            <p className="text-[12px] text-[var(--muted)]">Cấu hình qua file .env.local trên server</p>
-          </div>
-        </div>
-        <ul className="mt-4 space-y-1.5 text-[13px] text-[var(--muted)]">
-          {["PAYOS_CLIENT_ID", "PAYOS_API_KEY", "PAYOS_CHECKSUM_KEY", "NEXT_PUBLIC_APP_URL", "ANTHROPIC_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY"].map(k => (
-            <li key={k} className="flex items-center gap-2">
-              <code className="rounded bg-[var(--surface-warm)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--foreground)]">{k}</code>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
 
 // ─── Tab: Media (Audio / Video) ───────────────────────────────────────────────
 
@@ -2078,7 +2063,6 @@ const TABS = [
   { id: "blog", label: "Blog", icon: BookOpen },
   { id: "media", label: "Media", icon: Film },
   { id: "plans", label: "Gói dịch vụ", icon: Box },
-  { id: "system", label: "Hệ thống", icon: Settings },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -2115,7 +2099,6 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         {tab === "blog" && <BlogTab />}
         {tab === "media" && <MediaTab />}
         {tab === "plans" && <PlansTab />}
-        {tab === "system" && <SystemTab />}
       </div>
     </div>
   );
