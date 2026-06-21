@@ -1034,7 +1034,7 @@ function ProductsTab() {
                       placeholder="Paste URL hoặc tải ảnh lên..."
                       className={`${inputCls} flex-1 text-[13px]`} />
                     <button type="button"
-                      disabled={uploadingIdx === "banner"}
+                      disabled={!!uploadingIdx}
                       onClick={() => uploadProductImage("banner", url => setProductForm(f => f ? { ...f, image_url: url } : f))}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
                       {uploadingIdx === "banner" ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
@@ -1051,7 +1051,7 @@ function ProductsTab() {
                     Thư viện ảnh ({productForm.images.length})
                   </p>
                   <button type="button"
-                    disabled={uploadingIdx === "gallery"}
+                    disabled={!!uploadingIdx}
                     onClick={() => {
                       const input = document.createElement("input");
                       input.type = "file"; input.multiple = true;
@@ -1171,7 +1171,7 @@ function ProductsTab() {
                             </div>
                           ) : (
                             <button type="button"
-                              disabled={uploadingIdx === `var-${idx}`}
+                              disabled={!!uploadingIdx}
                               onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
                               className="flex h-16 w-16 flex-col items-center justify-center rounded-[10px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]">
                               {uploadingIdx === `var-${idx}` ? <Upload className="h-4 w-4 animate-bounce" /> : <ImagePlus className="h-4 w-4" />}
@@ -1187,7 +1187,7 @@ function ProductsTab() {
                             className={`${inputCls} flex-1`} />
                           {variant.image_url && (
                             <button type="button"
-                              disabled={uploadingIdx === `var-${idx}`}
+                              disabled={!!uploadingIdx}
                               onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
                               className="flex shrink-0 items-center gap-1 rounded-[10px] border border-[var(--border)] px-2 py-1.5 text-[11px] text-[var(--muted)] hover:text-[var(--green-deep)]">
                               <Upload className="h-3 w-3" /> Đổi ảnh
@@ -1217,9 +1217,9 @@ function ProductsTab() {
               </div>
               <div className="flex shrink-0 gap-3">
                 <button type="button" onClick={() => setProductForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
-                <button type="button" onClick={saveProduct} disabled={formBusy || !productForm.name}
+                <button type="button" onClick={saveProduct} disabled={formBusy || !!uploadingIdx || !productForm.name}
                   className="button-primary px-4 py-2 text-sm disabled:opacity-60">
-                  {formBusy ? "Đang lưu…" : (editingId ? "Cập nhật" : "Tạo sản phẩm")}
+                  {formBusy ? "Đang lưu…" : uploadingIdx ? "Đang tải ảnh…" : (editingId ? "Cập nhật" : "Tạo sản phẩm")}
                 </button>
               </div>
             </div>
@@ -1548,9 +1548,9 @@ function BlogTab() {
               <p className="text-[12px] text-[var(--muted)]">{form.id ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
-                <button type="button" onClick={savePost} disabled={saving || !form.title || !form.excerpt}
+                <button type="button" onClick={savePost} disabled={saving || uploading || !form.title || !form.excerpt}
                   className="button-primary px-4 py-2 text-sm disabled:opacity-60">
-                  {saving ? "Đang lưu…" : (form.id ? "Cập nhật" : "Xuất bản")}
+                  {saving ? "Đang lưu…" : uploading ? "Đang tải ảnh…" : (form.id ? "Cập nhật" : "Xuất bản")}
                 </button>
               </div>
             </div>
@@ -2180,8 +2180,8 @@ function MediaTab() {
                     </div>
                   ) : (
                     <div
-                      className="group mb-3 flex cursor-pointer flex-col items-center justify-center rounded-[12px] bg-[var(--surface-warm)] py-10 transition hover:bg-[var(--green-wash)]/30"
-                      onClick={() => videoFileRef.current?.click()}>
+                      className={`group mb-3 flex flex-col items-center justify-center rounded-[12px] bg-[var(--surface-warm)] py-10 transition hover:bg-[var(--green-wash)]/30 ${uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                      onClick={() => !uploading && videoFileRef.current?.click()}>
                       <Film className="mb-2 h-10 w-10 text-[var(--muted)] group-hover:text-[var(--green)]" />
                       <p className="text-[13px] font-medium text-[var(--muted)] group-hover:text-[var(--green-deep)]">
                         {uploading === "video" ? "Đang tải lên…" : "Click để chọn video / audio"}
@@ -2194,7 +2194,7 @@ function MediaTab() {
                       onChange={e => setForm(f => f ? { ...f, file_url: e.target.value } : f)}
                       placeholder="Hoặc paste URL trực tiếp..."
                       className={`${inputCls} flex-1 text-[13px]`} />
-                    <button type="button" disabled={uploading === "video"}
+                    <button type="button" disabled={!!uploading}
                       onClick={() => videoFileRef.current?.click()}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
                       {uploading === "video" ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
@@ -2226,7 +2226,7 @@ function MediaTab() {
                       onChange={e => setForm(f => f ? { ...f, thumbnail_url: e.target.value } : f)}
                       placeholder="URL ảnh hoặc upload..."
                       className={`${inputCls} flex-1`} />
-                    <button type="button" disabled={uploading === "thumb"}
+                    <button type="button" disabled={!!uploading}
                       onClick={() => thumbFileRef.current?.click()}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
                       {uploading === "thumb" ? <Upload className="h-4 w-4 animate-bounce" /> : <ImagePlus className="h-4 w-4" />}
@@ -2241,9 +2241,9 @@ function MediaTab() {
 
             <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
-              <button type="button" onClick={saveTrack} disabled={busy || !form.title}
+              <button type="button" onClick={saveTrack} disabled={busy || !!uploading || !form.title}
                 className="button-primary px-4 py-2 text-sm disabled:opacity-60">
-                {busy ? "Đang lưu…" : (form.id ? "Cập nhật" : "Tạo track")}
+                {busy ? "Đang lưu…" : uploading ? "Đang tải file…" : (form.id ? "Cập nhật" : "Tạo track")}
               </button>
             </div>
           </div>
