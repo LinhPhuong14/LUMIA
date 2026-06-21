@@ -630,7 +630,7 @@ function OrdersTab() {
 // ─── Tab: Sản phẩm ───────────────────────────────────────────────────────────
 
 type ProductImage = { url: string; label: string };
-type ProductVariant = { name: string; image_url: string };
+type ProductVariant = { name: string; image_url: string; stock_quantity?: number };
 
 type ProductForm = {
   name: string; slug: string; subtitle: string; description: string;
@@ -1179,25 +1179,35 @@ function ProductsTab() {
                             </button>
                           )}
                         </div>
-                        {/* Variant name */}
-                        <div className="flex flex-1 items-center gap-2">
-                          <input type="text" value={variant.name}
-                            onChange={e => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, name: e.target.value } : v) } : f)}
-                            placeholder="Tên phân loại (vd: Lavender, Size M...)"
-                            className={`${inputCls} flex-1`} />
-                          {variant.image_url && (
+                        {/* Variant name + stock */}
+                        <div className="flex flex-1 flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <input type="text" value={variant.name}
+                              onChange={e => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, name: e.target.value } : v) } : f)}
+                              placeholder="Tên phân loại (vd: Lavender, Size M...)"
+                              className={`${inputCls} flex-1`} />
+                            {variant.image_url && (
+                              <button type="button"
+                                disabled={!!uploadingIdx}
+                                onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
+                                className="flex shrink-0 items-center gap-1 rounded-[10px] border border-[var(--border)] px-2 py-1.5 text-[11px] text-[var(--muted)] hover:text-[var(--green-deep)]">
+                                <Upload className="h-3 w-3" /> Đổi ảnh
+                              </button>
+                            )}
                             <button type="button"
-                              disabled={!!uploadingIdx}
-                              onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
-                              className="flex shrink-0 items-center gap-1 rounded-[10px] border border-[var(--border)] px-2 py-1.5 text-[11px] text-[var(--muted)] hover:text-[var(--green-deep)]">
-                              <Upload className="h-3 w-3" /> Đổi ảnh
+                              onClick={() => setProductForm(f => f ? { ...f, variants: f.variants.filter((_, i) => i !== idx) } : f)}
+                              className="shrink-0 rounded-full p-1.5 text-[var(--muted)] hover:bg-red-50 hover:text-red-500">
+                              <X className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                          <button type="button"
-                            onClick={() => setProductForm(f => f ? { ...f, variants: f.variants.filter((_, i) => i !== idx) } : f)}
-                            className="shrink-0 rounded-full p-1.5 text-[var(--muted)] hover:bg-red-50 hover:text-red-500">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] text-[var(--muted)] whitespace-nowrap">Tồn kho:</label>
+                            <input type="number" min={0}
+                              value={variant.stock_quantity ?? ""}
+                              onChange={e => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, stock_quantity: e.target.value === "" ? undefined : Number(e.target.value) } : v) } : f)}
+                              placeholder="Không giới hạn"
+                              className={`${inputCls} w-36 text-[12px] py-1.5`} />
+                          </div>
                         </div>
                       </div>
                     ))}

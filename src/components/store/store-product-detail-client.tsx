@@ -26,14 +26,21 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 /* ── Image Carousel ─────────────────────────────────────── */
-function ImageCarousel({ images }: { images: string[] }) {
-  const [idx, setIdx] = useState(0);
+function ImageCarousel({
+  images,
+  idx,
+  onChange,
+}: {
+  images: string[];
+  idx: number;
+  onChange: (i: number) => void;
+}) {
   const touchX = useRef<number | null>(null);
 
   if (images.length === 0) return null;
 
-  const prev = () => setIdx((i) => (i - 1 + images.length) % images.length);
-  const next = () => setIdx((i) => (i + 1) % images.length);
+  const prev = () => onChange((idx - 1 + images.length) % images.length);
+  const next = () => onChange((idx + 1) % images.length);
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)]">
@@ -56,14 +63,12 @@ function ImageCarousel({ images }: { images: string[] }) {
           key={images[idx]}
         />
 
-        {/* Badge */}
         {images.length > 1 && (
           <span className="absolute right-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
             {idx + 1} / {images.length}
           </span>
         )}
 
-        {/* Arrows */}
         {images.length > 1 && (
           <>
             <button
@@ -91,7 +96,7 @@ function ImageCarousel({ images }: { images: string[] }) {
             <button
               key={i}
               type="button"
-              onClick={() => setIdx(i)}
+              onClick={() => onChange(i)}
               className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-[10px] border-2 transition ${
                 i === idx
                   ? "border-[var(--green)] opacity-100"
@@ -118,9 +123,6 @@ export function StoreProductDetailClient({
 }) {
   const { addItem, items, count } = useCart();
   const router = useRouter();
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(
-    product.variants.length > 0 ? product.variants[0].name : null,
-  );
   const [added, setAdded] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -133,6 +135,42 @@ export function StoreProductDetailClient({
   addImg(product.image_url);
   product.images.forEach((img) => addImg(img.url));
   product.variants.forEach((v) => addImg(v.image_url));
+
+  // Map: variant name → index in allImages
+  const variantImageIndex: Record<string, number> = {};
+  product.variants.forEach((v) => {
+    if (v.image_url) {
+      const i = allImages.indexOf(v.image_url);
+      if (i !== -1) variantImageIndex[v.name] = i;
+    }
+  });
+
+  // Map: image index → variant name (for reverse lookup)
+  const imageIndexToVariant: Record<number, string> = {};
+  Object.entries(variantImageIndex).forEach(([name, i]) => {
+    imageIndexToVariant[i] = name;
+  });
+
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(
+    product.variants.length > 0 ? product.variants[0].name : null,
+  );
+
+  // When carousel changes, auto-select variant if that image belongs to one
+  function handleCarouselChange(i: number) {
+    setCarouselIdx(i);
+    if (imageIndexToVariant[i]) {
+      setSelectedVariant(imageIndexToVariant[i]);
+    }
+  }
+
+  // When variant pill clicked, jump carousel to its image
+  function handleSelectVariant(name: string) {
+    setSelectedVariant(name);
+    if (variantImageIndex[name] !== undefined) {
+      setCarouselIdx(variantImageIndex[name]);
+    }
+  }
 
   const cartQty = items.find(
     (i) => i.slug === product.slug && i.variant === selectedVariant,
@@ -199,9 +237,12 @@ export function StoreProductDetailClient({
           {/* Left: carousel */}
           <div>
             {allImages.length > 0 ? (
-              <ImageCarousel images={allImages} />
+              <ImageCarousel
+                images={allImages}
+                idx={carouselIdx}
+                onChange={handleCarouselChange}
+              />
             ) : (
-              /* Fallback emoji hero */
               <div
                 className="flex aspect-square items-center justify-center rounded-[24px] border border-[var(--border)]"
                 style={{ background: "var(--green-wash)" }}
@@ -217,14 +258,12 @@ export function StoreProductDetailClient({
               className="rounded-[22px] border p-5"
               style={{ borderColor: "var(--border)", background: "var(--surface-card)" }}
             >
-              {/* Category */}
               {product.category && (
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
                   {CATEGORY_LABEL[product.category] ?? product.category}
                 </p>
               )}
 
-              {/* Name */}
               <h1 className="mt-1 font-serif text-[22px] font-semibold leading-snug text-[var(--foreground)]">
                 {product.name}
               </h1>
@@ -232,14 +271,12 @@ export function StoreProductDetailClient({
                 <p className="mt-0.5 text-[13px] text-[var(--muted)]">{product.subtitle}</p>
               )}
 
-              {/* Price */}
               <div className="mt-4">
                 <span className="font-sans text-[30px] font-bold leading-none text-[var(--foreground)]">
                   {formatVnd(product.price_vnd)}
                 </span>
               </div>
 
-              {/* Stock */}
               <p className="mt-1.5 text-[12px]" style={{ color: product.in_stock ? "var(--green)" : "var(--muted)" }}>
                 {!product.in_stock
                   ? "Hết hàng"
@@ -261,7 +298,7 @@ export function StoreProductDetailClient({
                         <button
                           key={v.name}
                           type="button"
-                          onClick={() => setSelectedVariant(v.name)}
+                          onClick={() => handleSelectVariant(v.name)}
                           className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition"
                           style={{
                             borderColor: active ? "var(--green)" : "var(--border)",
@@ -281,7 +318,6 @@ export function StoreProductDetailClient({
                 </div>
               )}
 
-              {/* Features */}
               {product.features && product.features.length > 0 && (
                 <ul className="mt-4 space-y-1.5">
                   {product.features.map((f) => (
@@ -323,7 +359,6 @@ export function StoreProductDetailClient({
                 )}
               </div>
 
-              {/* Trust badges */}
               <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
                 {["Giao hàng toàn quốc", "Đổi trả trong 7 ngày", "An toàn sức khỏe"].map((t) => (
                   <div key={t} className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
@@ -355,7 +390,6 @@ export function StoreProductDetailClient({
           </div>
         )}
 
-        {/* Manufacturer quick-info (if origin or manufacturer set) */}
         {(product.origin || product.manufacturer) && (
           <div
             className="mt-6 rounded-[22px] border p-5"
