@@ -186,12 +186,12 @@ function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number;
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--green)]">
             {isHybrid ? "GÓI KÈM HỘP QUÀ" : "GÓI SỐ"}
           </p>
-          <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--foreground)]">
+          <h3 className="mt-0.5 font-serif text-[19px] font-semibold leading-tight text-[var(--foreground)] break-words">
             {box.name}
           </h3>
-          <p className="mt-1 text-[12px] text-[var(--muted)]">{box.tagline}</p>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="font-sans text-[30px] font-bold leading-none text-[var(--foreground)]">
+          <p className="mt-1 text-[12px] text-[var(--muted)] line-clamp-2">{box.tagline}</p>
+          <div className="mt-4 flex flex-wrap items-baseline gap-2">
+            <span className="font-sans text-[26px] sm:text-[30px] font-bold leading-none text-[var(--foreground)]">
               {formatVnd(box.price)}
             </span>
             {box.priceNote && (
@@ -219,13 +219,13 @@ function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number;
           {box.features.slice(0, 5).map((f) => (
             <li key={f} className="flex items-start gap-2 text-[13px] text-[var(--foreground)]">
               <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--green)]" />
-              {f}
+              <span className="min-w-0 break-words">{f}</span>
             </li>
           ))}
           {box.physicalItems.slice(0, 3).map((item) => (
             <li key={item} className="flex items-start gap-2 text-[13px] text-[var(--foreground)]">
               <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-              {item}
+              <span className="min-w-0 break-words">{item}</span>
             </li>
           ))}
         </ul>

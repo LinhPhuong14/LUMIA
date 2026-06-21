@@ -73,11 +73,11 @@ export function HubInsightsStatRow({ insights }: { insights: DashboardInsights }
                 <Icon className="h-3.5 w-3.5" style={{ color: card.accent }} />
               </div>
               <div>
-                <p className="font-serif text-[20px] font-semibold leading-tight text-[var(--foreground)]">
+                <p className="font-serif text-[18px] sm:text-[20px] font-semibold leading-tight text-[var(--foreground)]">
                   {card.value}
-                  {card.unit && <span className="ml-0.5 text-[12px] font-normal text-[var(--muted)]">{card.unit}</span>}
+                  {card.unit && <span className="ml-0.5 text-[11px] sm:text-[12px] font-normal text-[var(--muted)]">{card.unit}</span>}
                 </p>
-                <p className="mt-0.5 text-[10px] font-medium text-[var(--muted)]">{card.title}</p>
+                <p className="mt-0.5 text-[9px] sm:text-[10px] font-medium text-[var(--muted)] leading-snug">{card.title}</p>
               </div>
             </div>
           );

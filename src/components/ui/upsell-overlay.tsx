@@ -67,9 +67,9 @@ export function UpsellOverlay({
   }
 
   return (
-    <div className="relative min-h-0 sm:min-h-[160px]">
+    <div className="relative w-full min-h-[280px] flex-1">
       <div className="pointer-events-none select-none opacity-40 blur-[2px]">{children}</div>
-      <div className="absolute inset-0 flex items-center justify-center rounded-[28px] bg-white/55 p-4 backdrop-blur-md sm:p-6">
+      <div className="absolute inset-0 flex items-center justify-center rounded-[28px] bg-white/55 p-4 backdrop-blur-md dark:bg-black/40 sm:p-6">
         <div className="mx-auto w-full max-w-sm px-2 text-center sm:px-6">
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-champagne shadow-[0_12px_28px_rgba(244,216,120,0.2)] sm:h-12 sm:w-12">
             <Lock className="h-5 w-5 text-matcha-deep" />

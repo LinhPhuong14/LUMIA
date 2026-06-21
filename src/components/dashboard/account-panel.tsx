@@ -171,8 +171,8 @@ export function AccountPanel({
                   key={order.id}
                   className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-4"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-matcha-deep">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-matcha-deep">
                       {order.tierName ?? "LUMIA"}
                     </div>
                     <div className="text-[12px] text-muted">

@@ -501,15 +501,15 @@ export function JourneyPanel({
       <section className="relative overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-6">
         <div className="flex items-center justify-between gap-4">
           {/* Streak ring */}
-          <div className="flex items-center gap-5">
+          <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
             <StreakRing streak={streak.current_streak} />
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <Flame
-                  className="h-5 w-5"
+                  className="h-5 w-5 shrink-0"
                   style={{ color: streak.current_streak >= 7 ? "#f59e0b" : "var(--green)" }}
                 />
-                <span className="font-serif text-xl font-medium text-[var(--foreground)]">
+                <span className="min-w-0 truncate font-serif text-xl font-medium text-[var(--foreground)]">
                   {streak.current_streak === 0
                     ? "Bắt đầu hành trình"
                     : streak.current_streak === 1
