@@ -5,6 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
+type ProductImage = { url: string; label?: string };
+type ProductVariant = { name: string; image_url?: string };
+
 type CreateProductBody = {
   slug: string;
   name: string;
@@ -14,6 +17,8 @@ type CreateProductBody = {
   category: string;
   features?: string[];
   image_url?: string;
+  images?: ProductImage[];
+  variants?: ProductVariant[];
   in_stock: boolean;
   stock_quantity: number;
   sort_order?: number;
@@ -26,8 +31,8 @@ export async function GET() {
 
   const { data } = await supabase
     .from("store_products")
-    .select("id,slug,name,subtitle,description,category,price_vnd,stock_quantity,in_stock,image_url,features,sort_order")
-    .order("category", { ascending: true });
+    .select("id,slug,name,subtitle,description,category,price_vnd,stock_quantity,in_stock,image_url,features,images,variants,sort_order")
+    .order("sort_order", { ascending: true });
 
   return NextResponse.json(data ?? []);
 }
@@ -56,6 +61,8 @@ export async function POST(req: Request) {
       category: body.category,
       features: body.features ?? [],
       image_url: body.image_url ?? null,
+      images: body.images ?? [],
+      variants: body.variants ?? [],
       in_stock: body.in_stock,
       stock_quantity: body.stock_quantity,
       sort_order: body.sort_order ?? 0,

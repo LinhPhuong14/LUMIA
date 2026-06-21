@@ -499,16 +499,23 @@ function OrdersTab() {
 
 // ─── Tab: Sản phẩm ───────────────────────────────────────────────────────────
 
+type ProductImage = { url: string; label: string };
+type ProductVariant = { name: string; image_url: string };
+
 type ProductForm = {
   name: string; slug: string; subtitle: string; description: string;
   price_vnd: number; category: string; features: string;
-  image_url: string; in_stock: boolean; stock_quantity: number; sort_order: number;
+  image_url: string;
+  images: ProductImage[];
+  variants: ProductVariant[];
+  in_stock: boolean; stock_quantity: number; sort_order: number;
 };
 
 const EMPTY_PRODUCT: ProductForm = {
   name: "", slug: "", subtitle: "", description: "",
   price_vnd: 0, category: "drink", features: "",
-  image_url: "", in_stock: true, stock_quantity: 0, sort_order: 0,
+  image_url: "", images: [], variants: [],
+  in_stock: true, stock_quantity: 0, sort_order: 0,
 };
 
 function ProductsTab() {
@@ -522,6 +529,7 @@ function ProductsTab() {
   const [formBusy, setFormBusy] = useState(false);
   const [formStatus, setFormStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
+  const [uploadingIdx, setUploadingIdx] = useState<string | null>(null); // "banner"|"gallery-*"|"var-N"
 
   const loadProducts = useCallback(() => {
     fetch("/api/admin/store/products").then(r => r.json()).then(setProducts).catch(() => setProducts([]));
@@ -558,10 +566,33 @@ function ProductsTab() {
       description: p.description ?? "", price_vnd: p.price_vnd,
       category: p.category ?? "drink",
       features: (p.features ?? []).join("\n"),
-      image_url: p.image_url ?? "", in_stock: p.in_stock,
+      image_url: p.image_url ?? "",
+      images: ((p as unknown as { images?: ProductImage[] }).images) ?? [],
+      variants: ((p as unknown as { variants?: ProductVariant[] }).variants) ?? [],
+      in_stock: p.in_stock,
       stock_quantity: p.stock_quantity, sort_order: p.sort_order ?? 0,
     });
     setFormStatus(null);
+  }
+
+  async function uploadProductImage(kind: string, onUrl: (url: string) => void) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setUploadingIdx(kind);
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      if (res.ok) {
+        const { url } = await res.json() as { url: string };
+        onUrl(url);
+      }
+      setUploadingIdx(null);
+    };
+    input.click();
   }
 
   function handleProductNameChange(name: string) {
@@ -575,6 +606,8 @@ function ProductsTab() {
     const payload = {
       ...productForm,
       features: productForm.features.split("\n").map(s => s.trim()).filter(Boolean),
+      images: productForm.images.filter(i => i.url.trim()),
+      variants: productForm.variants.filter(v => v.name.trim()),
     };
 
     const url = editingId ? `/api/admin/store/products/${editingId}` : "/api/admin/store/products";
@@ -710,90 +743,250 @@ function ProductsTab() {
 
       {/* Product form modal */}
       {productForm ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 py-8">
-          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-8">
+          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] shadow-2xl">
+            {/* Modal header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[24px] border-b border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <h2 className="font-semibold text-[var(--foreground)]">{editingId ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h2>
-              <button type="button" onClick={() => setProductForm(null)} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
+              <button type="button" onClick={() => setProductForm(null)} className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
                 <X className="h-4 w-4 text-[var(--muted)]" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className={labelCls}>Tên sản phẩm *</label>
-                <input type="text" value={productForm.name}
-                  onChange={e => handleProductNameChange(e.target.value)}
-                  className={inputCls} placeholder="Tên sản phẩm" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Slug</label>
-                  <input type="text" value={productForm.slug}
-                    onChange={e => setProductForm(f => f ? { ...f, slug: e.target.value } : f)}
-                    className={inputCls} />
+
+            <div className="space-y-6 p-6">
+              {/* Basic info */}
+              <section>
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Thông tin cơ bản</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={labelCls}>Tên sản phẩm *</label>
+                    <input type="text" value={productForm.name}
+                      onChange={e => handleProductNameChange(e.target.value)}
+                      className={inputCls} placeholder="Tên sản phẩm" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Slug</label>
+                      <input type="text" value={productForm.slug}
+                        onChange={e => setProductForm(f => f ? { ...f, slug: e.target.value } : f)}
+                        className={`${inputCls} font-mono text-[13px]`} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Danh mục</label>
+                      <select value={productForm.category}
+                        onChange={e => setProductForm(f => f ? { ...f, category: e.target.value } : f)}
+                        className={inputCls}>
+                        {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Subtitle</label>
+                    <input type="text" value={productForm.subtitle}
+                      onChange={e => setProductForm(f => f ? { ...f, subtitle: e.target.value } : f)}
+                      className={inputCls} placeholder="Hộp 20 túi lọc, 50ml / chai..." />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Mô tả</label>
+                    <textarea rows={3} value={productForm.description}
+                      onChange={e => setProductForm(f => f ? { ...f, description: e.target.value } : f)}
+                      className={`${inputCls} resize-none`} placeholder="Mô tả đầy đủ sản phẩm" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelCls}>Giá (VND) *</label>
+                      <input type="number" min={0} value={productForm.price_vnd}
+                        onChange={e => setProductForm(f => f ? { ...f, price_vnd: Number(e.target.value) } : f)}
+                        className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Tồn kho</label>
+                      <input type="number" min={0} value={productForm.stock_quantity}
+                        onChange={e => setProductForm(f => f ? { ...f, stock_quantity: Number(e.target.value) } : f)}
+                        className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Sort order</label>
+                      <input type="number" value={productForm.sort_order}
+                        onChange={e => setProductForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
+                        className={inputCls} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Features (mỗi dòng một feature)</label>
+                    <textarea rows={3} value={productForm.features}
+                      onChange={e => setProductForm(f => f ? { ...f, features: e.target.value } : f)}
+                      className={`${inputCls} resize-none font-mono text-[13px]`}
+                      placeholder={"Thư giãn tinh thần\nHỗ trợ ngủ sâu\nGiảm căng thẳng"} />
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+                    <input type="checkbox" checked={productForm.in_stock}
+                      onChange={e => setProductForm(f => f ? { ...f, in_stock: e.target.checked } : f)}
+                      className="h-4 w-4 accent-[var(--green)]" />
+                    Còn hàng
+                  </label>
                 </div>
-                <div>
-                  <label className={labelCls}>Danh mục</label>
-                  <select value={productForm.category}
-                    onChange={e => setProductForm(f => f ? { ...f, category: e.target.value } : f)}
-                    className={inputCls}>
-                    {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+              </section>
+
+              {/* Banner image */}
+              <section>
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Ảnh banner chính</p>
+                <div className="rounded-[16px] border-2 border-dashed border-[var(--border)] p-4">
+                  {productForm.image_url ? (
+                    <div className="relative mb-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={productForm.image_url} alt="Banner" className="h-48 w-full rounded-[12px] object-cover" />
+                      <button type="button"
+                        onClick={() => setProductForm(f => f ? { ...f, image_url: "" } : f)}
+                        className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mb-3 flex h-32 items-center justify-center rounded-[12px] bg-[var(--surface-warm)]">
+                      <div className="text-center text-[var(--muted)]">
+                        <ImagePlus className="mx-auto mb-1 h-8 w-8 opacity-40" />
+                        <p className="text-[12px]">Chưa có ảnh banner</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input type="text" value={productForm.image_url}
+                      onChange={e => setProductForm(f => f ? { ...f, image_url: e.target.value } : f)}
+                      placeholder="Paste URL hoặc tải ảnh lên..."
+                      className={`${inputCls} flex-1 text-[13px]`} />
+                    <button type="button"
+                      disabled={uploadingIdx === "banner"}
+                      onClick={() => uploadProductImage("banner", url => setProductForm(f => f ? { ...f, image_url: url } : f))}
+                      className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
+                      {uploadingIdx === "banner" ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
+                      {uploadingIdx === "banner" ? "Đang tải…" : "Upload"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className={labelCls}>Subtitle</label>
-                <input type="text" value={productForm.subtitle}
-                  onChange={e => setProductForm(f => f ? { ...f, subtitle: e.target.value } : f)}
-                  className={inputCls} placeholder="Mô tả ngắn" />
-              </div>
-              <div>
-                <label className={labelCls}>Mô tả</label>
-                <textarea rows={3} value={productForm.description}
-                  onChange={e => setProductForm(f => f ? { ...f, description: e.target.value } : f)}
-                  className={`${inputCls} resize-none`} placeholder="Mô tả đầy đủ sản phẩm" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className={labelCls}>Giá (VND) *</label>
-                  <input type="number" min={0} value={productForm.price_vnd}
-                    onChange={e => setProductForm(f => f ? { ...f, price_vnd: Number(e.target.value) } : f)}
-                    className={inputCls} />
+              </section>
+
+              {/* Gallery images */}
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Thư viện ảnh ({productForm.images.length})</p>
+                  <button type="button"
+                    disabled={uploadingIdx?.startsWith("gallery")}
+                    onClick={() => uploadProductImage("gallery-new", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}
+                    className="flex items-center gap-1.5 rounded-[10px] border border-[var(--border)] px-3 py-1.5 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    Thêm ảnh
+                  </button>
                 </div>
-                <div>
-                  <label className={labelCls}>Tồn kho</label>
-                  <input type="number" min={0} value={productForm.stock_quantity}
-                    onChange={e => setProductForm(f => f ? { ...f, stock_quantity: Number(e.target.value) } : f)}
-                    className={inputCls} />
+                {productForm.images.length === 0 ? (
+                  <div
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--border)] py-8 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]"
+                    onClick={() => uploadProductImage("gallery-new", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}>
+                    <ImagePlus className="mb-2 h-6 w-6 opacity-40" />
+                    Click hoặc kéo thả ảnh vào đây
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {productForm.images.map((img, idx) => (
+                      <div key={idx} className="group relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.url} alt={img.label || `Ảnh ${idx + 1}`}
+                          className="h-24 w-full rounded-[12px] object-cover" />
+                        <button type="button"
+                          onClick={() => setProductForm(f => f ? { ...f, images: f.images.filter((_, i) => i !== idx) } : f)}
+                          className="absolute right-1.5 top-1.5 hidden rounded-full bg-black/60 p-1 text-white group-hover:flex">
+                          <X className="h-3 w-3" />
+                        </button>
+                        <input
+                          type="text" value={img.label}
+                          onChange={e => setProductForm(f => f ? { ...f, images: f.images.map((im, i) => i === idx ? { ...im, label: e.target.value } : im) } : f)}
+                          placeholder="Nhãn ảnh (tuỳ chọn)"
+                          className="mt-1.5 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-card)] px-2 py-1 text-[11px] outline-none focus:ring-1 focus:ring-[var(--green)]/30" />
+                      </div>
+                    ))}
+                    {/* Add more slot */}
+                    <button type="button"
+                      onClick={() => uploadProductImage("gallery-add", url => setProductForm(f => f ? { ...f, images: [...f.images, { url, label: "" }] } : f))}
+                      className="flex h-24 items-center justify-center rounded-[12px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]">
+                      <ImagePlus className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {/* Variants */}
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Phân loại hàng ({productForm.variants.length})</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--muted)]">Ví dụ: Mùi Lavender, Bergamot… Mỗi loại có ảnh riêng</p>
+                  </div>
+                  <button type="button"
+                    onClick={() => setProductForm(f => f ? { ...f, variants: [...f.variants, { name: "", image_url: "" }] } : f)}
+                    className="flex items-center gap-1.5 rounded-[10px] border border-[var(--border)] px-3 py-1.5 text-[12px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                    + Thêm loại
+                  </button>
                 </div>
-                <div>
-                  <label className={labelCls}>Sort order</label>
-                  <input type="number" value={productForm.sort_order}
-                    onChange={e => setProductForm(f => f ? { ...f, sort_order: Number(e.target.value) } : f)}
-                    className={inputCls} />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>URL hình ảnh</label>
-                <input type="text" value={productForm.image_url}
-                  onChange={e => setProductForm(f => f ? { ...f, image_url: e.target.value } : f)}
-                  className={inputCls} placeholder="https://..." />
-              </div>
-              <div>
-                <label className={labelCls}>Features (mỗi dòng một feature)</label>
-                <textarea rows={4} value={productForm.features}
-                  onChange={e => setProductForm(f => f ? { ...f, features: e.target.value } : f)}
-                  className={`${inputCls} resize-none font-mono text-[13px]`}
-                  placeholder={"Feature 1\nFeature 2\nFeature 3"} />
-              </div>
-              <label className="flex cursor-pointer items-center gap-2 text-[13px]">
-                <input type="checkbox" checked={productForm.in_stock}
-                  onChange={e => setProductForm(f => f ? { ...f, in_stock: e.target.checked } : f)}
-                  className="h-4 w-4 accent-[var(--green)]" />
-                Còn hàng
-              </label>
+                {productForm.variants.length === 0 ? (
+                  <div className="rounded-[14px] border border-dashed border-[var(--border)] py-6 text-center text-[13px] text-[var(--muted)]">
+                    Sản phẩm này không có phân loại — bỏ qua nếu không cần
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {productForm.variants.map((variant, idx) => (
+                      <div key={idx} className="flex gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface-warm)] p-3">
+                        {/* Variant image */}
+                        <div className="shrink-0">
+                          {variant.image_url ? (
+                            <div className="relative h-16 w-16">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={variant.image_url} alt={variant.name}
+                                className="h-16 w-16 rounded-[10px] object-cover" />
+                              <button type="button"
+                                onClick={() => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: "" } : v) } : f)}
+                                className="absolute -right-1 -top-1 rounded-full bg-black/60 p-0.5 text-white">
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button type="button"
+                              disabled={uploadingIdx === `var-${idx}`}
+                              onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
+                              className="flex h-16 w-16 flex-col items-center justify-center rounded-[10px] border-2 border-dashed border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--green-deep)]">
+                              {uploadingIdx === `var-${idx}` ? <Upload className="h-4 w-4 animate-bounce" /> : <ImagePlus className="h-4 w-4" />}
+                              <span className="mt-0.5 text-[9px]">Ảnh</span>
+                            </button>
+                          )}
+                        </div>
+                        {/* Variant name */}
+                        <div className="flex flex-1 items-center gap-2">
+                          <input type="text" value={variant.name}
+                            onChange={e => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, name: e.target.value } : v) } : f)}
+                            placeholder="Tên phân loại (vd: Lavender, Size M...)"
+                            className={`${inputCls} flex-1`} />
+                          {variant.image_url && (
+                            <button type="button"
+                              disabled={uploadingIdx === `var-${idx}`}
+                              onClick={() => uploadProductImage(`var-${idx}`, url => setProductForm(f => f ? { ...f, variants: f.variants.map((v, i) => i === idx ? { ...v, image_url: url } : v) } : f))}
+                              className="flex shrink-0 items-center gap-1 rounded-[10px] border border-[var(--border)] px-2 py-1.5 text-[11px] text-[var(--muted)] hover:text-[var(--green-deep)]">
+                              <Upload className="h-3 w-3" /> Đổi ảnh
+                            </button>
+                          )}
+                          <button type="button"
+                            onClick={() => setProductForm(f => f ? { ...f, variants: f.variants.filter((_, i) => i !== idx) } : f)}
+                            className="shrink-0 rounded-full p-1.5 text-[var(--muted)] hover:bg-red-50 hover:text-red-500">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
-            <div className="mt-5 flex items-center justify-between gap-4">
+
+            {/* Footer */}
+            <div className="sticky bottom-0 flex items-center justify-between gap-4 rounded-b-[24px] border-t border-[var(--border)] bg-[var(--surface-card)] px-6 py-4">
               <div className="flex-1">
                 {formStatus && (
                   <p className={`rounded-[10px] px-3 py-2 text-[13px] ${formStatus.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
@@ -824,6 +1017,15 @@ const EMPTY_BLOG: BlogForm = {
   cover_color: "linear-gradient(135deg,#e0f2e9,#b8dfc8)", read_time: 3, published: false,
   cover_image_url: "",
 };
+
+const COVER_PRESETS = [
+  "linear-gradient(135deg,#e0f2e9,#b8dfc8)",
+  "linear-gradient(135deg,#fef3c7,#fde68a)",
+  "linear-gradient(135deg,#e0e7ff,#c7d2fe)",
+  "linear-gradient(135deg,#fce7f3,#fbcfe8)",
+  "linear-gradient(135deg,#f0fdf4,#bbf7d0)",
+  "linear-gradient(135deg,#fff7ed,#fed7aa)",
+];
 
 function BlogTab() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -857,7 +1059,7 @@ function BlogTab() {
     setForm(f => f ? { ...f, title, slug: slugify(title) } : f);
   }
 
-  async function uploadImage(file: File) {
+  async function uploadCoverImage(file: File) {
     setUploading(true);
     const fd = new FormData();
     fd.append("file", file);
@@ -910,8 +1112,8 @@ function BlogTab() {
       <div className="space-y-3">
         {posts.map(p => (
           <div key={p.id} className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 transition hover:border-[var(--green)]/40">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] text-xl"
-              style={{ background: p.cover_color.startsWith("linear") ? p.cover_color : undefined, backgroundColor: p.cover_color.startsWith("linear") ? undefined : p.cover_color }}>
+            <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-xl"
+              style={{ background: p.cover_color }}>
               {p.emoji}
             </div>
             <div className="min-w-0 flex-1">
@@ -944,130 +1146,168 @@ function BlogTab() {
 
       {toast && <div className="mt-3 rounded-[12px] bg-[var(--green-wash)] px-4 py-2 text-[13px] text-[var(--green-deep)]">{toast}</div>}
 
-      {/* Blog form modal */}
+      {/* Blog form modal — Notion-style */}
       {form ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 py-8">
-          <div className="relative mx-4 w-full max-w-2xl rounded-[24px] bg-[var(--surface-card)] p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-semibold text-[var(--foreground)]">{form.id ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}</h2>
-              <button type="button" onClick={() => setForm(null)} className="rounded-full p-1 hover:bg-[var(--surface-warm)]">
-                <X className="h-4 w-4 text-[var(--muted)]" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className={labelCls}>Tiêu đề *</label>
-                <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="Tiêu đề bài viết"
-                  className={inputCls} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Slug</label>
-                  <input type="text" value={form.slug} onChange={e => setForm(f => f ? { ...f, slug: e.target.value } : f)}
-                    className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Danh mục</label>
-                  <select value={form.category} onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
-                    className={inputCls}>
-                    {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Emoji</label>
-                  <input type="text" value={form.emoji} onChange={e => setForm(f => f ? { ...f, emoji: e.target.value } : f)}
-                    className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Thời gian đọc (phút)</label>
-                  <input type="number" min={1} value={form.read_time}
-                    onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
-                    className={inputCls} />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Màu nền (CSS gradient hoặc hex)</label>
-                <input type="text" value={form.cover_color}
-                  onChange={e => setForm(f => f ? { ...f, cover_color: e.target.value } : f)}
-                  className={`${inputCls} font-mono`} />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm">
+          <div className="relative mx-4 my-8 w-full max-w-3xl rounded-[28px] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.25)]">
 
-              {/* Cover image upload */}
-              <div>
-                <label className={labelCls}>Ảnh bìa</label>
-                <div className="flex gap-2">
-                  <input type="text" value={form.cover_image_url}
-                    onChange={e => setForm(f => f ? { ...f, cover_image_url: e.target.value } : f)}
-                    placeholder="https://... hoặc tải ảnh lên"
-                    className={`${inputCls} flex-1`} />
-                  <button type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
-                    {uploading
-                      ? <Upload className="h-4 w-4 animate-bounce" />
-                      : <ImagePlus className="h-4 w-4" />}
-                    {uploading ? "Đang tải…" : "Tải lên"}
-                  </button>
-                  <input
-                    ref={fileInputRef} type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="hidden"
-                    onChange={e => {
-                      const f = e.target.files?.[0];
-                      if (f) void uploadImage(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
-                {form.cover_image_url && (
-                  <div className="mt-2 overflow-hidden rounded-[10px] border border-[var(--border)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={form.cover_image_url} alt="Ảnh bìa" className="h-28 w-full object-cover" />
+            {/* ── Cover banner zone ─────────────────────────── */}
+            <div className="relative overflow-hidden rounded-t-[28px]">
+              {form.cover_image_url ? (
+                /* Photo cover */
+                <div className="group relative h-52">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={form.cover_image_url} alt="Ảnh bìa"
+                    className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/20" />
+                  {/* floating action bar */}
+                  <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 transition group-hover:opacity-100">
+                    <button type="button" disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm hover:bg-black/80">
+                      <Upload className="h-3.5 w-3.5" />
+                      {uploading ? "Đang tải…" : "Đổi ảnh"}
+                    </button>
+                    <button type="button"
+                      onClick={() => setForm(f => f ? { ...f, cover_image_url: "" } : f)}
+                      className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm hover:bg-red-700">
+                      <X className="h-3.5 w-3.5" />
+                      Xóa ảnh
+                    </button>
                   </div>
-                )}
+                </div>
+              ) : (
+                /* Gradient + drag-drop cover */
                 <div
-                  className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[var(--border)] py-5 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]"
+                  className="group relative flex h-44 cursor-pointer flex-col items-center justify-center transition"
+                  style={{ background: form.cover_color }}
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={e => e.preventDefault()}
-                  onDrop={e => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) void uploadImage(file);
-                  }}
+                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) void uploadCoverImage(f); }}
                 >
-                  <Upload className="mb-1 h-5 w-5 opacity-50" />
-                  Kéo thả ảnh vào đây, hoặc click để chọn
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 transition group-hover:opacity-100">
+                    <div className="flex items-center gap-2 rounded-full bg-black/30 px-4 py-2 text-white backdrop-blur-sm">
+                      <ImagePlus className="h-4 w-4" />
+                      <span className="text-[13px] font-medium">
+                        {uploading ? "Đang tải ảnh lên…" : "Thêm ảnh bìa — kéo thả hoặc click"}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Emoji preview */}
+                  <span className="text-5xl opacity-80">{form.emoji || "📝"}</span>
                 </div>
+              )}
+
+              {/* Color presets bar — shown when no photo */}
+              {!form.cover_image_url && (
+                <div className="flex items-center gap-2 border-t border-white/20 bg-black/5 px-4 py-2">
+                  <span className="text-[11px] font-medium text-[var(--muted)]">Màu nền:</span>
+                  <div className="flex gap-1.5">
+                    {COVER_PRESETS.map(preset => (
+                      <button key={preset} type="button"
+                        onClick={() => setForm(f => f ? { ...f, cover_color: preset } : f)}
+                        className={`h-6 w-6 rounded-full border-2 transition ${form.cover_color === preset ? "border-[var(--green)] scale-110" : "border-white/40 hover:border-white"}`}
+                        style={{ background: preset }} />
+                    ))}
+                    <label className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-white/40 bg-white/20 text-[10px] font-bold text-white hover:border-white"
+                      title="Màu tuỳ chỉnh">
+                      #
+                      <input type="color" className="absolute h-0 w-0 opacity-0"
+                        onChange={e => setForm(f => f ? { ...f, cover_color: e.target.value } : f)} />
+                    </label>
+                  </div>
+                  <button type="button" disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="ml-auto flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-3 py-1 text-[11px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)]">
+                    <ImagePlus className="h-3 w-3" />
+                    {uploading ? "Đang tải…" : "Upload ảnh bìa"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* hidden file input */}
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCoverImage(f); e.target.value = ""; }} />
+
+            {/* ── Page body ────────────────────────────────── */}
+            <div className="px-8 pb-0 pt-6">
+              {/* Emoji + close */}
+              <div className="mb-3 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <input type="text" value={form.emoji}
+                    onChange={e => setForm(f => f ? { ...f, emoji: e.target.value } : f)}
+                    className="w-14 rounded-[10px] border border-transparent bg-transparent text-3xl outline-none hover:border-[var(--border)] hover:bg-[var(--surface-warm)] focus:border-[var(--border)] focus:bg-[var(--surface-warm)]"
+                    maxLength={4} title="Emoji đại diện" />
+                  <div>
+                    <select value={form.category} onChange={e => setForm(f => f ? { ...f, category: e.target.value } : f)}
+                      className="rounded-full border border-[var(--border)] bg-[var(--surface-warm)] px-3 py-1 text-[12px] text-[var(--muted)] outline-none">
+                      {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setForm(null)}
+                  className="rounded-full p-1.5 hover:bg-[var(--surface-warm)]">
+                  <X className="h-4 w-4 text-[var(--muted)]" />
+                </button>
               </div>
 
-              <div>
-                <label className={labelCls}>Tóm tắt *</label>
+              {/* Title */}
+              <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
+                placeholder="Tiêu đề bài viết..."
+                className="w-full bg-transparent text-[28px] font-bold text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/50" />
+
+              {/* Meta row */}
+              <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--muted)]">Slug:</span>
+                  <input type="text" value={form.slug} onChange={e => setForm(f => f ? { ...f, slug: e.target.value } : f)}
+                    className="rounded-[8px] border border-transparent bg-[var(--surface-warm)] px-2 py-0.5 font-mono text-[12px] text-[var(--muted)] outline-none focus:border-[var(--border)]" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--muted)]">Đọc:</span>
+                  <input type="number" min={1} value={form.read_time}
+                    onChange={e => setForm(f => f ? { ...f, read_time: Number(e.target.value) } : f)}
+                    className="w-14 rounded-[8px] border border-transparent bg-[var(--surface-warm)] px-2 py-0.5 text-[12px] text-[var(--muted)] outline-none focus:border-[var(--border)]" />
+                  <span className="text-[12px] text-[var(--muted)]">phút</span>
+                </div>
+                <label className="flex cursor-pointer items-center gap-1.5 text-[12px]">
+                  <input type="checkbox" checked={form.published}
+                    onChange={e => setForm(f => f ? { ...f, published: e.target.checked } : f)}
+                    className="h-3.5 w-3.5 accent-[var(--green)]" />
+                  <span className={form.published ? "font-semibold text-[var(--green-deep)]" : "text-[var(--muted)]"}>
+                    {form.published ? "Đã xuất bản" : "Bản nháp"}
+                  </span>
+                </label>
+              </div>
+
+              {/* Excerpt */}
+              <div className="mt-4">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Tóm tắt *</p>
                 <textarea rows={2} value={form.excerpt} onChange={e => setForm(f => f ? { ...f, excerpt: e.target.value } : f)}
-                  placeholder="Mô tả ngắn hiển thị trên trang danh sách"
-                  className={`${inputCls} resize-none`} />
+                  placeholder="Mô tả ngắn hiển thị trên trang danh sách bài viết..."
+                  className="w-full resize-none bg-transparent text-[14px] leading-relaxed text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/50" />
               </div>
-              <div>
-                <label className={labelCls}>Nội dung (Markdown)</label>
-                <textarea rows={10} value={form.content} onChange={e => setForm(f => f ? { ...f, content: e.target.value } : f)}
-                  placeholder="Nội dung bài viết hỗ trợ Markdown..."
-                  className={`${inputCls} resize-y font-mono text-[13px]`} />
+
+              {/* Content */}
+              <div className="mt-2">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Nội dung (Markdown)</p>
+                <textarea rows={14} value={form.content} onChange={e => setForm(f => f ? { ...f, content: e.target.value } : f)}
+                  placeholder="Bắt đầu viết... hỗ trợ **Markdown**, ## Tiêu đề, - Danh sách, > Trích dẫn..."
+                  className={`w-full resize-y rounded-[14px] border border-[var(--border)] bg-[var(--surface-warm)] p-4 font-mono text-[13px] leading-relaxed text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--green)]/20 placeholder:text-[var(--muted)]/40`} />
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-[13px]">
-                <input type="checkbox" checked={form.published}
-                  onChange={e => setForm(f => f ? { ...f, published: e.target.checked } : f)}
-                  className="h-4 w-4 accent-[var(--green)]" />
-                Xuất bản ngay
-              </label>
             </div>
-            <div className="mt-5 flex justify-end gap-3">
-              <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
-              <button type="button" onClick={savePost} disabled={saving || !form.title || !form.excerpt}
-                className="button-primary px-4 py-2 text-sm disabled:opacity-60">
-                {saving ? "Đang lưu…" : (form.id ? "Cập nhật" : "Tạo bài viết")}
-              </button>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 flex items-center justify-between gap-4 rounded-b-[28px] border-t border-[var(--border)] bg-[var(--surface-card)] px-8 py-4">
+              <p className="text-[12px] text-[var(--muted)]">{form.id ? "Chỉnh sửa bài viết" : "Bài viết mới"}</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setForm(null)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+                <button type="button" onClick={savePost} disabled={saving || !form.title || !form.excerpt}
+                  className="button-primary px-4 py-2 text-sm disabled:opacity-60">
+                  {saving ? "Đang lưu…" : (form.id ? "Cập nhật" : "Xuất bản")}
+                </button>
+              </div>
             </div>
           </div>
         </div>

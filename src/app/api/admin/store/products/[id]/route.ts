@@ -18,6 +18,8 @@ type PutBody = {
   category?: string;
   features?: string[];
   image_url?: string | null;
+  images?: { url: string; label?: string }[];
+  variants?: { name: string; image_url?: string }[];
   in_stock?: boolean;
   stock_quantity?: number;
   sort_order?: number;
@@ -67,6 +69,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (body.category !== undefined) update.category = body.category;
   if (body.features !== undefined) update.features = body.features;
   if (body.image_url !== undefined) update.image_url = body.image_url;
+  if (body.images !== undefined) update.images = body.images;
+  if (body.variants !== undefined) update.variants = body.variants;
   if (body.in_stock !== undefined) update.in_stock = body.in_stock;
   if (body.stock_quantity !== undefined) update.stock_quantity = body.stock_quantity;
   if (body.sort_order !== undefined) update.sort_order = body.sort_order;
