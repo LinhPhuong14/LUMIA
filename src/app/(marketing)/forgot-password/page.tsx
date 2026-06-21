@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { validateEmail } from "@/lib/validators";
 
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/env";
@@ -10,12 +11,18 @@ import { Input } from "@/components/ui/input";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailErr = emailTouched ? validateEmail(email) : null;
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setEmailTouched(true);
+    const clientErr = validateEmail(email);
+    if (clientErr) { setError(clientErr); return; }
     setLoading(true);
     setError(null);
 
@@ -117,8 +124,11 @@ export default function ForgotPasswordPage() {
                   placeholder="email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailTouched(true)}
                   required
+                  className={emailErr ? "border-red-400 focus:ring-red-200" : ""}
                 />
+                {emailErr && <p className="mt-1 text-[12px] text-error">{emailErr}</p>}
               </div>
             </div>
 

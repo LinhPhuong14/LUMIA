@@ -8,10 +8,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { BoxProduct } from "@/data/catalog";
 import { formatCurrency } from "@/lib/utils";
+import { validateName, validatePhone, validateRequired } from "@/lib/validators";
 
 type ShippingForm = {
   name: string; phone: string; address: string; city: string; note: string;
 };
+
+function ShippingFieldError({ msg }: { msg: string | null }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-[12px] text-red-500">{msg}</p>;
+}
 
 type PaymentInfo = {
   checkoutUrl: string;
@@ -209,25 +215,31 @@ export function CheckoutPanel({
   const [shipping, setShipping] = useState<ShippingForm>({
     name: "", phone: "", address: "", city: "", note: "",
   });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  function touchField(f: string) { setTouched(t => ({ ...t, [f]: true })); }
+
+  // Per-field errors (shown after blur)
+  const shippingErrors = {
+    name: touched.name ? validateName(shipping.name) : null,
+    phone: touched.phone ? validatePhone(shipping.phone) : null,
+    address: touched.address ? validateRequired(shipping.address, "địa chỉ") : null,
+    city: touched.city ? validateRequired(shipping.city, "thành phố / tỉnh") : null,
+  };
 
   function updateShipping(field: keyof ShippingForm, value: string) {
     setShipping(prev => ({ ...prev, [field]: value }));
   }
 
-  function validateShipping(): string | null {
-    if (!needsShipping) return null;
-    if (!shipping.name.trim()) return "Vui lòng nhập họ tên người nhận.";
-    if (!shipping.phone.trim()) return "Vui lòng nhập số điện thoại.";
-    if (!/^(0|\+84)\d{8,10}$/.test(shipping.phone.replace(/\s/g, "")))
-      return "Số điện thoại không hợp lệ (ví dụ: 0912345678).";
-    if (!shipping.address.trim()) return "Vui lòng nhập địa chỉ giao hàng.";
-    if (!shipping.city.trim()) return "Vui lòng nhập thành phố / tỉnh.";
-    return null;
+  function hasShippingErrors(): boolean {
+    return !!(validateName(shipping.name) || validatePhone(shipping.phone) ||
+      validateRequired(shipping.address, "địa chỉ") || validateRequired(shipping.city, "thành phố / tỉnh"));
   }
 
   function handleReview() {
-    const err = validateShipping();
-    if (err) { setError(err); return; }
+    if (needsShipping) {
+      setTouched({ name: true, phone: true, address: true, city: true });
+      if (hasShippingErrors()) return;
+    }
     setError(null);
     setStep("confirm");
   }
@@ -333,22 +345,29 @@ export function CheckoutPanel({
         </div>
 
         {needsShipping && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-2">
             <p className="text-sm font-semibold text-[var(--title-primary)]">Thông tin nhận hàng vật lý</p>
-            {(["name", "phone", "address", "city", "note"] as const).map(field => (
-              <input key={field}
-                value={shipping[field]}
-                onChange={e => updateShipping(field, e.target.value)}
-                type={field === "phone" ? "tel" : "text"}
-                required={field !== "note"}
-                placeholder={{
-                  name: "Họ tên người nhận *", phone: "Số điện thoại * (0912...)",
-                  address: "Địa chỉ chi tiết *", city: "Thành phố / Tỉnh *",
-                  note: "Ghi chú giao hàng (tuỳ chọn)",
-                }[field]}
-                className="w-full rounded-[18px] border border-[var(--lumia-green-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--lumia-green)]"
-              />
-            ))}
+            {(["name", "phone", "address", "city", "note"] as const).map(field => {
+              const err = field !== "note" ? shippingErrors[field as keyof typeof shippingErrors] : null;
+              return (
+                <div key={field}>
+                  <input
+                    value={shipping[field]}
+                    onChange={e => updateShipping(field, e.target.value)}
+                    onBlur={() => touchField(field)}
+                    type={field === "phone" ? "tel" : "text"}
+                    required={field !== "note"}
+                    placeholder={{
+                      name: "Họ tên người nhận *", phone: "Số điện thoại * (0912...)",
+                      address: "Địa chỉ chi tiết *", city: "Thành phố / Tỉnh *",
+                      note: "Ghi chú giao hàng (tuỳ chọn)",
+                    }[field]}
+                    className={`w-full rounded-[18px] border px-4 py-3 text-sm outline-none transition focus:border-[var(--lumia-green)] ${err ? "border-red-400" : "border-[var(--lumia-green-soft)]"}`}
+                  />
+                  <ShippingFieldError msg={err} />
+                </div>
+              );
+            })}
           </div>
         )}
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { validatePassword, validateConfirmPassword } from "@/lib/validators";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,12 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  function touch(f: string) { setTouched(t => ({ ...t, [f]: true })); }
+
+  const passwordErr = touched.password ? validatePassword(password) : null;
+  const confirmErr = touched.confirm
+    ? validateConfirmPassword(password, confirmPassword) : null;
   const [success, setSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -56,16 +63,10 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setTouched({ password: true, confirm: true });
     setError(null);
 
-    if (password !== confirmPassword) {
-      setError("Mật khẩu xác nhận chưa khớp.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Mật khẩu phải có ít nhất 8 ký tự.");
-      return;
-    }
+    if (validatePassword(password) || validateConfirmPassword(password, confirmPassword)) return;
 
     setLoading(true);
     try {
@@ -147,37 +148,47 @@ export default function ResetPasswordPage() {
                   </p>
                 </div>
 
-                <div className="mt-6 grid gap-4">
-                  <div className="relative">
-                    <Input
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      label="Mật khẩu mới"
-                      placeholder="Tối thiểu 8 ký tự"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute bottom-4 right-4 text-[12px] text-muted hover:text-foreground"
-                      tabIndex={-1}
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    >
-                      {showPassword ? "Ẩn" : "Hiện"}
-                    </button>
+                <div className="mt-6 grid gap-3">
+                  <div>
+                    <div className="relative">
+                      <Input
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        label="Mật khẩu mới"
+                        placeholder="Tối thiểu 8 ký tự"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onBlur={() => touch("password")}
+                        required
+                        className={passwordErr ? "border-red-400 focus:ring-red-200" : ""}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute bottom-4 right-4 text-[12px] text-muted hover:text-foreground"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      >
+                        {showPassword ? "Ẩn" : "Hiện"}
+                      </button>
+                    </div>
+                    {passwordErr && <p className="mt-1 text-[12px] text-error">{passwordErr}</p>}
                   </div>
 
-                  <Input
-                    name="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    label="Xác nhận mật khẩu"
-                    placeholder="Nhập lại mật khẩu mới"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
+                  <div>
+                    <Input
+                      name="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      label="Xác nhận mật khẩu"
+                      placeholder="Nhập lại mật khẩu mới"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onBlur={() => touch("confirm")}
+                      required
+                      className={confirmErr ? "border-red-400 focus:ring-red-200" : ""}
+                    />
+                    {confirmErr && <p className="mt-1 text-[12px] text-error">{confirmErr}</p>}
+                  </div>
                 </div>
               </div>
 

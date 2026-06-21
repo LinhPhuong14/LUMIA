@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { validateName } from "@/lib/validators";
 
 import { useLumiaTheme } from "@/components/theme/lumia-theme-provider";
 import { NotificationSettingsSection } from "@/components/dashboard/notification-settings-section";
@@ -90,6 +91,8 @@ export function SettingsPanel({
   const [goalSaving, setGoalSaving] = useState(false);
   const [nameVal, setNameVal] = useState(userName);
   const [nameSaving, setNameSaving] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const nameErr = nameTouched ? validateName(nameVal) : null;
   const [pwResetSent, setPwResetSent] = useState(false);
 
   const toggleSections = useMemo(
@@ -299,8 +302,10 @@ export function SettingsPanel({
             <input
               value={nameVal}
               onChange={(e) => setNameVal(e.target.value)}
-              className="w-full rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-[13px] text-[var(--foreground)] outline-none focus:border-[var(--green)]"
+              onBlur={() => setNameTouched(true)}
+              className={`w-full rounded-[16px] border bg-[var(--surface-card)] px-4 py-2.5 text-[13px] text-[var(--foreground)] outline-none focus:border-[var(--green)] ${nameErr ? "border-red-400" : "border-[var(--border)]"}`}
             />
+            {nameErr && <p className="mt-1 text-[12px] text-red-500">{nameErr}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Email</label>
@@ -311,7 +316,7 @@ export function SettingsPanel({
             />
           </div>
           {nameVal !== userName && (
-            <button type="button" onClick={saveName} disabled={nameSaving} className="button-primary text-[12px]">
+            <button type="button" onClick={() => { setNameTouched(true); if (!validateName(nameVal)) saveName(); }} disabled={nameSaving || !!nameErr} className="button-primary text-[12px] disabled:opacity-60">
               {nameSaving ? "Đang lưu..." : "Lưu tên"}
             </button>
           )}
