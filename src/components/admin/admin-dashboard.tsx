@@ -2376,7 +2376,7 @@ const TABS = [
   { id: "users", label: "Người dùng", icon: Users },
   { id: "orders", label: "Đơn hàng", icon: ShoppingBag },
   { id: "products", label: "Sản phẩm", icon: Package },
-  { id: "blog", label: "Blog", icon: BookOpen },
+  // { id: "blog", label: "Blog", icon: BookOpen }, // disabled temporarily
   { id: "media", label: "Media", icon: Film },
   { id: "plans", label: "Gói dịch vụ", icon: Box },
 ] as const;
@@ -2412,7 +2412,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         {tab === "users" && <UsersTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "products" && <ProductsTab />}
-        {tab === "blog" && <BlogTab />}
+        {/* {tab === "blog" && <BlogTab />} */}
         {tab === "media" && <MediaTab />}
         {tab === "plans" && <PlansTab />}
       </div>
