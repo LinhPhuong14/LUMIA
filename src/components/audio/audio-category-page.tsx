@@ -170,8 +170,7 @@ export function AudioCategoryPage({
         <EmptyState
           scene="audio"
           title="Thư viện đang được chuẩn bị"
-          description="Các track âm thanh sẽ sớm có mặt. Hãy thử bài thở trong lúc chờ nhé."
-          action={{ label: "Bài thở", href: "/audio/breathing" }}
+          description="Các track âm thanh sẽ sớm có mặt. Hãy quay lại sau nhé."
         />
       ) : null}
 

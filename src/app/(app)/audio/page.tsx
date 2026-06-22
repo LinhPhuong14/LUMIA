@@ -26,16 +26,17 @@ const categories = [
     border: "rgba(16,185,129,0.2)",
     darkBlob: "radial-gradient(ellipse at 75% 30%, rgba(16,185,129,0.22) 0%, transparent 60%), radial-gradient(ellipse at 20% 70%, rgba(5,150,105,0.18) 0%, transparent 50%)",
   },
-  {
-    href: "/audio/breathing",
-    emoji: "🌬️",
-    title: "Hơi thở",
-    description: "Kỹ thuật thở 4-7-8, box breathing",
-    accent: "#0ea5e9",
-    blob: "radial-gradient(ellipse at 60% 20%, rgba(14,165,233,0.15) 0%, transparent 60%), radial-gradient(ellipse at 15% 75%, rgba(186,230,253,0.12) 0%, transparent 50%)",
-    border: "rgba(14,165,233,0.2)",
-    darkBlob: "radial-gradient(ellipse at 60% 20%, rgba(14,165,233,0.22) 0%, transparent 60%), radial-gradient(ellipse at 15% 75%, rgba(2,132,199,0.18) 0%, transparent 50%)",
-  },
+  // Breathing disabled temporarily
+  // {
+  //   href: "/audio/breathing",
+  //   emoji: "🌬️",
+  //   title: "Hơi thở",
+  //   description: "Kỹ thuật thở 4-7-8, box breathing",
+  //   accent: "#0ea5e9",
+  //   blob: "radial-gradient(ellipse at 60% 20%, rgba(14,165,233,0.15) 0%, transparent 60%), radial-gradient(ellipse at 15% 75%, rgba(186,230,253,0.12) 0%, transparent 50%)",
+  //   border: "rgba(14,165,233,0.2)",
+  //   darkBlob: "radial-gradient(ellipse at 60% 20%, rgba(14,165,233,0.22) 0%, transparent 60%), radial-gradient(ellipse at 15% 75%, rgba(2,132,199,0.18) 0%, transparent 50%)",
+  // },
   {
     href: "/audio/timer",
     emoji: "⏱️",

@@ -29,14 +29,15 @@ const quickActions = [
     discClass: "bg-blue-100 dark:bg-blue-900/40",
     iconClass: "text-blue-700 dark:text-blue-300",
   },
-  {
-    href: "/audio/breathing",
-    label: "Hơi thở",
-    sub: "Kỹ thuật thở 4-7-8",
-    icon: Wind,
-    discClass: "bg-pink-100 dark:bg-pink-900/40",
-    iconClass: "text-pink-700 dark:text-pink-300",
-  },
+  // Breathing disabled temporarily
+  // {
+  //   href: "/audio/breathing",
+  //   label: "Hơi thở",
+  //   sub: "Kỹ thuật thở 4-7-8",
+  //   icon: Wind,
+  //   discClass: "bg-pink-100 dark:bg-pink-900/40",
+  //   iconClass: "text-pink-700 dark:text-pink-300",
+  // },
   {
     href: "/audio",
     label: "Âm thanh",

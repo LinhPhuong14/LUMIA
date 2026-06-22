@@ -10,7 +10,7 @@ export type SiteNavLink = {
 export const marketingNavLinks: SiteNavLink[] = [
   { id: "about", label: "Về chúng tôi", href: "/about" },
   { id: "store", label: "Cửa hàng", href: "/store" },
-  { id: "blog", label: "Blog", href: "/blog" },
+  // { id: "blog", label: "Blog", href: "/blog" },
   { id: "quiz", label: "Tìm gói phù hợp", href: "/quiz" },
 ];
 
@@ -39,7 +39,7 @@ export const footerColumns: FooterColumn[] = [
       { label: "Về chúng tôi", href: "/about" as Route },
       { label: "Tính năng", href: "/#web-app" as Route },
       { label: "Cửa hàng", href: "/store" as Route },
-      { label: "Blog", href: "/blog" as Route },
+      // { label: "Blog", href: "/blog" as Route },
     ],
   },
   {
