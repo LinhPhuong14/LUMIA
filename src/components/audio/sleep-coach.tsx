@@ -196,7 +196,7 @@ export function SleepCoach() {
 
   return (
     <div
-      className="mb-6 rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5"
+      className="rounded-[20px] border border-[var(--border)] bg-[var(--surface-card)] p-5"
       style={{ color: "var(--foreground)" }}
     >
       {/* Header */}
