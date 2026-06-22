@@ -2014,6 +2014,12 @@ function MediaTab() {
   const [compressionProgress, setCompressionProgress] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AudioTrack | null>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
+
+  // Bulk upload state
+  type BulkItem = { name: string; status: "pending" | "compressing" | "uploading" | "done" | "error"; progress?: number; error?: string };
+  const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const bulkInputRef = useRef<HTMLInputElement>(null);
   const thumbFileRef = useRef<HTMLInputElement>(null);
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
@@ -2115,6 +2121,61 @@ function MediaTab() {
     else showToast("Xóa thất bại.");
   }
 
+  async function handleBulkUpload(files: FileList) {
+    const arr = Array.from(files).filter(f => f.type.startsWith("audio/") || f.type.startsWith("video/"));
+    if (!arr.length) return;
+    setBulkOpen(true);
+    setBulkItems(arr.map(f => ({ name: f.name, status: "pending" })));
+
+    for (let i = 0; i < arr.length; i++) {
+      const raw = arr[i]!;
+      const update = (patch: Partial<BulkItem>) =>
+        setBulkItems(prev => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it));
+
+      try {
+        const THRESHOLD = 10 * 1024 * 1024;
+        let file = raw;
+        if (raw.type.startsWith("audio/") && raw.size > THRESHOLD) {
+          update({ status: "compressing", progress: 0 });
+          file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
+        }
+        update({ status: "uploading", progress: undefined });
+
+        const urlRes = await fetch("/api/admin/upload-media-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        });
+        if (!urlRes.ok) throw new Error("Lỗi lấy URL upload");
+        const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+        if (!await signedUpload(signedUrl, file)) throw new Error("Upload thất bại");
+
+        // Get duration
+        const duration = await new Promise<number>(resolve => {
+          const el = document.createElement("audio");
+          el.preload = "metadata";
+          el.onloadedmetadata = () => resolve(Math.round(el.duration) || 0);
+          el.onerror = () => resolve(0);
+          el.src = publicUrl;
+        });
+
+        // Auto-create track record
+        const base = raw.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
+        const title = base.replace(/\b\w/g, c => c.toUpperCase());
+        const saveRes = await fetch("/api/admin/media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description: "", category: "sleep_sound", duration_seconds: duration, file_url: publicUrl, thumbnail_url: "", is_free: true, sort_order: 0 }),
+        });
+        if (!saveRes.ok) throw new Error("Lưu track thất bại");
+        update({ status: "done" });
+      } catch (e) {
+        update({ status: "error", error: e instanceof Error ? e.message : "Lỗi" });
+      }
+    }
+    loadTracks();
+  }
+
   const allCats = ["Tất cả", ...AUDIO_CATEGORIES.map(c => c.value)];
   const catLabel = (v: string) => AUDIO_CATEGORIES.find(c => c.value === v)?.label ?? v;
 
@@ -2130,11 +2191,55 @@ function MediaTab() {
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setForm({ ...EMPTY_TRACK })}
-          className="button-primary shrink-0 px-4 py-2 text-sm">
-          + Thêm track
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button type="button" onClick={() => bulkInputRef.current?.click()}
+            className="rounded-full border border-[var(--green)] bg-[var(--green-wash)] px-4 py-2 text-sm font-semibold text-[var(--green-deep)] transition hover:bg-[var(--green)]/20">
+            ↑ Upload nhiều file
+          </button>
+          <button type="button" onClick={() => setForm({ ...EMPTY_TRACK })}
+            className="button-primary shrink-0 px-4 py-2 text-sm">
+            + Thêm track
+          </button>
+        </div>
       </div>
+
+      {/* Bulk upload progress panel */}
+      {bulkOpen && bulkItems.length > 0 && (
+        <div className="mb-5 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[13px] font-semibold text-[var(--foreground)]">
+              Đang upload {bulkItems.filter(i => i.status === "done").length}/{bulkItems.length} file
+            </p>
+            {bulkItems.every(i => i.status === "done" || i.status === "error") && (
+              <button type="button" onClick={() => { setBulkOpen(false); setBulkItems([]); }}
+                className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)]">Đóng</button>
+            )}
+          </div>
+          <div className="max-h-[260px] space-y-2 overflow-y-auto">
+            {bulkItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                <span className="text-base">
+                  {item.status === "done" ? "✅" : item.status === "error" ? "❌" : item.status === "compressing" ? "🔄" : item.status === "uploading" ? "⬆️" : "⏳"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{item.name}</p>
+                  <p className="text-[11px] text-[var(--muted)]">
+                    {item.status === "pending" && "Chờ..."}
+                    {item.status === "compressing" && `Đang nén… ${item.progress ?? 0}%`}
+                    {item.status === "uploading" && "Đang tải lên..."}
+                    {item.status === "done" && "Hoàn thành"}
+                    {item.status === "error" && (item.error ?? "Lỗi")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden bulk file input */}
+      <input ref={bulkInputRef} type="file" accept="audio/*,video/*" multiple className="hidden"
+        onChange={e => { if (e.target.files?.length) void handleBulkUpload(e.target.files); e.target.value = ""; }} />
 
       {/* Track list */}
       <div className="space-y-3">
