@@ -85,14 +85,14 @@ function toSnapshot(sub: Subscription | null, physicalBoxStatus: OrderStatus | n
     tier: (sub.tier as TierCode | null) ?? null,
     tierName:
       sub.tier && isValidTierCode(sub.tier) ? getProductTier(sub.tier).name : null,
-    durationMonths: sub.duration_months,
+    durationMonths: null,
     startedAt: sub.started_at,
     expiresAt: sub.expires_at,
     boxOrderId: sub.box_order_id,
     isActive: active,
     daysRemaining: active ? getDaysRemaining(sub.expires_at) : getDaysRemaining(sub.expires_at),
     periodProgress: getPeriodProgress(sub.started_at, sub.expires_at),
-    hasPhysicalBox: sub.has_physical_box ?? false,
+    hasPhysicalBox: false,
     physicalBoxStatus,
   };
 }

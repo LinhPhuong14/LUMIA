@@ -29,8 +29,6 @@ export type Subscription = {
   user_id: string;
   status: SubscriptionStatus;
   tier: string | null;
-  duration_months: number | null;
-  has_physical_box: boolean;
   started_at: string | null;
   expires_at: string | null;
   box_order_id: string | null;

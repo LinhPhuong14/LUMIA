@@ -18,7 +18,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     user_id: id,
     status: "active",
     tier: body.tier,
-    has_physical_box: body.has_physical_box,
     started_at: now.toISOString(),
     expires_at: expires.toISOString(),
   }, { onConflict: "user_id" });
