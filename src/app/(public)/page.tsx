@@ -30,7 +30,7 @@ export default function HomePage() {
       {/* <BlogSection /> */}
       <QuizSection />
       <JoinSection />
-      <FaqSection />
+      {/* <FaqSection /> */}
       <SiteFooter />
     </>
   );
