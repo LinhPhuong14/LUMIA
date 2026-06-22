@@ -10,17 +10,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Unavailable" }, { status: 503 });
   const { id } = await params;
-  const body = await req.json() as { tier: string; duration_months: number; has_physical_box: boolean };
+  const body = await req.json() as { tier: string; duration_months: number };
   const now = new Date();
   const expires = new Date(now);
   expires.setMonth(expires.getMonth() + body.duration_months);
-  const { error } = await admin.from("subscriptions").upsert({
-    user_id: id,
-    status: "active",
+
+  const payload = {
+    status: "active" as const,
     tier: body.tier,
     started_at: now.toISOString(),
     expires_at: expires.toISOString(),
-  }, { onConflict: "user_id" });
+  };
+
+  // Check if a subscription row already exists for this user
+  const { data: existing } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", id)
+    .maybeSingle();
+
+  let error;
+  if (existing?.id) {
+    ({ error } = await admin.from("subscriptions").update(payload).eq("id", existing.id));
+  } else {
+    ({ error } = await admin.from("subscriptions").insert({ user_id: id, ...payload }));
+  }
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
