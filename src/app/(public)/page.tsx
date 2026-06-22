@@ -19,10 +19,10 @@ export default function HomePage() {
     <>
       <FloatingNavbar />
       <HeroSection />
-      <CategoriesSection />
+      <PromoSection />
+      {/* <CategoriesSection /> */}
       <RitualAccordionSection />
       <BoxesShowcaseSection />
-      <PromoSection />
       <ProductsCarouselSection />
       <AiListeningSection />
       <WebappDemoSection />
