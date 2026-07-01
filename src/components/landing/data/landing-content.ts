@@ -212,6 +212,12 @@ export const landingBoxCards: LandingBoxCard[] = [
   },
 ];
 
+/** Presentation metadata (icon, gradient, blurb…) keyed by tier slug, so DB-backed
+ *  plans can be merged with the static visual identity for each tier. */
+export const boxCardBySlug: Record<string, LandingBoxCard> = Object.fromEntries(
+  landingBoxCards.map((box) => [box.slug, box]),
+);
+
 export const statsTiles = [
   { n: "21", u: "ngày", l: "Hành trình ngủ sâu", grad: "var(--gradient-emerald)" },
   { n: "4M+", u: "phút", l: "Tĩnh lặng đã đi qua", grad: "var(--gradient-jade)" },

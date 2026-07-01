@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { ClipboardList, Feather, MessageCircle, Music, SmilePlus, Wind } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
@@ -8,7 +9,12 @@ import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
 import { HubInsightsStatRow } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import { StoreWidget } from "@/components/dashboard/store-widget";
-import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
+import type {
+  ChartPoint,
+  DashboardInsights,
+  RecommendedTrack,
+} from "@/lib/dashboard-insights";
+import { formatTrackMeta } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
 import { getDashboardGreeting } from "@/lib/time-greeting";
 
@@ -58,6 +64,7 @@ type HubProps = {
   chartDays: ChartPoint[];
   chartAverage: number | null;
   suggestion?: string;
+  recommendedTrack?: RecommendedTrack | null;
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
@@ -72,6 +79,7 @@ export function HubMobile({
   chartDays,
   chartAverage,
   suggestion,
+  recommendedTrack,
   selectedScore,
   savedScore,
   savedNote,
@@ -81,6 +89,7 @@ export function HubMobile({
 }: HubProps) {
   const greeting = getDashboardGreeting(userName);
   const streak = insights?.streak.current ?? 0;
+  const track = recommendedTrack ?? null;
 
   return (
     <div className="space-y-4 pb-2">
@@ -118,11 +127,11 @@ export function HubMobile({
                 </p>
               )}
               <h2 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-white">
-                Thung lũng sương
+                {track?.title ?? "Thư viện âm thanh"}
               </h2>
-              <p className="mt-1 text-[13px] text-white/80">Soundscape · 18 phút</p>
+              <p className="mt-1 text-[13px] text-white/80">{formatTrackMeta(track)}</p>
               <Link
-                href="/audio/sleep"
+                href={(track?.href ?? "/audio/sleep") as Route}
                 className="dash-accent-btn mt-4 w-full py-3.5"
                 style={{ background: "var(--gradient-primary)" }}
               >

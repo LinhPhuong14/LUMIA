@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { ClipboardList, Play, SmilePlus } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
@@ -9,7 +10,12 @@ import { HubInsightsRow } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import { StoreWidget } from "@/components/dashboard/store-widget";
-import type { ChartPoint, DashboardInsights } from "@/lib/dashboard-insights";
+import type {
+  ChartPoint,
+  DashboardInsights,
+  RecommendedTrack,
+} from "@/lib/dashboard-insights";
+import { formatTrackMeta } from "@/lib/dashboard-insights";
 import type { MoodScore } from "@/lib/mood-constants";
 
 type HubProps = {
@@ -17,6 +23,7 @@ type HubProps = {
   chartDays: ChartPoint[];
   chartAverage: number | null;
   suggestion?: string;
+  recommendedTrack?: RecommendedTrack | null;
   selectedScore: MoodScore | null;
   savedScore: number | null;
   savedNote?: string | null;
@@ -30,6 +37,7 @@ export function HubDesktop({
   chartDays,
   chartAverage,
   suggestion,
+  recommendedTrack,
   selectedScore,
   savedScore,
   savedNote,
@@ -38,6 +46,7 @@ export function HubDesktop({
   submitting,
 }: HubProps) {
   const hasCheckedIn = savedScore !== null;
+  const track = recommendedTrack ?? null;
 
   return (
     <div className="space-y-[18px]">
@@ -59,11 +68,13 @@ export function HubDesktop({
                     </p>
                   )}
                   <h2 className="font-serif text-[24px] font-medium leading-tight tracking-[-0.02em] text-white xl:text-[27px]">
-                    Thung lũng sương
+                    {track?.title ?? "Thư viện âm thanh"}
                   </h2>
-                  <p className="mt-1 text-[13px] text-[var(--scene-ink-muted)]">Soundscape · 18 phút</p>
+                  <p className="mt-1 text-[13px] text-[var(--scene-ink-muted)]">
+                    {formatTrackMeta(track)}
+                  </p>
                 </div>
-                <Link href="/audio/sleep" className="dash-accent-btn shrink-0">
+                <Link href={(track?.href ?? "/audio/sleep") as Route} className="dash-accent-btn shrink-0">
                   <Play className="h-4 w-4" fill="currentColor" />
                   Bắt đầu
                 </Link>

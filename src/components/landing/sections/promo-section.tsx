@@ -20,7 +20,7 @@ async function getFirstTimePlan(): Promise<PromoPlan | null> {
     .from("subscription_plans")
     .select("id,name,description,price_vnd,duration_months,features,box_image_url")
     .eq("is_active", true)
-    .in("group", ["promo"])
+    .in("group_name", ["promo"])
     .order("price_vnd", { ascending: true })
     .limit(1)
     .maybeSingle();

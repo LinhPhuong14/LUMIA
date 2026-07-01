@@ -26,7 +26,23 @@ export type DashboardInsights = {
     topTypeLabel: string | null;
   };
   suggestion: string;
+  recommendedTrack?: RecommendedTrack | null;
 };
+
+export type RecommendedTrack = {
+  title: string;
+  categoryLabel: string;
+  durationSeconds: number | null;
+  href: string;
+};
+
+/** Renders the "{Category} · {n} phút" subtitle for a recommended track. */
+export function formatTrackMeta(track: RecommendedTrack | null): string {
+  if (!track) return "Thư viện âm thanh";
+  const minutes =
+    track.durationSeconds != null ? Math.max(1, Math.round(track.durationSeconds / 60)) : null;
+  return minutes != null ? `${track.categoryLabel} · ${minutes} phút` : track.categoryLabel;
+}
 
 const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"] as const;
 

@@ -122,6 +122,7 @@ export function DashboardHome({
     chartDays,
     chartAverage: chartAvg,
     suggestion,
+    recommendedTrack: insights?.recommendedTrack ?? null,
     selectedScore,
     savedScore,
     savedNote,
