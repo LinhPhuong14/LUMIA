@@ -10,6 +10,13 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
+  // Provider-side error (e.g. user cancelled the Google consent screen)
+  const providerError = searchParams.get("error");
+  if (providerError) {
+    const reason = providerError === "access_denied" ? "oauth_denied" : "oauth_failed";
+    return NextResponse.redirect(new URL(`/login?error=${reason}`, origin));
+  }
+
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=oauth_missing_code", origin));
   }

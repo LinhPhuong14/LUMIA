@@ -34,8 +34,8 @@ function fieldCls(err: string | null) {
   return err ? "border-red-400 focus:ring-red-200" : "";
 }
 
-export function AuthForm({ mode, next = "/dashboard" }: { mode: AuthMode; next?: string }) {
-  const [serverError, setServerError] = useState<string | null>(null);
+export function AuthForm({ mode, next = "/dashboard", initialError = null }: { mode: AuthMode; next?: string; initialError?: string | null }) {
+  const [serverError, setServerError] = useState<string | null>(initialError);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [showPassword, setShowPassword] = useState(false);

@@ -1,12 +1,14 @@
 import { AuthForm } from "@/components/auth/auth-form";
+import { authErrorMessage } from "@/lib/auth-errors";
 import { defaultLoginNext } from "@/lib/site-nav";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const errorMsg = authErrorMessage(params.error);
 
   return (
     <div className="auth-page-grid grid w-full gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-start">
@@ -30,7 +32,7 @@ export default async function LoginPage({
       </section>
 
       <div className="hero-card flex w-full flex-col">
-        <AuthForm mode="login" next={params.next ?? defaultLoginNext} />
+        <AuthForm mode="login" next={params.next ?? defaultLoginNext} initialError={errorMsg} />
       </div>
     </div>
   );
