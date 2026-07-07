@@ -68,17 +68,26 @@ export function AuthForm({ mode, next = "/dashboard", initialError = null }: { m
     if (!canOAuth) return;
     setOauthLoading(provider);
     setServerError(null);
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    console.log("[oauth-signin] start", { provider, origin: window.location.origin, redirectTo });
     try {
       const supabase = createClient();
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+        options: { redirectTo },
+      });
+      console.log("[oauth-signin] result", {
+        authorizeUrl: data?.url ?? null,
+        error: oauthError ? { message: oauthError.message, status: oauthError.status, code: oauthError.code } : null,
+        cookies: document.cookie.split("; ").map((c) => c.split("=")[0]).filter((n) => n.startsWith("sb-")),
       });
       if (oauthError) {
-        setServerError("Đăng nhập qua mạng xã hội thất bại. Vui lòng thử lại.");
+        setServerError(`Đăng nhập Google thất bại: ${oauthError.message}`);
         setOauthLoading(null);
       }
-    } catch {
+      // On success the SDK redirects the browser to data.url automatically.
+    } catch (err) {
+      console.error("[oauth-signin] threw", err);
       setServerError("Đã có lỗi xảy ra. Vui lòng thử lại.");
       setOauthLoading(null);
     }

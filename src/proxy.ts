@@ -48,7 +48,17 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = await getSessionFromRequest(request);
 
+  const sbCookies = request.cookies.getAll().map((c) => c.name).filter((n) => n.startsWith("sb-"));
+  console.log("[proxy]", {
+    pathname,
+    host: request.headers.get("host"),
+    hasUser: Boolean(session?.user),
+    role: session?.role ?? null,
+    sbCookies,
+  });
+
   if (authRoutes.some((route) => pathname.startsWith(route)) && !session?.user) {
+    console.warn("[proxy] no user on protected route → redirect /login", { pathname, sbCookies });
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
