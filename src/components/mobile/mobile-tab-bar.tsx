@@ -15,12 +15,13 @@ export function isMoreRouteActive(pathname: string) {
 
 export function MobileTabBar({ onMoreOpen }: { onMoreOpen?: () => void }) {
   const pathname = usePathname();
-  const moreActive = isMoreRouteActive(pathname) && !mobileTabs.some((t) => isNavActive(pathname, t.href as string));
+  const tabHrefs = mobileTabs.map((t) => t.href as string);
+  const moreActive = isMoreRouteActive(pathname) && !mobileTabs.some((t) => isNavActive(pathname, t.href as string, tabHrefs));
 
   return (
     <nav className="mobile-tab-bar-floating lg:hidden" aria-label="Điều hướng chính">
       {mobileTabs.map((item) => {
-        const active = isNavActive(pathname, item.href as string);
+        const active = isNavActive(pathname, item.href as string, tabHrefs);
         const Icon = item.icon;
         return (
           <Link

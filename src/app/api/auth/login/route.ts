@@ -46,5 +46,12 @@ export async function POST(request: Request) {
     if (profile?.role === "admin") redirect = "/admin";
   }
 
+  // Honor an explicit, safe relative `next` (e.g. the /oauth/consent flow).
+  // Ignore the bare default so admins still land on /admin from a plain login.
+  const rawNext = typeof body?.next === "string" ? body.next : null;
+  if (rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") && rawNext !== "/dashboard") {
+    redirect = rawNext;
+  }
+
   return NextResponse.json({ ok: true, redirect });
 }

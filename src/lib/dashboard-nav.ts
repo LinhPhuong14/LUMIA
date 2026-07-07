@@ -5,6 +5,7 @@ import {
   Flower2,
   MessageCircle,
   Moon,
+  Music,
   Route as RouteIcon,
   ShoppingBag,
   Sun,
@@ -33,6 +34,7 @@ export const desktopNav: DashboardNavItem[] = [
 
 export const mobileTabs: DashboardNavItem[] = [
   { id: "tonight", href: "/dashboard", label: "Tối nay", mobileLabel: "Tối nay", icon: Moon, mobileTab: true },
+  { id: "audio", href: "/audio", label: "Âm thanh", mobileLabel: "Âm thanh", icon: Music, mobileTab: true },
   { id: "meditation", href: "/audio/meditation", label: "Thiền", mobileLabel: "Thiền", icon: Flower2, mobileTab: true },
   { id: "journal", href: "/journal", label: "Nhật ký", mobileLabel: "Nhật ký", icon: Feather, mobileTab: true },
   { id: "journey", href: "/journey", label: "Hành trình", mobileLabel: "Hành trình", icon: RouteIcon, mobileTab: true },

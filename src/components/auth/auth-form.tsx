@@ -105,7 +105,7 @@ export function AuthForm({ mode, next = "/dashboard", initialError = null }: { m
 
     const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
     const payload = mode === "login"
-      ? { email, password }
+      ? { email, password, next }
       : { name, email, password };
 
     const response = await fetch(endpoint, {
