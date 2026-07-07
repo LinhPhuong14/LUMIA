@@ -65,10 +65,12 @@ function Toggle({
 export function SettingsPanel({
   initialGoal,
   userName,
+  initialNickname,
   userEmail,
 }: {
   initialGoal: OnboardingGoal | null;
   userName: string;
+  initialNickname: string | null;
   userEmail: string;
 }) {
   const router = useRouter();
@@ -93,6 +95,8 @@ export function SettingsPanel({
   const [nameSaving, setNameSaving] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
   const nameErr = nameTouched ? validateName(nameVal) : null;
+  const [nickVal, setNickVal] = useState(initialNickname ?? "");
+  const [nickSaving, setNickSaving] = useState(false);
   const [pwResetSent, setPwResetSent] = useState(false);
 
   const toggleSections = useMemo(
@@ -134,6 +138,23 @@ export function SettingsPanel({
     });
     setNameSaving(false);
     setSaved("Đã cập nhật tên.");
+    router.refresh();
+    setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2000);
+  }
+
+  async function saveNickname() {
+    const trimmed = nickVal.trim();
+    if (!trimmed) return;
+    setNickSaving(true);
+    await fetch("/api/me/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname: trimmed }),
+    });
+    setNickSaving(false);
+    setSaved("Đã cập nhật biệt danh.");
+    // Refresh so greetings / chatbot pick up the new nickname immediately.
+    router.refresh();
     setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2000);
   }
 
@@ -297,6 +318,30 @@ export function SettingsPanel({
       <section className="dash-panel p-5">
         <span className="eyebrow">Tài khoản</span>
         <div className="mt-4 space-y-3">
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+              LUMIA gọi bạn là
+            </label>
+            <input
+              value={nickVal}
+              onChange={(e) => setNickVal(e.target.value)}
+              placeholder="Ví dụ: Linh, Minh, An..."
+              className="w-full rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-2.5 text-[13px] text-[var(--foreground)] outline-none focus:border-[var(--green)]"
+            />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              Tên này được dùng cho lời chào và khi LUMIA trò chuyện với bạn.
+            </p>
+            {nickVal.trim() && nickVal.trim() !== (initialNickname ?? "") && (
+              <button
+                type="button"
+                onClick={saveNickname}
+                disabled={nickSaving}
+                className="button-primary mt-2 text-[12px] disabled:opacity-60"
+              >
+                {nickSaving ? "Đang lưu..." : "Lưu biệt danh"}
+              </button>
+            )}
+          </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">Họ tên</label>
             <input

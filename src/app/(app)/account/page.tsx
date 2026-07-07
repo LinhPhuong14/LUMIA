@@ -46,7 +46,8 @@ export default async function AccountPage({
       {activeTab === "settings" && (
         <SettingsPanel
           initialGoal={session.onboardingGoal}
-          userName={session.name}
+          userName={session.fullName}
+          initialNickname={session.nickname}
           userEmail={session.email}
         />
       )}

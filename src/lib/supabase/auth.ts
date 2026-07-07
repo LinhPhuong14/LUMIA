@@ -8,7 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 export type SessionUser = {
   id: string;
   email: string;
+  /** Display name used everywhere (greetings, chatbot, sidebar). Prefers the onboarding nickname. */
   name: string;
+  /** The formal account name (profiles.full_name) — used only on the account/settings screen. */
+  fullName: string;
+  /** The nickname the user chose in onboarding ("LUMIA gọi bạn là gì"). */
+  nickname: string | null;
   role: UserRole;
   onboardingGoal: OnboardingGoal | null;
 };
@@ -29,16 +34,23 @@ export async function getSession(): Promise<SessionUser | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, onboarding_goal, email")
+    .select("full_name, nickname, role, onboarding_goal, email")
     .eq("id", user.id)
     .maybeSingle();
 
-  const row = profile as Pick<Profile, "full_name" | "role" | "onboarding_goal" | "email"> | null;
+  const row = profile as Pick<Profile, "full_name" | "nickname" | "role" | "onboarding_goal" | "email"> | null;
+
+  const fullName =
+    row?.full_name ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Bạn";
+  const nickname = row?.nickname?.trim() ? row.nickname.trim() : null;
 
   return {
     id: user.id,
     email: row?.email ?? user.email ?? "",
-    name: row?.full_name ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Bạn",
+    // Nickname wins for all casual displays; fall back to the account name.
+    name: nickname ?? fullName,
+    fullName,
+    nickname,
     role: row?.role ?? "user",
     onboardingGoal: row?.onboarding_goal ?? null,
   };

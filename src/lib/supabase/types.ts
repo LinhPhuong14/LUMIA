@@ -18,6 +18,7 @@ export type Profile = {
   id: string;
   email: string | null;
   full_name: string | null;
+  nickname: string | null;
   avatar_url: string | null;
   role: UserRole;
   onboarding_goal: OnboardingGoal | null;
