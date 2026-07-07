@@ -5,10 +5,12 @@ import { defaultLoginNext } from "@/lib/site-nav";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; detail?: string }>;
 }) {
   const params = await searchParams;
-  const errorMsg = authErrorMessage(params.error);
+  const baseMsg = authErrorMessage(params.error);
+  // Show the raw server reason (from ?detail=) while debugging OAuth.
+  const errorMsg = baseMsg && params.detail ? `${baseMsg} (${params.detail})` : baseMsg;
 
   return (
     <div className="auth-page-grid grid w-full gap-6 lg:grid-cols-[1fr_0.94fr] lg:items-start">

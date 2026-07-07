@@ -78,7 +78,11 @@ export async function GET(request: NextRequest) {
       // fails with "invalid request" / "code verifier" errors.
       sawVerifierCookie: request.cookies.getAll().some((c) => c.name.includes("code-verifier")),
     });
-    return NextResponse.redirect(new URL("/login?error=oauth_failed", origin));
+    // Surface the real reason in the URL so it can be read without server logs.
+    const detail = encodeURIComponent(
+      `${error?.code ?? error?.status ?? "no_user"}: ${error?.message ?? "no user returned"}`.slice(0, 300),
+    );
+    return NextResponse.redirect(new URL(`/login?error=oauth_failed&detail=${detail}`, origin));
   }
 
   const user = data.user;
