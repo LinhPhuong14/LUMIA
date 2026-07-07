@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AiListeningSection } from "@/components/landing/sections/ai-listening-section";
 // import { BlogSection } from "@/components/landing/sections/blog-section";
 import { BoxesShowcaseSection } from "@/components/landing/sections/boxes-showcase-section";
@@ -14,7 +16,24 @@ import { FloatingNavbar } from "@/components/landing/shared/floating-navbar";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { SiteFooter } from "@/components/marketing/site-footer";
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; error?: string; next?: string }>;
+}) {
+  const params = await searchParams;
+
+  // Safety net: if Supabase OAuth fell back to the Site URL (this landing page)
+  // instead of /auth/callback, forward the code so login still completes.
+  if (params.code) {
+    const next = params.next ?? "/dashboard";
+    redirect(`/auth/callback?code=${encodeURIComponent(params.code)}&next=${encodeURIComponent(next)}`);
+  }
+  if (params.error) {
+    const reason = params.error === "access_denied" ? "oauth_denied" : "oauth_failed";
+    redirect(`/login?error=${reason}`);
+  }
+
   return (
     <>
       <FloatingNavbar />
