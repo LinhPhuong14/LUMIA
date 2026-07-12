@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { ShoppingBag, ChevronRight, Sparkles } from "lucide-react";
@@ -7,8 +8,29 @@ import { ShoppingBag, ChevronRight, Sparkles } from "lucide-react";
 import { getAllPurchasableProducts } from "@/data/catalog";
 import { Panel } from "@/components/dashboard/shell/panel";
 
+type PlanLite = { id: string; name?: string | null; price_vnd?: number | null; is_featured?: boolean | null };
+
 export function StoreWidget() {
-  const allPlans = getAllPurchasableProducts();
+  const [dbPlans, setDbPlans] = useState<Record<string, PlanLite>>({});
+
+  useEffect(() => {
+    fetch("/api/store/plans")
+      .then((r) => r.json())
+      .then((data: PlanLite[]) => {
+        const map: Record<string, PlanLite> = {};
+        (Array.isArray(data) ? data : []).forEach((p) => { if (p.id) map[p.id] = p; });
+        setDbPlans(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Overlay admin-managed price/name from the DB onto the static plans.
+  const allPlans = getAllPurchasableProducts().map((b) => {
+    const p = dbPlans[b.tier];
+    return p
+      ? { ...b, name: p.name ?? b.name, price: typeof p.price_vnd === "number" ? p.price_vnd : b.price, featured: p.is_featured ?? b.featured }
+      : b;
+  });
   const promoBox = allPlans.find((b) => b.group === "promo");
   const digitalPlans = allPlans.filter((b) => b.group === "digital").slice(0, 2);
   const boxes = [...(promoBox ? [promoBox] : []), ...digitalPlans].slice(0, 3);

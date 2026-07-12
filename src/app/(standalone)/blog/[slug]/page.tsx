@@ -2,25 +2,75 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Clock, Tag } from "lucide-react";
-import { getBlogPost, BLOG_POSTS } from "@/data/blog-posts";
 
-export function generateStaticParams() {
-  return BLOG_POSTS.map((p) => ({ slug: p.slug }));
+import { createClient } from "@/lib/supabase/server";
+import { getBlogPost } from "@/data/blog-posts";
+
+export const revalidate = 60;
+
+type Post = {
+  title: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  emoji: string;
+  coverColor: string;
+  readTime: number;
+  publishedAt: string;
+};
+
+/** Fetch a published post from the DB (admin-managed) by slug; fall back to the
+ *  static seed content so pre-DB posts still render. */
+async function getPost(slug: string): Promise<Post | null> {
+  const supabase = await createClient();
+  if (supabase) {
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("title,excerpt,content,category,emoji,cover_color,read_time,published_at")
+      .eq("slug", slug)
+      .eq("published", true)
+      .maybeSingle();
+    if (data) {
+      return {
+        title: data.title,
+        excerpt: data.excerpt,
+        content: data.content ?? "",
+        category: data.category,
+        emoji: data.emoji,
+        coverColor: data.cover_color,
+        readTime: data.read_time,
+        publishedAt: data.published_at,
+      };
+    }
+  }
+  const s = getBlogPost(slug);
+  if (!s) return null;
+  return {
+    title: s.title,
+    excerpt: s.excerpt,
+    content: s.content ?? s.excerpt,
+    category: s.category,
+    emoji: s.emoji,
+    coverColor: s.coverColor,
+    readTime: s.readTime,
+    publishedAt: s.publishedAt,
+  };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPost(slug);
+  const post = await getPost(slug);
   if (!post) return {};
   return { title: `${post.title} | LUMIA Blog`, description: post.excerpt };
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const post = getBlogPost(slug);
-  if (!post) notFound();
+/** Admin RichEditor stores HTML; the static seed uses a lightweight markdown. */
+function isHtml(s: string) {
+  return /<(p|h[1-6]|div|br|ul|ol|li|strong|em|img|blockquote|a)\b/i.test(s);
+}
 
-  const paragraphs = (post.content ?? post.excerpt).split("\n\n").map((block, i) => {
+function renderMarkdown(content: string) {
+  return content.split("\n\n").map((block, i) => {
     if (block.startsWith("**") && block.endsWith("**")) {
       return <h3 key={i} className="mt-8 font-serif text-[20px] font-semibold text-[var(--foreground)]">{block.slice(2, -2)}</h3>;
     }
@@ -35,6 +85,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     const html = block.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     return <p key={i} className="mt-4 text-[15px] leading-[1.85] text-[var(--muted)]" dangerouslySetInnerHTML={{ __html: html }} />;
   });
+}
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  if (!post) notFound();
+
+  const content = post.content?.trim() ? post.content : post.excerpt;
 
   return (
     <main className="marketing-page landing-page">
@@ -62,7 +120,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <p className="mt-3 text-[15px] leading-relaxed font-medium" style={{ color: "var(--green-deep)" }}>{post.excerpt}</p>
 
           <div className="mt-8 border-t border-[var(--border)] pt-8">
-            {paragraphs}
+            {isHtml(content) ? (
+              <div
+                className="text-[15px] leading-[1.85] text-[var(--muted)] [&_a]:text-[var(--green-deep)] [&_a]:underline [&_h1]:mt-8 [&_h1]:font-serif [&_h1]:text-2xl [&_h1]:text-[var(--foreground)] [&_h2]:mt-8 [&_h2]:font-serif [&_h2]:text-xl [&_h2]:text-[var(--foreground)] [&_h3]:mt-6 [&_h3]:font-serif [&_h3]:text-lg [&_h3]:text-[var(--foreground)] [&_img]:my-6 [&_img]:rounded-2xl [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_strong]:text-[var(--foreground)] [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6"
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
+            ) : (
+              renderMarkdown(content)
+            )}
           </div>
 
           <div className="mt-12 rounded-[24px] border border-[var(--border)] bg-[var(--surface-card)] p-8 text-center">

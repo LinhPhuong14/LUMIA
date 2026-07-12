@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { CheckoutPanel } from "@/components/checkout/checkout-panel";
 import { getProductBySlug } from "@/data/catalog";
+import { withDbPricing } from "@/lib/plans-db";
 import { getSession } from "@/lib/supabase/auth";
 
 const steps = ["Chọn gói", "Thanh toán", "Xong"] as const;
@@ -16,11 +17,13 @@ export default async function CheckoutPage({
 }) {
   const session = await getSession();
   const params = await searchParams;
-  const product = getProductBySlug(params.slug ?? "first-time-user");
+  const staticProduct = getProductBySlug(params.slug ?? "first-time-user");
 
-  if (!product) {
+  if (!staticProduct) {
     redirect("/store");
   }
+
+  const product = await withDbPricing(staticProduct);
 
   return (
     <main className="shell py-8 md:py-12">

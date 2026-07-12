@@ -2,8 +2,11 @@ import { notFound } from "next/navigation";
 
 import { CheckoutPanel } from "@/components/checkout/checkout-panel";
 import { getAllPurchasableProducts, getProductBySlug } from "@/data/catalog";
+import { withDbPricing } from "@/lib/plans-db";
 import { hasUserBoughtFirstTime } from "@/lib/subscriptions";
 import { getSession } from "@/lib/supabase/auth";
+
+export const revalidate = 60;
 
 export function generateStaticParams() {
   return getAllPurchasableProducts().map((box) => ({ slug: box.slug }));
@@ -11,11 +14,14 @@ export function generateStaticParams() {
 
 export default async function BoxDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const staticProduct = getProductBySlug(slug);
 
-  if (!product) {
+  if (!staticProduct) {
     notFound();
   }
+
+  // Overlay admin-managed price/name/features from the DB.
+  const product = await withDbPricing(staticProduct);
 
   const session = await getSession();
   const firstTimeUnavailable =

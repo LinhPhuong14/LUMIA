@@ -44,6 +44,18 @@ type StoreProduct = {
 
 type PlanTab = "digital" | "hybrid";
 
+/** Admin-managed plan fields from /api/store/plans (subscription_plans). */
+type DbPlanLite = {
+  id: string;
+  name?: string | null;
+  price_vnd?: number | null;
+  duration_months?: number | null;
+  features?: string[] | null;
+  is_featured?: boolean | null;
+  is_first_time_only?: boolean | null;
+  box_image_url?: string | null;
+};
+
 const TIER_EMOJI: Record<string, string> = {
   first_time: "🎁",
   standard: "📱",
@@ -476,15 +488,15 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showAllProducts, setShowAllProducts] = useState(false);
-  const [dbPlanImages, setDbPlanImages] = useState<Record<string, string>>({});
+  const [dbPlans, setDbPlans] = useState<Record<string, DbPlanLite>>({});
 
   useEffect(() => {
     fetch("/api/store/plans")
       .then(r => r.json())
-      .then((data: Array<{ id: string; box_image_url?: string | null }>) => {
-        const map: Record<string, string> = {};
-        data.forEach(p => { if (p.id && p.box_image_url) map[p.id] = p.box_image_url; });
-        setDbPlanImages(map);
+      .then((data: DbPlanLite[]) => {
+        const map: Record<string, DbPlanLite> = {};
+        (Array.isArray(data) ? data : []).forEach(p => { if (p.id) map[p.id] = p; });
+        setDbPlans(map);
       })
       .catch(() => {});
   }, []);
@@ -517,7 +529,19 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
       .finally(() => setLoadingProducts(false));
   }, [category, debouncedSearch]);
 
-  const allBoxes = getAllPurchasableProducts();
+  // Overlay admin-managed price/name/features from the DB onto each static box.
+  const allBoxes = getAllPurchasableProducts().map((b) => {
+    const p = dbPlans[b.tier];
+    if (!p) return b;
+    const feats = Array.isArray(p.features) ? p.features : [];
+    return {
+      ...b,
+      name: p.name ?? b.name,
+      price: typeof p.price_vnd === "number" ? p.price_vnd : b.price,
+      features: feats.length > 0 ? feats : b.features,
+      featured: p.is_featured ?? b.featured,
+    } satisfies BoxProduct;
+  });
   const promoBox = allBoxes.find((b) => b.group === "promo");
   const planBoxes = allBoxes.filter((b) =>
     planTab === "digital" ? b.group === "digital" : b.group === "hybrid",
@@ -691,7 +715,7 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
             className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
           >
             {filteredPlans.length > 0 ? (
-              filteredPlans.map((box, i) => <PlanCard key={box.slug} box={box} index={i} boxImageUrl={dbPlanImages[box.tier]} />)
+              filteredPlans.map((box, i) => <PlanCard key={box.slug} box={box} index={i} boxImageUrl={dbPlans[box.tier]?.box_image_url ?? undefined} />)
             ) : (
               <div className="col-span-full flex flex-col items-center gap-3 py-12 text-center">
                 <span className="text-4xl opacity-30">🔍</span>

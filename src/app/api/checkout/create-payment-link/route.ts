@@ -4,6 +4,7 @@ import { getProductBySlug } from "@/data/catalog";
 import { env, hasPayOSConfig, hasSupabaseConfig, hasSupabaseServiceRole } from "@/lib/env";
 import { createOrder } from "@/lib/orders";
 import { isValidTierCode } from "@/lib/product-tiers";
+import { getDbPlanByTier } from "@/lib/plans-db";
 import { getPayOSClient } from "@/lib/payos";
 import { hasUserBoughtFirstTime } from "@/lib/subscriptions";
 import { getSession } from "@/lib/supabase/auth";
@@ -60,6 +61,11 @@ export async function POST(request: Request) {
   if (!product) {
     return NextResponse.json({ error: "Gói sản phẩm không hợp lệ." }, { status: 400 });
   }
+
+  // Charge the admin-managed DB price (subscription_plans) when it exists so
+  // price edits in /admin take effect; fall back to the static tier price.
+  const dbPlan = await getDbPlanByTier(product.tier);
+  const chargeAmount = dbPlan?.price_vnd ?? product.price;
 
   if (product.tier === "first_time" && (await hasUserBoughtFirstTime(session.id))) {
     return NextResponse.json(
@@ -137,7 +143,7 @@ export async function POST(request: Request) {
     dbOrder = await createOrder({
       userId: session.id,
       payosOrderId: String(orderCode),
-      amount: product.price,
+      amount: chargeAmount,
       tier: product.tier,
       shipping: product.physicalItems.length > 0 ? shipping : undefined,
     });
@@ -149,13 +155,13 @@ export async function POST(request: Request) {
   try {
     const paymentLink = await payos.paymentRequests.create({
       orderCode,
-      amount: product.price,
+      amount: chargeAmount,
       description: description.slice(0, 25),
       returnUrl,
       cancelUrl,
       buyerEmail: session.email,
       buyerName: session.name,
-      items: [{ name: product.name.slice(0, 25), quantity: 1, price: product.price }],
+      items: [{ name: product.name.slice(0, 25), quantity: 1, price: chargeAmount }],
     });
 
     return NextResponse.json({

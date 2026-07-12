@@ -8,7 +8,8 @@ export async function GET() {
   if (!supabase) return NextResponse.json([]);
   const { data } = await supabase
     .from("subscription_plans")
-    .select("id,box_image_url")
-    .eq("is_active", true);
+    .select("id,name,price_vnd,duration_months,features,is_featured,is_first_time_only,box_image_url")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
   return NextResponse.json(data ?? []);
 }
