@@ -29,19 +29,28 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const apply = searchParams.get("apply") === "1";
+  // force=1: settle WITHOUT PayOS confirmation (use when payment landed in the
+  // bank directly and PayOS never matched it — the merchant vouches it's paid).
+  const force = searchParams.get("force") === "1";
+  const idsParam = searchParams.get("ids");
+  const onlyIds = idsParam ? idsParam.split(",").map((s) => s.trim()).filter(Boolean) : null;
   const from = searchParams.get("from") ?? "2026-07-11";
   const to = searchParams.get("to") ?? "2026-07-13";
   const fromTs = `${from}T00:00:00+07:00`;
   const toTs = `${to}T00:00:00+07:00`;
 
-  const { data: pending, error } = await admin
+  let pendingQuery = admin
     .from("orders")
     .select("id, payos_order_id, amount, tier, user_id, created_at, status")
     .eq("status", "pending_payment")
     .gte("created_at", fromTs)
     .lt("created_at", toTs)
     .order("created_at", { ascending: true });
+  if (onlyIds) {
+    pendingQuery = pendingQuery.in("id", onlyIds);
+  }
 
+  const { data: pending, error } = await pendingQuery;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -56,8 +65,9 @@ export async function GET(request: Request) {
       continue;
     }
     try {
-      const link = await payos.paymentRequests.get(Number(o.payos_order_id));
-      if (link.status === "PAID") {
+      // force skips the PayOS check and treats the order as paid.
+      const isPaid = force ? true : (await payos.paymentRequests.get(Number(o.payos_order_id))).status === "PAID";
+      if (isPaid) {
         if (apply) {
           await settleOrderPaid(String(o.payos_order_id));
         }
@@ -66,11 +76,11 @@ export async function GET(request: Request) {
           payosOrderId: o.payos_order_id,
           tier: o.tier,
           amount: o.amount,
-          amountPaid: link.amountPaid,
           createdAt: o.created_at,
+          via: force ? "force" : "payos",
         });
       } else {
-        stillUnpaid.push({ orderId: o.id, tier: o.tier, amount: o.amount, payosStatus: link.status });
+        stillUnpaid.push({ orderId: o.id, tier: o.tier, amount: o.amount });
       }
     } catch (e) {
       errors.push({ orderId: o.id, payosOrderId: o.payos_order_id, reason: String(e) });
@@ -78,12 +88,14 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    mode: apply ? "APPLIED" : "DRY_RUN (add ?apply=1 to settle)",
+    mode: `${apply ? "APPLIED" : "DRY_RUN (add ?apply=1)"}${force ? " · FORCE (no PayOS check)" : ""}`,
     range: { from: fromTs, to: toTs },
+    filteredByIds: onlyIds ?? undefined,
     totalPending: pending?.length ?? 0,
     settledCount: settled.length,
     stillUnpaidCount: stillUnpaid.length,
     errorCount: errors.length,
+    settledAmount: settled.reduce<number>((s, x) => s + ((x as { amount?: number }).amount ?? 0), 0),
     settled,
     stillUnpaid,
     errors,
