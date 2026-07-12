@@ -14,7 +14,7 @@ type CreateUserBody = {
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
     return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
     return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 

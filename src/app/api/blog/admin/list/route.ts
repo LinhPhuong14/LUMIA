@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // GET /api/blog/admin/list — all posts (draft + published), admin only
 export async function GET() {
@@ -9,7 +10,12 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  // Role + data via service role: the RLS-scoped read returns empty under the
+  // current ES256 JWT setup, which was 403'ing real admins.
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: "unavailable" }, { status: 503 });
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -17,7 +23,7 @@ export async function GET() {
 
   if (profile?.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("blog_posts")
     .select("id,slug,title,excerpt,category,emoji,cover_color,read_time,published,published_at,created_at")
     .order("created_at", { ascending: false });

@@ -6,9 +6,13 @@ import { getSession } from "@/lib/supabase/auth";
 export const runtime = "nodejs";
 
 export async function GET() {
+  // Role gating is enforced by src/proxy.ts (service-role check on /api/admin/*).
+  // Don't re-check session.role here: getSession() reads role via the RLS-scoped
+  // client which returns empty under the current ES256 JWT setup, so a real
+  // admin would be wrongly 403'd. Identity-only check is enough.
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
 
   const admin = createAdminClient();

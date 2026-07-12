@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // POST /api/blog/admin — create or update a post (admin only)
 export async function POST(req: Request) {
@@ -9,7 +10,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  // Role + writes via service role (RLS-scoped reads return empty under ES256 JWT).
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: "unavailable" }, { status: 503 });
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -52,14 +57,14 @@ export async function POST(req: Request) {
 
   let result;
   if (id) {
-    result = await supabase
+    result = await admin
       .from("blog_posts")
       .update(payload)
       .eq("id", id)
       .select()
       .single();
   } else {
-    result = await supabase
+    result = await admin
       .from("blog_posts")
       .insert(payload)
       .select()
@@ -78,7 +83,10 @@ export async function DELETE(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: "unavailable" }, { status: 503 });
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -90,7 +98,7 @@ export async function DELETE(req: Request) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+  const { error } = await admin.from("blog_posts").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

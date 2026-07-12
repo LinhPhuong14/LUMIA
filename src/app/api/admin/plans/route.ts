@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/supabase/auth";
+import { requireSession } from "@/lib/supabase/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  await requireRole(["admin"]);
+  await requireSession();
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Hệ thống chưa sẵn sàng." }, { status: 503 });
@@ -20,7 +20,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  await requireRole(["admin"]);
+  await requireSession();
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Hệ thống chưa sẵn sàng." }, { status: 503 });

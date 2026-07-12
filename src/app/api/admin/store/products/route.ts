@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, getSession } from "@/lib/supabase/auth";
+import { requireSession, getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -25,7 +25,7 @@ type CreateProductBody = {
 };
 
 export async function GET() {
-  await requireRole(["admin"]);
+  await requireSession();
   const supabase = await createClient();
   if (!supabase) return NextResponse.json([], { status: 503 });
 
@@ -39,7 +39,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
     return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 

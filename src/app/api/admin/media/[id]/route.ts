@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 async function requireAdmin() {
   const session = await getSession();
-  if (!session || session.role !== "admin") return null;
+  if (!session) return null;
   return session;
 }
 

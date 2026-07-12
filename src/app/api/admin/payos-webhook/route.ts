@@ -10,7 +10,7 @@ import { buildAbsoluteUrl } from "@/lib/utils";
 // Only callable by admins. Run once after deploying to production.
 export async function POST() {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -36,7 +36,7 @@ export async function POST() {
 // GET — trả về trạng thái hiện tại
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

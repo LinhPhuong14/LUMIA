@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasSupabaseServiceRole } from "@/lib/env";
 
 export type SessionUser = {
   id: string;
@@ -48,9 +49,13 @@ export async function getSession(): Promise<SessionUser | null> {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError) {
-    console.error("[getSession] profile read failed", { userId: user.id, usingServiceRole: Boolean(admin), error: profileError.message });
-  }
+  console.log("[getSession]", {
+    userId: user.id,
+    roleRead: (profile as { role?: string } | null)?.role ?? null,
+    usingServiceRole: Boolean(admin),
+    hasSecretKey: hasSupabaseServiceRole(),
+    profileError: profileError?.message ?? null,
+  });
 
   const row = profile as Pick<Profile, "full_name" | "nickname" | "role" | "onboarding_goal" | "email"> | null;
 
