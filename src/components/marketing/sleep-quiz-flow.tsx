@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 import { AmbientBackground } from "@/components/ui/ambient-background";
@@ -28,10 +28,24 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
   );
 }
 
+type PlanLite = { id: string; name?: string | null; price_vnd?: number | null; features?: string[] | null };
+
 export function SleepQuizFlow() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<SleepQuizAnswers>>({});
   const [done, setDone] = useState(false);
+  const [dbPlans, setDbPlans] = useState<Record<string, PlanLite>>({});
+
+  useEffect(() => {
+    fetch("/api/store/plans")
+      .then((r) => r.json())
+      .then((data: PlanLite[]) => {
+        const map: Record<string, PlanLite> = {};
+        (Array.isArray(data) ? data : []).forEach((p) => { if (p.id) map[p.id] = p; });
+        setDbPlans(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const current = sleepQuizSteps[step];
   const selected = current ? answers[current.id] : undefined;
@@ -50,7 +64,18 @@ export function SleepQuizFlow() {
 
   if (done) {
     const rec = recommendPackage(answers);
-    const product = getProductBySlug(rec.slug);
+    const staticProduct = getProductBySlug(rec.slug);
+    // Overlay admin-managed price/name/features from the DB.
+    const dbp = staticProduct ? dbPlans[staticProduct.tier] : undefined;
+    const product =
+      staticProduct && dbp
+        ? {
+            ...staticProduct,
+            name: dbp.name ?? staticProduct.name,
+            price: typeof dbp.price_vnd === "number" ? dbp.price_vnd : staticProduct.price,
+            features: Array.isArray(dbp.features) && dbp.features.length > 0 ? dbp.features : staticProduct.features,
+          }
+        : staticProduct;
 
     return (
       <motion.div
