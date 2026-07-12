@@ -242,11 +242,16 @@ function PayosWebhookCard() {
     setMsg(null);
     try {
       const res = await fetch("/api/admin/payos-webhook", { method: "POST" });
-      const data = (await res.json()) as { webhookUrl?: string; error?: string };
+      const data = (await res.json()) as { webhookUrl?: string; error?: string; detail?: string; hint?: string };
       setMsg(
         res.ok
           ? { ok: true, text: `Đã đăng ký thành công: ${data.webhookUrl ?? ""}` }
-          : { ok: false, text: data.error ?? "Đăng ký thất bại." },
+          : {
+              ok: false,
+              text: [data.error, data.detail && `Chi tiết: ${data.detail}`, data.hint && `→ ${data.hint}`, data.webhookUrl && `URL: ${data.webhookUrl}`]
+                .filter(Boolean)
+                .join("\n"),
+            },
       );
     } catch {
       setMsg({ ok: false, text: "Không gọi được API." });
@@ -277,7 +282,7 @@ function PayosWebhookCard() {
       </button>
       {msg && (
         <p
-          className={`mt-2 break-all rounded-[10px] px-3 py-2 text-[12px] ${msg.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}
+          className={`mt-2 whitespace-pre-line break-words rounded-[10px] px-3 py-2 text-[12px] ${msg.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}
         >
           {msg.text}
         </p>
