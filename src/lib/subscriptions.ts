@@ -181,14 +181,21 @@ export function checkAccess(snapshot: SubscriptionSnapshot, feature: GatedFeatur
   return snapshot.isActive;
 }
 
-export async function grantSubscription(userId: string, tier: TierCode, orderId: string) {
+export async function grantSubscription(
+  userId: string,
+  tier: TierCode,
+  orderId: string,
+  /** When the plan starts. Defaults to now; pass the order's paid/created time
+   *  for reconciliation/backfill so the term reflects the actual purchase. */
+  startedAtInput?: Date,
+) {
   const admin = createAdminClient();
   if (!admin) {
     throw new Error("Supabase service role not configured.");
   }
 
   const product: ProductTier = getProductTier(tier);
-  const startedAt = new Date();
+  const startedAt = startedAtInput ?? new Date();
   const expiresAt = addMonths(startedAt, product.durationMonths);
 
   const { data: existing } = await admin
@@ -275,7 +282,15 @@ export async function settleOrderPaid(orderCode: string, userId?: string): Promi
   }
 
   if (!existingSub && order.tier) {
-    await grantSubscription(order.user_id, order.tier as TierCode, order.id);
+    // Start the term at the order's creation time so a reconciled/backfilled
+    // grant reflects when the customer actually purchased (for live payments
+    // this equals ~now anyway).
+    await grantSubscription(
+      order.user_id,
+      order.tier as TierCode,
+      order.id,
+      order.created_at ? new Date(order.created_at) : undefined,
+    );
   }
 
   return true;
