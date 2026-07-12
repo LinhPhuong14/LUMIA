@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
-  Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
+  Loader2, Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
@@ -206,6 +206,21 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString("vi-VN");
 }
 
+// Full-width spinner row shown inside a table while its data is loading, so the
+// user sees a loader instead of a premature "no data" message.
+function LoadingRow({ colSpan }: { colSpan: number }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-16">
+        <div className="flex items-center justify-center gap-2 text-[var(--muted)]">
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--green)]" />
+          <span className="text-[13px]">Đang tải…</span>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const inputCls = "w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--green)]/30";
@@ -328,9 +343,16 @@ function UsersTab() {
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadUsers = useCallback(() => {
-    fetch("/api/admin/users").then(r => r.json()).then(setUsers).catch(() => setUsers([]));
+    // `loading` starts true; don't set it synchronously here (this runs inside
+    // an effect on mount). Refreshes from handlers just swap data in place.
+    fetch("/api/admin/users")
+      .then(r => r.json())
+      .then(setUsers)
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
@@ -435,7 +457,8 @@ function UsersTab() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(u => (
+            {loading && <LoadingRow colSpan={7} />}
+            {!loading && filtered.map(u => (
               <tr key={u.id} className="border-t border-[var(--border)]/50 transition hover:bg-[var(--green-wash)]/40">
                 <td className="px-4 py-3 text-[13px]">{u.email}</td>
                 <td className="px-4 py-3">{u.full_name || "-"}</td>
@@ -465,7 +488,7 @@ function UsersTab() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy user</td></tr>
             )}
           </tbody>
@@ -634,9 +657,14 @@ function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/orders").then(r => r.json()).then(setOrders).catch(() => setOrders([]));
+    fetch("/api/admin/orders")
+      .then(r => r.json())
+      .then(setOrders)
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
   }, []);
 
   async function updateStatus(id: string, status: string) {
@@ -672,7 +700,8 @@ function OrdersTab() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(o => (
+            {loading && <LoadingRow colSpan={8} />}
+            {!loading && filtered.map(o => (
               <tr key={o.id} className="border-t border-[var(--border)]/50 transition hover:bg-[var(--surface-warm)]/60">
                 <td className="px-4 py-3 font-mono text-[11px] text-[var(--muted)]">{o.id.slice(0, 8)}</td>
                 <td className="px-4 py-3 text-[13px]">{o.profiles?.email ?? "-"}</td>
@@ -693,7 +722,7 @@ function OrdersTab() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={8} className="px-4 py-10 text-center text-[var(--muted)]">Không có đơn hàng</td></tr>
             )}
           </tbody>
@@ -737,9 +766,15 @@ function ProductsTab() {
   const [formStatus, setFormStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
   const [uploadingIdx, setUploadingIdx] = useState<string | null>(null); // "banner"|"gallery-*"|"var-N"
+  const [loading, setLoading] = useState(true);
 
   const loadProducts = useCallback(() => {
-    fetch("/api/admin/store/products").then(r => r.json()).then(setProducts).catch(() => setProducts([]));
+    // `loading` starts true; avoid a synchronous setState in the mount effect.
+    fetch("/api/admin/store/products")
+      .then(r => r.json())
+      .then(setProducts)
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
@@ -897,7 +932,8 @@ function ProductsTab() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(p => (
+            {loading && <LoadingRow colSpan={7} />}
+            {!loading && filtered.map(p => (
               <tr key={p.id} className="border-t border-[var(--border)]/50 transition hover:bg-[var(--surface-warm)]/60">
                 <td className="px-4 py-3 font-medium">{p.name}</td>
                 <td className="px-4 py-3 text-[var(--muted)]">{p.category ?? "-"}</td>
@@ -940,7 +976,7 @@ function ProductsTab() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy sản phẩm</td></tr>
             )}
           </tbody>

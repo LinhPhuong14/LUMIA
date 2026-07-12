@@ -1,4 +1,5 @@
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Auth/role gating for /admin/* is handled centrally in src/proxy.ts (the
@@ -27,9 +28,12 @@ export default async function AdminPage() {
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">LUMIA Admin</span>
             <h1 className="mt-0.5 font-serif text-2xl text-[var(--foreground)]">Không gian vận hành</h1>
           </div>
-          <a href="/dashboard" className="rounded-full border border-[var(--border)] px-4 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--foreground)]">
-            Về Dashboard
-          </a>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="h-9 w-9" />
+            <a href="/dashboard" className="rounded-full border border-[var(--border)] px-4 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/40 hover:text-[var(--foreground)]">
+              Về Dashboard
+            </a>
+          </div>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
