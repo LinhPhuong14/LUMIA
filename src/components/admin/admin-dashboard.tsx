@@ -228,6 +228,64 @@ const labelCls = "mb-1 block text-[12px] font-medium text-[var(--muted)]";
 
 // ─── Tab: Tổng quan ──────────────────────────────────────────────────────────
 
+function PayosWebhookCard() {
+  const [info, setInfo] = useState<{ configured?: boolean; webhookUrl?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/payos-webhook").then(r => r.json()).then(setInfo).catch(() => setInfo(null));
+  }, []);
+
+  async function register() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/payos-webhook", { method: "POST" });
+      const data = (await res.json()) as { webhookUrl?: string; error?: string };
+      setMsg(
+        res.ok
+          ? { ok: true, text: `Đã đăng ký thành công: ${data.webhookUrl ?? ""}` }
+          : { ok: false, text: data.error ?? "Đăng ký thất bại." },
+      );
+    } catch {
+      setMsg({ ok: false, text: "Không gọi được API." });
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="mt-6 soft-card p-6">
+      <h3 className="text-sm font-semibold text-[var(--foreground)]">Webhook PayOS</h3>
+      <p className="mt-1 text-[13px] text-[var(--muted)]">
+        Bắt buộc — để đơn hàng tự động lên &ldquo;đã thanh toán&rdquo; và kích hoạt gói ngay khi khách chuyển khoản.
+      </p>
+      <div className="mt-3 space-y-2 rounded-[12px] bg-[var(--surface-warm)] px-4 py-3 text-[13px]">
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--muted)]">Cấu hình PayOS</span>
+          <span className={info?.configured ? "font-medium text-[var(--green-deep)]" : "font-medium text-red-500"}>
+            {info == null ? "…" : info.configured ? "✓ Đã có key" : "✗ Thiếu key"}
+          </span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[var(--muted)]">URL webhook</span>
+          <span className="break-all font-mono text-[12px] text-[var(--foreground)]">{info?.webhookUrl ?? "—"}</span>
+        </div>
+      </div>
+      <button type="button" onClick={register} disabled={busy} className="button-primary mt-3 w-full disabled:opacity-60">
+        {busy ? "Đang đăng ký…" : "Đăng ký webhook với PayOS"}
+      </button>
+      {msg && (
+        <p
+          className={`mt-2 break-all rounded-[10px] px-3 py-2 text-[12px] ${msg.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}
+        >
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function OverviewTab({ stats }: { stats: Stats }) {
   return (
     <div>
@@ -255,6 +313,7 @@ function OverviewTab({ stats }: { stats: Stats }) {
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Blog</strong> — viết và xuất bản bài viết mới với ảnh bìa</li>
         </ul>
       </div>
+      <PayosWebhookCard />
     </div>
   );
 }
