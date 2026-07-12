@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPayOSClient } from "@/lib/payos";
 import { getSession } from "@/lib/supabase/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { settleOrderPaid } from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 
@@ -18,16 +18,11 @@ export async function GET(request: Request) {
 
   try {
     const link = await payos.paymentRequests.get(Number(orderCode));
-    // If paid, update order status in DB
+    // If paid, mark the order paid AND grant the subscription (idempotently).
+    // This is the fallback path when the PayOS webhook hasn't fired yet, so
+    // premium activates even without a reachable webhook.
     if (link.status === "PAID") {
-      const admin = createAdminClient();
-      if (admin) {
-        await admin
-          .from("orders")
-          .update({ status: "paid" })
-          .eq("payos_order_id", orderCode)
-          .eq("user_id", session.id);
-      }
+      await settleOrderPaid(orderCode, session.id);
     }
     return NextResponse.json({ status: link.status, amountPaid: link.amountPaid });
   } catch {

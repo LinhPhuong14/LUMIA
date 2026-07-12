@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPayOSConfig, hasSupabaseConfig } from "@/lib/env";
-import { grantSubscription } from "@/lib/subscriptions";
-import type { TierCode } from "@/lib/product-tiers";
+import { settleOrderPaid } from "@/lib/subscriptions";
 import { getPayOSClient } from "@/lib/payos";
 
 export const runtime = "nodejs";
@@ -50,17 +49,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Amount mismatch." }, { status: 400 });
     }
 
-    if (order.status !== "pending_payment") {
-      return NextResponse.json({ received: true, idempotent: true });
-    }
-
-    await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
-
     if (!order.tier) {
       return NextResponse.json({ error: "Order missing tier." }, { status: 400 });
     }
 
-    await grantSubscription(order.user_id, order.tier as TierCode, order.id);
+    // Idempotent: marks paid + grants subscription exactly once, even if the
+    // checkout status poller already flipped this order to `paid` first.
+    await settleOrderPaid(String(webhookData.orderCode));
 
     return NextResponse.json({ received: true });
   } catch (error) {

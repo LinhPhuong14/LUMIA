@@ -235,6 +235,52 @@ export async function grantSubscription(userId: string, tier: TierCode, orderId:
   return created as Subscription;
 }
 
+/**
+ * Idempotently settle a paid order: mark the order `paid` and grant its
+ * subscription exactly once. Safe to call from multiple paths (PayOS webhook,
+ * checkout status polling, admin manual mark-paid) — concurrent or repeated
+ * calls will not double-grant, because granting is keyed on box_order_id.
+ *
+ * @param orderCode  the PayOS order code (orders.payos_order_id)
+ * @param userId     optional — when set (client-facing paths), the order must
+ *                   belong to this user; ignored for trusted server paths.
+ * @returns true if the order exists and is now settled, false otherwise.
+ */
+export async function settleOrderPaid(orderCode: string, userId?: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) {
+    throw new Error("Supabase service role not configured.");
+  }
+
+  let query = admin.from("orders").select("*").eq("payos_order_id", orderCode);
+  if (userId) {
+    query = query.eq("user_id", userId);
+  }
+  const { data: order } = await query.maybeSingle();
+  if (!order) {
+    return false;
+  }
+
+  // Grant is keyed on the order id so it can only ever happen once per order,
+  // regardless of how many paths race to settle it.
+  const { data: existingSub } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("box_order_id", order.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (order.status === "pending_payment") {
+    await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
+  }
+
+  if (!existingSub && order.tier) {
+    await grantSubscription(order.user_id, order.tier as TierCode, order.id);
+  }
+
+  return true;
+}
+
 /** @deprecated Use grantSubscription from PayOS webhook */
 export async function activateSubscriptionAfterPayment(userId: string, orderId: string) {
   const admin = createAdminClient();
