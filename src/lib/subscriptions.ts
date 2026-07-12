@@ -277,10 +277,9 @@ export async function settleOrderPaid(orderCode: string, userId?: string): Promi
     .eq("status", "active")
     .maybeSingle();
 
-  if (order.status === "pending_payment") {
-    await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
-  }
-
+  // Grant FIRST, then mark paid. If the grant throws (e.g. a missing
+  // subscriptions column), the order stays pending_payment and is retried on
+  // the next settle/reconcile — never stuck as paid-without-subscription.
   if (!existingSub && order.tier) {
     // Start the term at the order's creation time so a reconciled/backfilled
     // grant reflects when the customer actually purchased (for live payments
@@ -291,6 +290,10 @@ export async function settleOrderPaid(orderCode: string, userId?: string): Promi
       order.id,
       order.created_at ? new Date(order.created_at) : undefined,
     );
+  }
+
+  if (order.status === "pending_payment") {
+    await admin.from("orders").update({ status: "paid" }).eq("id", order.id);
   }
 
   return true;
