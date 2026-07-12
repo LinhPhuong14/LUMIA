@@ -25,11 +25,28 @@ export async function POST() {
     return NextResponse.json({ error: "Không thể khởi tạo PayOS client." }, { status: 500 });
   }
 
+  // A wrong base URL (Vercel *.vercel.app instead of the real domain, or one
+  // behind deployment protection) is the usual reason PayOS can't validate.
+  const usingCustomEnv = Boolean(env.PAYOS_WEBHOOK_URL);
+
   try {
     const result = await payos.webhooks.confirm(webhookUrl);
     return NextResponse.json({ ok: true, webhookUrl, result });
   } catch (error) {
-    return NextResponse.json({ error: String(error), webhookUrl }, { status: 500 });
+    const detail =
+      error instanceof Error ? error.message : typeof error === "object" ? JSON.stringify(error) : String(error);
+    console.error("[payos-webhook confirm] failed", { webhookUrl, usingCustomEnv, detail });
+    return NextResponse.json(
+      {
+        error: "PayOS không xác thực được webhook URL.",
+        detail,
+        webhookUrl,
+        hint: usingCustomEnv
+          ? "Kiểm tra PAYOS_WEBHOOK_URL có đúng https://<domain>/api/payos/webhook và công khai."
+          : "webhookUrl đang lấy từ VERCEL_URL (*.vercel.app). Đặt env PAYOS_WEBHOOK_URL=https://www.lumia.com.vn/api/payos/webhook rồi thử lại.",
+      },
+      { status: 500 },
+    );
   }
 }
 
