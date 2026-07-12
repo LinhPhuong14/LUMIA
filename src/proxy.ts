@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createClientFromRequest } from "@/lib/supabase/middleware";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const authRoutes = [
   "/dashboard",
@@ -23,7 +24,7 @@ const adminRoutes = ["/admin", "/api/admin"];
 async function getSessionFromRequest(request: NextRequest) {
   const { supabase, getResponse } = createClientFromRequest(request);
   if (!supabase) {
-    return { user: null, role: null, response: getResponse() };
+    return { user: null, role: null, usingServiceRole: false, response: getResponse(), supabase: null };
   }
 
   const {
@@ -31,16 +32,27 @@ async function getSessionFromRequest(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { user: null, role: null, response: getResponse() };
+    return { user: null, role: null, usingServiceRole: false, response: getResponse(), supabase };
   }
 
-  // maybeSingle (not single): a missing/duplicate profile row must not throw —
-  // that would collapse role to "user" and 307 an admin off /admin.
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  // Read the app role with the SERVICE ROLE client (bypasses RLS). The identity
+  // is already validated by getUser() above, so looking the role up by that
+  // trusted id can't be spoofed. Using the RLS-scoped client here risked an
+  // admin being read back as "user" (RLS/policy quirk) and 307'd off /admin.
+  // Fall back to the request-scoped client if the service key isn't configured.
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = admin
+    ? await admin.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    : await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+
+  if (profileError) {
+    console.error("[proxy] profile role read failed", { userId: user.id, error: profileError.message });
+  }
 
   return {
     user,
     role: (profile?.role as string | undefined) ?? "user",
+    usingServiceRole: Boolean(admin),
     response: getResponse(),
     supabase,
   };
@@ -67,7 +79,9 @@ export async function proxy(request: NextRequest) {
     pathname,
     host: request.headers.get("host"),
     hasUser: Boolean(session?.user),
+    userId: session?.user?.id ?? null,
     role: session?.role ?? null,
+    usingServiceRole: session?.usingServiceRole ?? false,
     sbCookies,
   });
 
