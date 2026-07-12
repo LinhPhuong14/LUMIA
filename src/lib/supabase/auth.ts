@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import type { OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type SessionUser = {
   id: string;
@@ -32,11 +33,24 @@ export async function getSession(): Promise<SessionUser | null> {
     return null;
   }
 
-  const { data: profile } = await supabase
+  // Read the profile with the SERVICE ROLE client (bypasses RLS). Identity is
+  // already validated by getUser() above, so reading by that trusted id is
+  // safe. In a Server Component the RLS-scoped read can silently come back
+  // empty (the request client isn't always attached as the authenticated user),
+  // which collapsed role to "user" — hiding the admin sidebar and 307'ing
+  // requireRole off /admin even for real admins. Fall back to the RLS client
+  // when no service key is configured.
+  const admin = createAdminClient();
+  const db = admin ?? supabase;
+  const { data: profile, error: profileError } = await db
     .from("profiles")
     .select("full_name, nickname, role, onboarding_goal, email")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (profileError) {
+    console.error("[getSession] profile read failed", { userId: user.id, usingServiceRole: Boolean(admin), error: profileError.message });
+  }
 
   const row = profile as Pick<Profile, "full_name" | "nickname" | "role" | "onboarding_goal" | "email"> | null;
 
