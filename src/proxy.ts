@@ -34,7 +34,9 @@ async function getSessionFromRequest(request: NextRequest) {
     return { user: null, role: null, response: getResponse() };
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  // maybeSingle (not single): a missing/duplicate profile row must not throw —
+  // that would collapse role to "user" and 307 an admin off /admin.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
 
   return {
     user,
@@ -42,6 +44,18 @@ async function getSessionFromRequest(request: NextRequest) {
     response: getResponse(),
     supabase,
   };
+}
+
+/**
+ * Redirect while preserving any Supabase auth cookies that getUser() refreshed
+ * on this request. Returning a bare NextResponse.redirect drops those rotated
+ * cookies, which logs the user out on the next request — the classic cause of
+ * "random 307s" on protected routes. Always carry them over.
+ */
+function redirectTo(url: URL, carryFrom?: NextResponse) {
+  const res = NextResponse.redirect(url);
+  carryFrom?.cookies.getAll().forEach((cookie) => res.cookies.set(cookie));
+  return res;
 }
 
 export async function proxy(request: NextRequest) {
@@ -61,11 +75,11 @@ export async function proxy(request: NextRequest) {
     console.warn("[proxy] no user on protected route → redirect /login", { pathname, sbCookies });
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectTo(loginUrl, session.response);
   }
 
   if (adminRoutes.some((route) => pathname.startsWith(route)) && session?.role !== "admin") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectTo(new URL("/dashboard", request.url), session.response);
   }
 
   if (session?.user && session.supabase && pathname === "/onboarding") {
@@ -73,22 +87,22 @@ export async function proxy(request: NextRequest) {
       .from("profiles")
       .select("onboarding_goal")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
     if (profile?.onboarding_goal) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return redirectTo(new URL("/dashboard", request.url), session.response);
     }
   }
 
   if (pathname.startsWith("/subscription") || pathname.startsWith("/dashboard/boxes")) {
-    return NextResponse.redirect(new URL("/account", request.url));
+    return redirectTo(new URL("/account", request.url), session.response);
   }
 
   if (pathname.startsWith("/history") || pathname.startsWith("/reports")) {
-    return NextResponse.redirect(new URL("/journey", request.url));
+    return redirectTo(new URL("/journey", request.url), session.response);
   }
 
   if (pathname.startsWith("/chat")) {
-    return NextResponse.redirect(new URL("/ai", request.url));
+    return redirectTo(new URL("/ai", request.url), session.response);
   }
 
   return session?.response ?? NextResponse.next();

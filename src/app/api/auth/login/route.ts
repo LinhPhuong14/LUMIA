@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { env, hasSupabaseConfig } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validators/auth";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const body = await request.json();
   const parsed = loginSchema.safeParse(body);
 
@@ -21,10 +21,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, mode: "demo" });
   }
 
-  const supabase = await createClient();
-  if (!supabase) {
-    return NextResponse.json({ error: "Không thể kết nối Supabase." }, { status: 503 });
-  }
+  // Collect the session cookies produced by signInWithPassword so we can attach
+  // them to the JSON response explicitly. next/headers cookie writes don't
+  // reliably survive a custom NextResponse in a route handler — the same reason
+  // the OAuth callback attaches cookies by hand.
+  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = [];
+
+  const supabase = createServerClient(env.SUPABASE_URL!, env.SUPABASE_PUBLISHABLE_KEY!, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+          pendingCookies.push({ name, value, options: options ?? {} });
+        });
+      },
+    },
+  });
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email.toLowerCase(),
@@ -53,5 +68,9 @@ export async function POST(request: Request) {
     redirect = rawNext;
   }
 
-  return NextResponse.json({ ok: true, redirect });
+  const response = NextResponse.json({ ok: true, redirect });
+  for (const { name, value, options } of pendingCookies) {
+    response.cookies.set(name, value, options);
+  }
+  return response;
 }
