@@ -166,6 +166,10 @@ export async function POST(request: Request) {
       accountName: paymentLink.accountName,
       bin: paymentLink.bin,
       amount: paymentLink.amount,
+      // The EXACT transfer memo PayOS matches against. Must be shown to the
+      // buyer verbatim (both QR and manual transfer) or PayOS never marks the
+      // order paid — the cause of orders stuck in pending_payment.
+      description: paymentLink.description,
     });
   } catch (error) {
     // DB order was created but PayOS failed - order stays as pending_payment

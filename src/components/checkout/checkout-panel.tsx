@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronRight, Clock, Copy, ExternalLink, LoaderCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 
 import { Button } from "@/components/ui/button";
 import type { BoxProduct } from "@/data/catalog";
@@ -27,12 +28,9 @@ type PaymentInfo = {
   accountName: string;
   bin: string;
   amount: number;
+  /** Exact transfer memo PayOS matches against — must be used verbatim. */
+  description: string;
 };
-
-// VietQR image from napas — no library needed
-function vietQRUrl(info: PaymentInfo) {
-  return `https://img.vietqr.io/image/${info.bin}-${info.accountNumber}-compact2.png?amount=${info.amount}&addInfo=${encodeURIComponent("LUMIA " + info.orderCode)}&accountName=${encodeURIComponent(info.accountName)}`;
-}
 
 function copyText(text: string) {
   navigator.clipboard.writeText(text).catch(() => null);
@@ -120,13 +118,10 @@ function PaymentScreen({
       {/* QR tab */}
       {tab === "qr" && (
         <div className="flex flex-col items-center gap-4 px-5 py-6">
-          <div className="overflow-hidden rounded-[20px] border-4 border-[var(--border)] bg-white p-2 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={vietQRUrl(info)}
-              alt="VietQR"
-              className="h-52 w-52 object-contain"
-            />
+          <div className="overflow-hidden rounded-[20px] border-4 border-[var(--border)] bg-white p-3 shadow-sm">
+            {/* Render PayOS's own QR payload so the transfer carries the exact
+                account + amount + memo PayOS reconciles against. */}
+            <QRCodeSVG value={info.qrCode} size={208} level="M" marginSize={0} />
           </div>
           <p className="text-center text-[13px] leading-5 text-[var(--muted)]">
             Mở app ngân hàng → Quét mã → Xác nhận chuyển khoản
@@ -152,7 +147,7 @@ function PaymentScreen({
             { label: "Số tài khoản", value: info.accountNumber, key: "acc" },
             { label: "Chủ tài khoản", value: info.accountName, key: "name" },
             { label: "Số tiền", value: formatCurrency(info.amount), key: "amt" },
-            { label: "Nội dung CK", value: `LUMIA ${info.orderCode}`, key: "desc" },
+            { label: "Nội dung CK", value: info.description, key: "desc" },
           ].map(({ label, value, key }) => (
             <div key={key} className="flex items-center justify-between rounded-[14px] bg-[var(--surface-warm)] px-4 py-3">
               <div>
