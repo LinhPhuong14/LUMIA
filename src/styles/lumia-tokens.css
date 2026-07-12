@@ -90,7 +90,10 @@
   --landing-nav-offset: 0.75rem;
   --mobile-header-height: 3.75rem;
   --mobile-tab-bar-height: 4.25rem;
-  --mobile-tab-bar-offset: 6.5rem;
+  /* Bottom padding reserved for the floating mobile tab bar so page content
+     (and its last interactive element) never sits under the bar or its shadow.
+     = bar height + 18px bottom gap + shadow/breathing room. */
+  --mobile-tab-bar-offset: 8rem;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
