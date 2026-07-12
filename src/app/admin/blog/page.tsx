@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { requireRole } from "@/lib/supabase/auth";
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { BLOG_POSTS } from "@/data/blog-posts";
 
+// Gating handled by src/proxy.ts (see note in admin/page.tsx). Do not re-gate
+// here with requireRole() — the RLS-scoped read collapses admins to "user".
 export default async function AdminBlogPage() {
-  await requireRole(["admin"]);
-
   const sorted = [...BLOG_POSTS].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
   return (

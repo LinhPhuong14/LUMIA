@@ -1,10 +1,13 @@
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireRole } from "@/lib/supabase/auth";
 
+// Auth/role gating for /admin/* is handled centrally in src/proxy.ts (the
+// proven, service-role-based gate). We intentionally do NOT re-gate here with
+// requireRole(): that path reads the role via the RLS-scoped Server Component
+// client, which — after the project moved to ES256 JWT signing keys — comes
+// back empty and 307'd real admins off /admin. The proxy already blocks
+// non-admins, and every /api/admin route enforces role independently.
 export default async function AdminPage() {
-  await requireRole(["admin"]);
-
   let stats = { users: 0, orders: 0, reports: 0 };
   const admin = createAdminClient();
   if (admin) {
