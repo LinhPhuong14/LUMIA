@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AiListeningSection } from "@/components/landing/sections/ai-listening-section";
@@ -34,9 +35,17 @@ export default async function HomePage({
     redirect(`/login?error=${reason}`);
   }
 
+  // Cheap cookie-presence check (no network call) so the navbar shows "Vào
+  // Dashboard" instead of "Đăng nhập" when a Supabase session cookie is still
+  // present — the user shouldn't have to log in again after landing here with a
+  // live session. If the cookie is stale, clicking through hits the proxy which
+  // does the real validation.
+  const cookieStore = await cookies();
+  const isAuthed = cookieStore.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+
   return (
     <>
-      <FloatingNavbar />
+      <FloatingNavbar isAuthed={isAuthed} />
       <HeroSection />
       <PromoSection />
       {/* <CategoriesSection /> */}

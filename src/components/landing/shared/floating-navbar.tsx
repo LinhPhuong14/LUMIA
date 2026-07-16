@@ -19,7 +19,7 @@ function getLandingScrollTop() {
   return window.scrollY;
 }
 
-export function FloatingNavbar() {
+export function FloatingNavbar({ isAuthed = false }: { isAuthed?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -75,11 +75,11 @@ export function FloatingNavbar() {
           <LandingMobileDrawer />
           <ThemeToggle className="hidden sm:flex" />
           <Link
-            href="/login"
+            href={isAuthed ? "/dashboard" : "/login"}
             className="rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 md:px-5 md:py-2.5"
             style={{ background: "var(--green)", boxShadow: "var(--glass-shadow)" }}
           >
-            Đăng nhập
+            {isAuthed ? "Vào Dashboard" : "Đăng nhập"}
           </Link>
         </div>
       </motion.div>
