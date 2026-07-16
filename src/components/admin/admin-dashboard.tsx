@@ -170,7 +170,8 @@ async function extractVideoThumbnail(file: File): Promise<File | null> {
 // fragmented .m4a. Runs in seconds regardless of duration, with no quality loss. Returns null
 // when there's no usable audio track or mp4box can't parse the container — the caller then
 // falls back to compressAudio (real-time, slower, but always works).
-async function extractAudioTrackFast(file: File): Promise<File | null> {
+type FastAudio = { file: File; durationSeconds: number };
+async function extractAudioTrackFast(file: File): Promise<FastAudio | null> {
   if (typeof window === "undefined") return null;
   try {
     const { createFile, MP4BoxBuffer } = await import("mp4box");
@@ -178,9 +179,9 @@ async function extractAudioTrackFast(file: File): Promise<File | null> {
     const mp4 = createFile();
     const chunks: ArrayBuffer[] = [];
 
-    return await new Promise<File | null>((resolve) => {
+    return await new Promise<FastAudio | null>((resolve) => {
       let done = false;
-      const finish = (result: File | null) => { if (!done) { done = true; clearTimeout(timer); resolve(result); } };
+      const finish = (result: FastAudio | null) => { if (!done) { done = true; clearTimeout(timer); resolve(result); } };
       const timer = setTimeout(() => finish(null), 30000);
 
       mp4.onError = () => finish(null);
@@ -199,9 +200,11 @@ async function extractAudioTrackFast(file: File): Promise<File | null> {
           mp4.flush();
 
           if (chunks.length <= 1) { finish(null); return; } // only init, no media
+          // Duration is already known from the parsed moov — no need to re-download the file.
+          const durationSeconds = info.timescale ? Math.round(info.duration / info.timescale) : 0;
           const blob = new Blob(chunks, { type: "audio/mp4" });
           const name = `${file.name.replace(/\.[^.]+$/, "")}.m4a`;
-          finish(new File([blob], name, { type: "audio/mp4" }));
+          finish({ file: new File([blob], name, { type: "audio/mp4" }), durationSeconds });
         } catch { finish(null); }
       };
 
@@ -2257,6 +2260,7 @@ function MediaTab() {
     const isVideoFile = raw.type.startsWith("video/");
     const needsCompress = kind === "video" && isAudioFile && raw.size > AUDIO_COMPRESS_THRESHOLD_MB * 1024 * 1024;
     let file = raw;
+    let fastDuration = 0; // duration known from demux — avoids a post-upload metadata round-trip
     if (kind === "video" && isVideoFile) {
       // Video (e.g. MP4): strip the picture track and keep audio only.
       const originalMB = (raw.size / 1024 / 1024).toFixed(1);
@@ -2265,7 +2269,8 @@ function MediaTab() {
       showToast(`Đang tách âm thanh khỏi video ${originalMB} MB…`);
       const fast = await extractAudioTrackFast(raw);
       if (fast) {
-        file = fast;
+        file = fast.file;
+        fastDuration = fast.durationSeconds;
         setCompressionProgress(null);
         const newMB = (file.size / 1024 / 1024).toFixed(1);
         showToast(`Tách âm thanh (nhanh) xong: ${originalMB} MB → ${newMB} MB`);
@@ -2306,8 +2311,8 @@ function MediaTab() {
     if (kind === "video") {
       const { title } = parseMetaFromFilename(file.name);
       const isAudio = file.type.startsWith("audio/");
-      let duration = 0;
-      if (isAudio || file.type.startsWith("video/")) {
+      let duration = fastDuration;
+      if (duration <= 0 && (isAudio || file.type.startsWith("video/"))) {
         duration = await readAudioDuration(url);
       }
       setForm(f => {
@@ -2392,31 +2397,34 @@ function MediaTab() {
         const THRESHOLD = 10 * 1024 * 1024;
         const isVideoFile = raw.type.startsWith("video/");
         let file = raw;
+        let fastDuration = 0;
         if (isVideoFile) {
           // Fast path: demux/copy the AAC track to .m4a (seconds). Fallback: real-time re-encode.
           update({ status: "compressing", progress: undefined });
-          file = (await extractAudioTrackFast(raw))
-            ?? await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
+          const fast = await extractAudioTrackFast(raw);
+          if (fast) { file = fast.file; fastDuration = fast.durationSeconds; }
+          else { file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) })); }
         } else if (raw.type.startsWith("audio/") && raw.size > THRESHOLD) {
           update({ status: "compressing", progress: 0 });
           file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
         }
 
         update({ status: "uploading", progress: undefined });
-        const publicUrl = await uploadOne(file);
+        // Upload the audio and (for video) extract+upload the thumbnail concurrently.
+        const [publicUrl, thumbnailUrl] = await Promise.all([
+          uploadOne(file),
+          (async (): Promise<string> => {
+            if (!isVideoFile) return "";
+            try {
+              const thumb = await extractVideoThumbnail(raw);
+              return thumb ? (await uploadOne(await compressImage(thumb))) ?? "" : "";
+            } catch { return ""; }
+          })(),
+        ]);
         if (!publicUrl) throw new Error("Upload thất bại");
 
-        // Video: extract a thumbnail frame in parallel (best-effort, non-blocking on failure).
-        let thumbnailUrl = "";
-        if (isVideoFile) {
-          try {
-            const thumb = await extractVideoThumbnail(raw);
-            if (thumb) thumbnailUrl = (await uploadOne(await compressImage(thumb))) ?? "";
-          } catch { /* thumbnail is optional */ }
-        }
-
-        // Duration from the (extracted) audio.
-        const duration = await new Promise<number>(resolve => {
+        // Duration: use the value from demux when available; otherwise read metadata (no full download).
+        const duration = fastDuration > 0 ? fastDuration : await new Promise<number>(resolve => {
           const el = document.createElement("audio");
           el.preload = "metadata";
           el.onloadedmetadata = () => resolve(Math.round(el.duration) || 0);
