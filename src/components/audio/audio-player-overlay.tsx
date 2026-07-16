@@ -26,6 +26,21 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// WebM recorded via MediaRecorder reports duration = Infinity, which disabled
+// seeking. Fall back to the seekable range end so those tracks are seekable too.
+function effectiveDuration(el: HTMLAudioElement): number {
+  if (Number.isFinite(el.duration) && el.duration > 0) return el.duration;
+  try {
+    if (el.seekable && el.seekable.length > 0) {
+      const end = el.seekable.end(el.seekable.length - 1);
+      if (Number.isFinite(end) && end > 0) return end;
+    }
+  } catch {
+    /* noop */
+  }
+  return 0;
+}
+
 export function AudioPlayerOverlay({
   track,
   onClose,
@@ -75,10 +90,10 @@ export function AudioPlayerOverlay({
     if (!el || !url) return;
 
     const onTime = () => {
-      // Only trust duration when it's a real finite number (streams report Infinity).
-      if (Number.isFinite(el.duration) && el.duration > 0) {
-        setProgress((el.currentTime / el.duration) * 100);
-        setDuration(el.duration);
+      const dur = effectiveDuration(el);
+      if (dur > 0) {
+        setProgress((el.currentTime / dur) * 100);
+        setDuration(dur);
       }
       setCurrentTime(el.currentTime);
       if (!logged && el.currentTime >= 30) {
@@ -117,10 +132,12 @@ export function AudioPlayerOverlay({
 
   function seek(e: MouseEvent<HTMLDivElement>) {
     const el = audioRef.current;
-    if (!el || !Number.isFinite(el.duration) || el.duration <= 0) return;
+    if (!el) return;
+    const dur = effectiveDuration(el);
+    if (dur <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    el.currentTime = pct * el.duration;
+    try { el.currentTime = pct * dur; } catch { /* seek may be rejected mid-load */ }
   }
 
   return (
@@ -132,7 +149,7 @@ export function AudioPlayerOverlay({
         onClick={onClose}
       />
       <div
-        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-2xl lg:rounded-[28px] lg:shadow-2xl"
+        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:w-[960px] lg:max-w-[92vw] lg:rounded-[28px] lg:shadow-2xl"
         style={{ paddingBottom: "var(--safe-bottom)" }}
       >
         {/* Artwork */}
