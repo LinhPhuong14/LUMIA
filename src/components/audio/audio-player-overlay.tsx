@@ -132,7 +132,7 @@ export function AudioPlayerOverlay({
         onClick={onClose}
       />
       <div
-        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-1/2 lg:max-w-md lg:-translate-x-1/2 lg:rounded-[28px]"
+        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-sm lg:rounded-[28px] lg:shadow-2xl"
         style={{ paddingBottom: "var(--safe-bottom)" }}
       >
         {/* Artwork */}

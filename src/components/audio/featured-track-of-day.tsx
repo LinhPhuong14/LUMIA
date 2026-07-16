@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AudioPlayerOverlay } from "@/components/audio/audio-player-overlay";
+import { useAudioPlayer } from "@/components/audio/audio-player-provider";
 
 type Track = {
   id: string;
@@ -18,7 +18,7 @@ function pickIndexForDate(tracks: Track[], date: string) {
 
 export function FeaturedTrackOfDay() {
   const [track, setTrack] = useState<Track | null>(null);
-  const [playing, setPlaying] = useState<Track | null>(null);
+  const { play } = useAudioPlayer();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,16 +50,13 @@ export function FeaturedTrackOfDay() {
   }
 
   return (
-    <>
-      <section className="dash-panel h-full p-5 sm:p-6">
-        <span className="eyebrow">Gợi ý hôm nay</span>
-        <h2 className="mt-3 font-sans text-lg font-medium text-matcha-text">{track.title}</h2>
-        <p className="mt-2 text-sm text-muted">{track.description ?? "Track miễn phí cho buổi tối của bạn."}</p>
-        <button type="button" onClick={() => setPlaying(track)} className="button-primary mt-5 text-[13px]">
-          Nghe ngay
-        </button>
-      </section>
-      <AudioPlayerOverlay track={playing} onClose={() => setPlaying(null)} />
-    </>
+    <section className="dash-panel h-full p-5 sm:p-6">
+      <span className="eyebrow">Gợi ý hôm nay</span>
+      <h2 className="mt-3 font-sans text-lg font-medium text-matcha-text">{track.title}</h2>
+      <p className="mt-2 text-sm text-muted">{track.description ?? "Track miễn phí cho buổi tối của bạn."}</p>
+      <button type="button" onClick={() => play(track)} className="button-primary mt-5 text-[13px]">
+        Nghe ngay
+      </button>
+    </section>
   );
 }

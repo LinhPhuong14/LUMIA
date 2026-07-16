@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Pause, Play } from "lucide-react";
 
-import { AudioPlayerOverlay } from "@/components/audio/audio-player-overlay";
+import { useAudioPlayer } from "@/components/audio/audio-player-provider";
 import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PremiumSectionTeaser } from "@/components/ui/upsell-overlay";
@@ -33,7 +33,7 @@ export function AudioCategoryPage({
   isActive: boolean;
 }) {
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [playing, setPlaying] = useState<Track | null>(null);
+  const { current, play } = useAudioPlayer();
   const [upsellFor, setUpsellFor] = useState<Track | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +48,7 @@ export function AudioCategoryPage({
 
   function renderTrackCard(track: Track) {
     const locked = track.locked ?? (!isActive && !track.is_free);
-    const isPlaying = playing?.id === track.id;
+    const isPlaying = current?.id === track.id;
     const stockQuery = AUDIO_STOCK_QUERIES[track.category] ?? "calm wellness";
     const minutes = track.duration_seconds ? Math.round(track.duration_seconds / 60) : null;
     // Clean, Spotify-style subtitle — no raw category/description clutter.
@@ -59,7 +59,7 @@ export function AudioCategoryPage({
         key={track.id}
         type="button"
         variants={staggerItem}
-        onClick={() => (locked ? setUpsellFor(track) : setPlaying(track))}
+        onClick={() => (locked ? setUpsellFor(track) : play(track))}
         className="group relative flex w-full flex-col rounded-2xl p-2.5 text-left transition hover:bg-[var(--surface-warm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)]/60"
       >
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--surface-warm)] shadow-sm">
@@ -192,7 +192,6 @@ export function AudioCategoryPage({
         />
       ) : null}
 
-      <AudioPlayerOverlay track={playing} onClose={() => setPlaying(null)} />
       <UpgradeModal
         open={!!upsellFor}
         trackTitle={upsellFor?.title}
