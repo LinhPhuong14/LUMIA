@@ -132,7 +132,7 @@ export function AudioPlayerOverlay({
         onClick={onClose}
       />
       <div
-        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-sm lg:rounded-[28px] lg:shadow-2xl"
+        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-2xl lg:rounded-[28px] lg:shadow-2xl"
         style={{ paddingBottom: "var(--safe-bottom)" }}
       >
         {/* Artwork */}
@@ -182,13 +182,18 @@ export function AudioPlayerOverlay({
           />
         ) : null}
 
-        {/* Seekable progress bar */}
+        {/* Seekable progress bar (click anywhere to jump) */}
         <div className="px-5 pt-5">
-          <div className="group cursor-pointer py-1.5" onClick={seek}>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--border)] transition-all group-hover:h-2">
+          <div className="group cursor-pointer py-2" onClick={seek} role="slider" aria-label="Tua" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100} tabIndex={0}>
+            <div className="relative h-2 rounded-full bg-[var(--border)]">
               <div
-                className="h-full rounded-full"
+                className="absolute inset-y-0 left-0 rounded-full"
                 style={{ width: `${progress}%`, background: accentColor }}
+              />
+              {/* Draggable thumb dot (appears on hover) */}
+              <div
+                className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow ring-1 ring-black/10 transition-opacity group-hover:opacity-100"
+                style={{ left: `${progress}%` }}
               />
             </div>
           </div>

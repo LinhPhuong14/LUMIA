@@ -138,50 +138,69 @@ function validateMediaSize(file: File): string | null {
 }
 
 // Capture a single frame from a video file as a JPEG thumbnail (client-side, no ffmpeg).
-// Seeks slightly past the start to avoid black/intro frames. Streams via object URL so
-// large videos (e.g. 240 MB MP4) are not fully loaded into memory. Returns null when the
-// browser can't decode the video (e.g. missing codec on Firefox).
+// Robust against large 1080p files whose `moov` sits at the END (not faststart) and that
+// run under memory pressure right after the audio demux: uses preload="auto" so real frame
+// data is available, captures on the first decoded frame (loadeddata) OR after a small seek,
+// and — on a long stall — still grabs whatever frame is decoded before giving up. Returns
+// null only if the browser truly can't decode the video (e.g. missing codec on Firefox).
 async function extractVideoThumbnail(file: File): Promise<File | null> {
   if (typeof document === "undefined") return null;
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
-    video.preload = "metadata";
+    video.preload = "auto";
     const url = URL.createObjectURL(file);
     let settled = false;
+
     const done = (result: File | null) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      URL.revokeObjectURL(url);
+      try { URL.revokeObjectURL(url); } catch { /* noop */ }
       video.removeAttribute("src");
+      try { video.load(); } catch { /* noop */ }
       resolve(result);
     };
-    const timer = setTimeout(() => done(null), 15000);
-    video.onloadedmetadata = () => {
-      const target = Number.isFinite(video.duration) && video.duration > 0
-        ? Math.min(video.duration * 0.1, 2)
-        : 0;
-      try { video.currentTime = target; } catch { done(null); }
-    };
-    video.onseeked = () => {
+
+    // Draw the current frame to a canvas → JPEG. Returns false if no frame is decoded yet.
+    const capture = (): boolean => {
+      if (!video.videoWidth || !video.videoHeight) return false;
       try {
         const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || 1280;
-        canvas.height = video.videoHeight || 720;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { done(null); return; }
+        if (!ctx) return false;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (!blob) { done(null); return; }
-          const name = `${file.name.replace(/\.[^.]+$/, "")}-thumb.jpg`;
-          done(new File([blob], name, { type: "image/jpeg" }));
-        }, "image/jpeg", 0.82);
-      } catch { done(null); }
+        canvas.toBlob(
+          (blob) => done(blob ? new File([blob], `${file.name.replace(/\.[^.]+$/, "")}-thumb.jpg`, { type: "image/jpeg" }) : null),
+          "image/jpeg",
+          0.82,
+        );
+        return true;
+      } catch {
+        return false;
+      }
     };
+
+    // Generous timeout for big moov-at-end files; on expiry, still try to grab a frame.
+    const timer = setTimeout(() => { if (!capture()) done(null); }, 45000);
+
+    // First decoded frame available → seek a touch past the intro, else capture now.
+    video.onloadeddata = () => {
+      const target = Number.isFinite(video.duration) && video.duration > 1 ? Math.min(video.duration * 0.1, 1.5) : 0;
+      if (target > 0) {
+        try { video.currentTime = target; } catch { capture(); }
+      } else {
+        capture();
+      }
+    };
+    video.onseeked = () => { if (!capture()) done(null); };
     video.onerror = () => done(null);
+
     video.src = url;
+    try { video.load(); } catch { /* noop */ }
   });
 }
 
@@ -2231,6 +2250,7 @@ function MediaTab() {
   const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
   const [compressionProgress, setCompressionProgress] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [processing, setProcessing] = useState(false); // demux/thumbnail phase (no % available)
   const [confirmDelete, setConfirmDelete] = useState<AudioTrack | null>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
 
@@ -2282,19 +2302,24 @@ function MediaTab() {
     const needsCompress = kind === "video" && isAudioFile && raw.size > AUDIO_COMPRESS_THRESHOLD_MB * 1024 * 1024;
     let file = raw;
     let fastDuration = 0; // duration known from demux — avoids a post-upload metadata round-trip
+    let preThumb: File | null = null; // thumbnail grabbed before the memory-heavy demux
     if (kind === "video" && isVideoFile) {
-      // Video (e.g. MP4): strip the picture track and keep audio only.
       const originalMB = (raw.size / 1024 / 1024).toFixed(1);
-      // Fast path: demux/copy the AAC audio track into an .m4a (seconds, no re-encode).
-      setCompressionProgress(0);
-      showToast(`Đang tách âm thanh khỏi video ${originalMB} MB…`);
+      setProcessing(true);
+      showToast(`Đang xử lý video ${originalMB} MB…`);
+      // 1) Grab the thumbnail FIRST — before the audio demux holds ~240 MB in memory — so the
+      //    browser has clean memory to decode a video frame. This is why large files (e.g.
+      //    "TẬP 7") intermittently failed to produce a thumbnail: the frame decode was starved
+      //    of memory when it ran after the demux.
+      preThumb = await extractVideoThumbnail(raw);
+      // 2) Demux/copy the AAC audio track into an .m4a (seconds, no re-encode).
       const fast = await extractAudioTrackFast(raw);
+      setProcessing(false);
       if (fast) {
         file = fast.file;
         fastDuration = fast.durationSeconds;
-        setCompressionProgress(null);
         const newMB = (file.size / 1024 / 1024).toFixed(1);
-        showToast(`Tách âm thanh (nhanh) xong: ${originalMB} MB → ${newMB} MB`);
+        showToast(`Đã xử lý xong: ${originalMB} MB → ${newMB} MB`);
       } else {
         // Fallback: real-time re-encode to Opus/WebM (slower, ~= video duration, but always works).
         showToast("Dùng phương án dự phòng (nén lại), có thể mất vài phút — vui lòng giữ tab mở.");
@@ -2347,11 +2372,11 @@ function MediaTab() {
         return { ...f, ...updates };
       });
 
-      // Auto-extract a thumbnail from the source video (best-effort, non-blocking).
-      // Only fills thumbnail_url when the admin hasn't already set one.
+      // Upload the thumbnail grabbed earlier (best-effort, non-blocking). Only fills
+      // thumbnail_url when the admin hasn't already set one.
       if (isVideoFile) {
         try {
-          const thumb = await extractVideoThumbnail(raw);
+          const thumb = preThumb;
           if (thumb) {
             const compressed = await compressImage(thumb);
             const tRes = await fetch("/api/admin/upload-media-url", {
@@ -2422,9 +2447,12 @@ function MediaTab() {
         const isVideoFile = raw.type.startsWith("video/");
         let file = raw;
         let fastDuration = 0;
+        let preThumb: File | null = null;
         if (isVideoFile) {
-          // Fast path: demux/copy the AAC track to .m4a (seconds). Fallback: real-time re-encode.
           update({ status: "compressing", progress: undefined });
+          // Grab the thumbnail BEFORE the demux holds ~240 MB in memory (see extractVideoThumbnail).
+          try { preThumb = await extractVideoThumbnail(raw); } catch { preThumb = null; }
+          // Fast path: demux/copy the AAC track to .m4a (seconds). Fallback: real-time re-encode.
           const fast = await extractAudioTrackFast(raw);
           if (fast) { file = fast.file; fastDuration = fast.durationSeconds; }
           else { file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) })); }
@@ -2434,15 +2462,12 @@ function MediaTab() {
         }
 
         update({ status: "uploading", progress: 0 });
-        // Upload the audio and (for video) extract+upload the thumbnail concurrently.
+        // Upload the audio and the pre-extracted thumbnail concurrently.
         const [publicUrl, thumbnailUrl] = await Promise.all([
           uploadOne(file, (pct) => update({ progress: pct })),
           (async (): Promise<string> => {
-            if (!isVideoFile) return "";
-            try {
-              const thumb = await extractVideoThumbnail(raw);
-              return thumb ? (await uploadOne(await compressImage(thumb))) ?? "" : "";
-            } catch { return ""; }
+            if (!preThumb) return "";
+            try { return (await uploadOne(await compressImage(preThumb))) ?? ""; } catch { return ""; }
           })(),
         ]);
         if (!publicUrl) throw new Error("Upload thất bại");
@@ -2701,7 +2726,9 @@ function MediaTab() {
                       onClick={() => !uploading && videoFileRef.current?.click()}>
                       <Film className="mb-2 h-10 w-10 text-[var(--muted)] group-hover:text-[var(--green)]" />
                       <p className="text-[13px] font-medium text-[var(--muted)] group-hover:text-[var(--green-deep)]">
-                        {compressionProgress !== null
+                        {processing
+                          ? "Đang xử lý video (tách âm thanh + thumbnail)…"
+                          : compressionProgress !== null
                           ? `Đang xử lý audio… ${compressionProgress}%`
                           : uploadProgress !== null
                           ? `Đang tải lên… ${uploadProgress}%`
@@ -2709,7 +2736,11 @@ function MediaTab() {
                           ? "Đang tải lên…"
                           : "Click để chọn video / audio"}
                       </p>
-                      {(compressionProgress ?? uploadProgress) !== null ? (
+                      {processing ? (
+                        <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-[var(--border)]">
+                          <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--green)]" />
+                        </div>
+                      ) : (compressionProgress ?? uploadProgress) !== null ? (
                         <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-[var(--border)]">
                           <div
                             className="h-full rounded-full bg-[var(--green)] transition-all duration-300"
@@ -2729,8 +2760,8 @@ function MediaTab() {
                     <button type="button" disabled={!!uploading}
                       onClick={() => videoFileRef.current?.click()}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
-                      {(uploading === "video" || compressionProgress !== null || uploadProgress !== null) ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
-                      {compressionProgress !== null ? `Xử lý ${compressionProgress}%` : uploadProgress !== null ? `Tải ${uploadProgress}%` : uploading === "video" ? "Đang tải…" : "Upload"}
+                      {(uploading === "video" || processing || compressionProgress !== null || uploadProgress !== null) ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
+                      {processing ? "Đang xử lý…" : compressionProgress !== null ? `Xử lý ${compressionProgress}%` : uploadProgress !== null ? `Tải ${uploadProgress}%` : uploading === "video" ? "Đang tải…" : "Upload"}
                     </button>
                   </div>
                   <input ref={videoFileRef} type="file" accept="video/*,audio/*" className="hidden"

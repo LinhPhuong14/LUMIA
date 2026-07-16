@@ -346,8 +346,13 @@
     }
   }
 
-  body.player-open .dashboard-scroll-area {
-    padding-bottom: 320px;
+  /* Only the mobile full-width player needs bottom clearance; the desktop player
+     is a small bottom-right card, so padding there would shrink content (e.g. the
+     chat area) for no reason. */
+  @media (max-width: 1023px) {
+    body.player-open .dashboard-scroll-area {
+      padding-bottom: 200px;
+    }
   }
 
   .chat-container {
