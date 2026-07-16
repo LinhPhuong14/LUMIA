@@ -10,6 +10,7 @@ import { CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
 import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PremiumSectionTeaser } from "@/components/ui/upsell-overlay";
+import { UpgradeModal } from "@/components/ui/upgrade-modal";
 import { staggerContainer, staggerItem } from "@/lib/motion-variants";
 
 type Track = {
@@ -34,6 +35,7 @@ export function AudioCategoryPage({
 }) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playing, setPlaying] = useState<Track | null>(null);
+  const [upsellFor, setUpsellFor] = useState<Track | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,13 +53,12 @@ export function AudioCategoryPage({
     const stockQuery = AUDIO_STOCK_QUERIES[track.category] ?? "calm wellness";
     const accent = CATEGORY_ACCENT[track.category] ?? "#8d9d76";
 
-    const CardTag = locked ? motion.div : motion.button;
     const card = (
-      <CardTag
-        type={locked ? undefined : "button"}
+      <motion.button
+        type="button"
         variants={staggerItem}
-        onClick={locked ? undefined : () => setPlaying(track)}
-        whileHover={locked ? undefined : { y: -2 }}
+        onClick={() => (locked ? setUpsellFor(track) : setPlaying(track))}
+        whileHover={{ y: -2 }}
         className={`dash-panel group w-full overflow-hidden p-0 text-left transition ${locked ? "opacity-95" : ""}`}
       >
         <div className="relative h-24 overflow-hidden sm:h-28">
@@ -119,16 +120,13 @@ export function AudioCategoryPage({
           <div className="font-medium text-matcha-deep">{track.title}</div>
           <div className="mt-1 line-clamp-2 text-[12px] text-muted">{track.description ?? track.category}</div>
           {locked ? (
-            <Link
-              href="/store"
-              onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-block text-[11px] font-semibold text-[var(--green)] underline-offset-2 hover:underline"
-            >
-              Xem gói LUMIA
-            </Link>
+            <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--green)]">
+              <Lock className="h-3 w-3" />
+              Mở khóa với Premium
+            </span>
           ) : null}
         </div>
-      </CardTag>
+      </motion.button>
     );
 
     return <div key={track.id}>{card}</div>;
@@ -185,6 +183,11 @@ export function AudioCategoryPage({
       ) : null}
 
       <AudioPlayerOverlay track={playing} onClose={() => setPlaying(null)} />
+      <UpgradeModal
+        open={!!upsellFor}
+        trackTitle={upsellFor?.title}
+        onClose={() => setUpsellFor(null)}
+      />
     </motion.div>
   );
 }

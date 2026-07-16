@@ -2,10 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { AudioCategoryPage } from "@/components/audio/audio-category-page";
-import { BreathingExercise } from "@/components/audio/breathing-exercise";
-import { MeditationTimer } from "@/components/audio/meditation-timer";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { requireSession } from "@/lib/supabase/auth";
 
@@ -19,7 +16,7 @@ export default async function AudioMeditationPage() {
       sessionEmail={session.email}
       subscription={subscription}
       title="Thiền định"
-      subtitle="Nhạc thiền, hướng dẫn và bài tập thở."
+      subtitle="Thư viện nhạc thiền và hướng dẫn."
       isAdmin={session.role === "admin"}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-6">
@@ -32,7 +29,7 @@ export default async function AudioMeditationPage() {
           Âm thanh
         </Link>
 
-        {/* Meditation audio tracks */}
+        {/* Meditation audio gallery only. Locked tracks open the upgrade modal on click. */}
         <AudioCategoryPage
           isActive={subscription.isActive}
           categories={["guided_meditation", "mini_meditation"]}
@@ -41,28 +38,6 @@ export default async function AudioMeditationPage() {
             { title: "Mini Meditations", category: "mini_meditation" },
           ]}
         />
-
-        {/* Breathing exercise - inline, no separate page needed.
-            When locked, show a compact upsell banner (variant="banner") instead of a large
-            blurred overlay so it never covers/dominates the free meditation tracks above. */}
-        <UpsellOverlay
-          featureName="Bài tập thở"
-          description="Kỹ thuật thở 4-7-8 và box breathing giúp thư giãn."
-          locked={!subscription.isActive}
-          variant="banner"
-        >
-          <BreathingExercise enabled={subscription.isActive} />
-        </UpsellOverlay>
-
-        {/* Meditation timer */}
-        <UpsellOverlay
-          featureName="Hẹn giờ thiền"
-          description="Đặt giờ thiền cùng âm thanh nền dịu nhẹ."
-          locked={!subscription.isActive}
-          variant="banner"
-        >
-          <MeditationTimer enabled={subscription.isActive} />
-        </UpsellOverlay>
       </div>
     </DashboardShell>
   );
