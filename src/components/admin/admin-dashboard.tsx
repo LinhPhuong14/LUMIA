@@ -58,12 +58,32 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-async function signedUpload(signedUrl: string, file: File): Promise<boolean> {
-  const fd = new FormData();
-  fd.append("cacheControl", "3600");
-  fd.append("", file);
-  const res = await fetch(signedUrl, { method: "PUT", body: fd, headers: { "x-upsert": "false" } });
-  return res.ok;
+// In-memory cache for admin tab data. Tabs unmount when you switch away, so
+// without this every tab switch refetches from scratch (spinner + latency).
+// Stale-while-revalidate: seed state from the cache for an instant render, then
+// refresh in the background. Lives for the page session (cleared on reload).
+const adminCache = new Map<string, unknown>();
+
+// Uploads via XHR (not fetch) so we can report real upload progress — fetch()
+// exposes no upload progress events. onProgress receives 0–100.
+function signedUpload(signedUrl: string, file: File, onProgress?: (pct: number) => void): Promise<boolean> {
+  return new Promise((resolve) => {
+    const fd = new FormData();
+    fd.append("cacheControl", "3600");
+    fd.append("", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", signedUrl);
+    xhr.setRequestHeader("x-upsert", "false");
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+    }
+    xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+    xhr.onerror = () => resolve(false);
+    xhr.onabort = () => resolve(false);
+    xhr.send(fd);
+  });
 }
 
 // Resize + compress image to stay under targetMB at maxPx wide/tall.
@@ -496,7 +516,7 @@ function ResetPasswordSection({ userId }: { userId: string }) {
 type UserModalMode = "create" | "edit" | "upgrade";
 
 function UsersTab() {
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>(() => (adminCache.get("users") as UserRow[]) ?? []);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [mode, setMode] = useState<UserModalMode>("upgrade");
@@ -506,15 +526,14 @@ function UsersTab() {
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!adminCache.has("users"));
 
   const loadUsers = useCallback(() => {
-    // `loading` starts true; don't set it synchronously here (this runs inside
-    // an effect on mount). Refreshes from handlers just swap data in place.
+    // Revalidate in the background; cached data already renders instantly.
     fetch("/api/admin/users")
       .then(r => r.json())
-      .then(setUsers)
-      .catch(() => setUsers([]))
+      .then(d => { adminCache.set("users", d); setUsers(d); })
+      .catch(() => setUsers(prev => prev.length ? prev : []))
       .finally(() => setLoading(false));
   }, []);
 
@@ -817,16 +836,16 @@ function UsersTab() {
 // ─── Tab: Đơn hàng ───────────────────────────────────────────────────────────
 
 function OrdersTab() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(() => (adminCache.get("orders") as Order[]) ?? []);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!adminCache.has("orders"));
 
   useEffect(() => {
     fetch("/api/admin/orders")
       .then(r => r.json())
-      .then(setOrders)
-      .catch(() => setOrders([]))
+      .then(d => { adminCache.set("orders", d); setOrders(d); })
+      .catch(() => setOrders(prev => prev.length ? prev : []))
       .finally(() => setLoading(false));
   }, []);
 
@@ -918,7 +937,7 @@ const EMPTY_PRODUCT: ProductForm = {
 };
 
 function ProductsTab() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => (adminCache.get("products") as Product[]) ?? []);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("Tất cả");
   const [stockEditing, setStockEditing] = useState<{ id: string; value: string } | null>(null);
@@ -929,14 +948,14 @@ function ProductsTab() {
   const [formStatus, setFormStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
   const [uploadingIdx, setUploadingIdx] = useState<string | null>(null); // "banner"|"gallery-*"|"var-N"
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!adminCache.has("products"));
 
   const loadProducts = useCallback(() => {
-    // `loading` starts true; avoid a synchronous setState in the mount effect.
+    // Revalidate in the background; cached data already renders instantly.
     fetch("/api/admin/store/products")
       .then(r => r.json())
-      .then(setProducts)
-      .catch(() => setProducts([]))
+      .then(d => { adminCache.set("products", d); setProducts(d); })
+      .catch(() => setProducts(prev => prev.length ? prev : []))
       .finally(() => setLoading(false));
   }, []);
 
@@ -1868,7 +1887,7 @@ const EMPTY_PLAN: PlanForm = {
 };
 
 function PlansTab() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<Plan[]>(() => (adminCache.get("plans") as Plan[]) ?? []);
   const [form, setForm] = useState<PlanForm | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1879,7 +1898,7 @@ function PlansTab() {
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500); }
 
   const loadPlans = useCallback(() => {
-    fetch("/api/admin/plans").then(r => r.json()).then(d => setPlans(Array.isArray(d) ? d : [])).catch(() => setPlans([]));
+    fetch("/api/admin/plans").then(r => r.json()).then(d => { const arr = Array.isArray(d) ? d : []; adminCache.set("plans", arr); setPlans(arr); }).catch(() => setPlans(prev => prev.length ? prev : []));
   }, []);
 
   useEffect(() => { loadPlans(); }, [loadPlans]);
@@ -2204,13 +2223,14 @@ function fmtDuration(s: number | null | undefined) {
 }
 
 function MediaTab() {
-  const [tracks, setTracks] = useState<AudioTrack[]>([]);
+  const [tracks, setTracks] = useState<AudioTrack[]>(() => (adminCache.get("tracks") as AudioTrack[]) ?? []);
   const [catFilter, setCatFilter] = useState("Tất cả");
   const [form, setForm] = useState<TrackForm | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
   const [compressionProgress, setCompressionProgress] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AudioTrack | null>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
 
@@ -2225,7 +2245,8 @@ function MediaTab() {
 
   const loadTracks = useCallback(() => {
     fetch("/api/admin/media").then(r => r.json())
-      .then(d => setTracks(d.tracks ?? [])).catch(() => setTracks([]));
+      .then(d => { const arr = d.tracks ?? []; adminCache.set("tracks", arr); setTracks(arr); })
+      .catch(() => setTracks(prev => prev.length ? prev : []));
   }, []);
 
   useEffect(() => { loadTracks(); }, [loadTracks]);
@@ -2306,7 +2327,10 @@ function MediaTab() {
     });
     if (!urlRes.ok) { showToast("Tải lên thất bại."); setUploading(null); return; }
     const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-    if (!await signedUpload(signedUrl, file)) { showToast("Tải lên thất bại."); setUploading(null); return; }
+    setUploadProgress(0);
+    const uploaded = await signedUpload(signedUrl, file, (pct) => setUploadProgress(pct));
+    setUploadProgress(null);
+    if (!uploaded) { showToast("Tải lên thất bại."); setUploading(null); return; }
     const url = publicUrl;
     if (kind === "video") {
       const { title } = parseMetaFromFilename(file.name);
@@ -2379,7 +2403,7 @@ function MediaTab() {
     setBulkItems(arr.map(f => ({ name: f.name, status: "pending" })));
 
     // Uploads a File to storage via a signed URL and returns its public URL (or null).
-    const uploadOne = async (f: File): Promise<string | null> => {
+    const uploadOne = async (f: File, onProgress?: (pct: number) => void): Promise<string | null> => {
       const urlRes = await fetch("/api/admin/upload-media-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2387,7 +2411,7 @@ function MediaTab() {
       });
       if (!urlRes.ok) return null;
       const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-      return (await signedUpload(signedUrl, f)) ? publicUrl : null;
+      return (await signedUpload(signedUrl, f, onProgress)) ? publicUrl : null;
     };
 
     const processOne = async (raw: File, i: number) => {
@@ -2409,10 +2433,10 @@ function MediaTab() {
           file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
         }
 
-        update({ status: "uploading", progress: undefined });
+        update({ status: "uploading", progress: 0 });
         // Upload the audio and (for video) extract+upload the thumbnail concurrently.
         const [publicUrl, thumbnailUrl] = await Promise.all([
-          uploadOne(file),
+          uploadOne(file, (pct) => update({ progress: pct })),
           (async (): Promise<string> => {
             if (!isVideoFile) return "";
             try {
@@ -2510,8 +2534,8 @@ function MediaTab() {
                   <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{item.name}</p>
                   <p className="text-[11px] text-[var(--muted)]">
                     {item.status === "pending" && "Chờ..."}
-                    {item.status === "compressing" && `Đang nén… ${item.progress ?? 0}%`}
-                    {item.status === "uploading" && "Đang tải lên..."}
+                    {item.status === "compressing" && (item.progress != null ? `Đang xử lý… ${item.progress}%` : "Đang xử lý…")}
+                    {item.status === "uploading" && `Đang tải lên… ${item.progress ?? 0}%`}
                     {item.status === "done" && "Hoàn thành"}
                     {item.status === "error" && (item.error ?? "Lỗi")}
                   </p>
@@ -2678,16 +2702,18 @@ function MediaTab() {
                       <Film className="mb-2 h-10 w-10 text-[var(--muted)] group-hover:text-[var(--green)]" />
                       <p className="text-[13px] font-medium text-[var(--muted)] group-hover:text-[var(--green-deep)]">
                         {compressionProgress !== null
-                          ? `Đang nén audio… ${compressionProgress}%`
+                          ? `Đang xử lý audio… ${compressionProgress}%`
+                          : uploadProgress !== null
+                          ? `Đang tải lên… ${uploadProgress}%`
                           : uploading === "video"
                           ? "Đang tải lên…"
                           : "Click để chọn video / audio"}
                       </p>
-                      {compressionProgress !== null ? (
+                      {(compressionProgress ?? uploadProgress) !== null ? (
                         <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-[var(--border)]">
                           <div
                             className="h-full rounded-full bg-[var(--green)] transition-all duration-300"
-                            style={{ width: `${compressionProgress}%` }}
+                            style={{ width: `${compressionProgress ?? uploadProgress ?? 0}%` }}
                           />
                         </div>
                       ) : (
@@ -2703,8 +2729,8 @@ function MediaTab() {
                     <button type="button" disabled={!!uploading}
                       onClick={() => videoFileRef.current?.click()}
                       className="flex shrink-0 items-center gap-1.5 rounded-[12px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--muted)] transition hover:border-[var(--green)]/50 hover:text-[var(--green-deep)] disabled:opacity-50">
-                      {(uploading === "video" || compressionProgress !== null) ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
-                      {compressionProgress !== null ? `Nén ${compressionProgress}%` : uploading === "video" ? "Đang tải…" : "Upload"}
+                      {(uploading === "video" || compressionProgress !== null || uploadProgress !== null) ? <Upload className="h-4 w-4 animate-bounce" /> : <Upload className="h-4 w-4" />}
+                      {compressionProgress !== null ? `Xử lý ${compressionProgress}%` : uploadProgress !== null ? `Tải ${uploadProgress}%` : uploading === "video" ? "Đang tải…" : "Upload"}
                     </button>
                   </div>
                   <input ref={videoFileRef} type="file" accept="video/*,audio/*" className="hidden"
