@@ -94,24 +94,31 @@ export function AudioCategoryPage({
             </div>
           ) : null}
 
-          {/* Spotify-style play button: green circle, reveals on hover */}
-          <div
-            className={`absolute bottom-2 right-2 transition-all duration-200 ${
-              isPlaying
-                ? "translate-y-0 opacity-100"
-                : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
-            }`}
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--green)] text-white shadow-[0_8px_18px_rgba(0,0,0,0.25)] transition group-hover:scale-105">
-              {locked ? (
-                <Lock className="h-4 w-4" />
-              ) : isPlaying ? (
-                <Pause className="h-5 w-5" fill="currentColor" />
-              ) : (
-                <Play className="h-5 w-5 translate-x-[1px]" fill="currentColor" />
-              )}
-            </span>
-          </div>
+          {locked ? (
+            /* Locked overlay — clearly dims premium tracks and marks them with a lock */
+            <div className="absolute inset-0 flex items-center justify-center bg-black/55 backdrop-blur-[2px] transition group-hover:bg-black/45">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-matcha-deep shadow-md">
+                <Lock className="h-[18px] w-[18px]" />
+              </span>
+            </div>
+          ) : (
+            /* Spotify-style play button: green circle, reveals on hover */
+            <div
+              className={`absolute bottom-2 right-2 transition-all duration-200 ${
+                isPlaying
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+              }`}
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--green)] text-white shadow-[0_8px_18px_rgba(0,0,0,0.25)] transition group-hover:scale-105">
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" fill="currentColor" />
+                ) : (
+                  <Play className="h-5 w-5 translate-x-[1px]" fill="currentColor" />
+                )}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-2.5 min-w-0 px-0.5">
