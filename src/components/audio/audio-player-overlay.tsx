@@ -54,9 +54,9 @@ export function AudioPlayerOverlay({
   const [url, setUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loop, setLoop] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [detectedDur, setDetectedDur] = useState(0); // real duration (probed for Infinity webm)
   const [logged, setLogged] = useState(false);
 
   const category = track?.category ?? "guided_meditation";
@@ -85,16 +85,39 @@ export function AudioPlayerOverlay({
       .catch(() => setUrl(null));
   }, [track]);
 
+  // Determine the REAL total duration, so we never show "∞". Prefer the DB value;
+  // otherwise probe on a hidden element — for MediaRecorder WebM (duration=Infinity)
+  // force an end-scan (seek to a huge time) to make the browser compute it.
+  const dbDuration = track?.duration_seconds ?? 0;
+  useEffect(() => {
+    setDetectedDur(0);
+    if (!url || (dbDuration && dbDuration > 0)) return;
+    let cancelled = false;
+    const probe = document.createElement("audio");
+    probe.preload = "metadata";
+    probe.muted = true;
+    const cleanup = () => { probe.src = ""; try { probe.load(); } catch { /* noop */ } };
+    probe.onloadedmetadata = () => {
+      if (cancelled) return;
+      if (Number.isFinite(probe.duration) && probe.duration > 0) { setDetectedDur(probe.duration); cleanup(); return; }
+      probe.ondurationchange = () => {
+        if (cancelled) return;
+        if (Number.isFinite(probe.duration) && probe.duration > 0) { setDetectedDur(probe.duration); cleanup(); }
+      };
+      try { probe.currentTime = 1e101; } catch { cleanup(); }
+    };
+    probe.onerror = () => { if (!cancelled) cleanup(); };
+    probe.src = url;
+    return () => { cancelled = true; cleanup(); };
+  }, [url, dbDuration]);
+
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !url) return;
 
     const onTime = () => {
       const dur = effectiveDuration(el);
-      if (dur > 0) {
-        setProgress((el.currentTime / dur) * 100);
-        setDuration(dur);
-      }
+      if (dur > 0) setDuration(dur);
       setCurrentTime(el.currentTime);
       if (!logged && el.currentTime >= 30) {
         setLogged(true);
@@ -116,12 +139,15 @@ export function AudioPlayerOverlay({
 
   if (!track) return null;
 
-  const hasDuration = Number.isFinite(duration) && duration > 0;
-  const totalLabel = hasDuration
-    ? formatTime(duration)
-    : track.duration_seconds
-    ? formatTime(track.duration_seconds)
-    : "∞";
+  // Real total (never Infinity): DB value → probed → element duration.
+  const total =
+    (dbDuration && dbDuration > 0 ? dbDuration : 0) ||
+    (detectedDur > 0 ? detectedDur : 0) ||
+    (Number.isFinite(duration) && duration > 0 ? duration : 0);
+  const progressPct = total > 0 ? Math.min(100, (currentTime / total) * 100) : 0;
+  const remaining = total > 0 ? Math.max(0, total - currentTime) : 0;
+  // Right label = remaining time (never the infinity symbol).
+  const rightLabel = total > 0 ? `-${formatTime(remaining)}` : formatTime(currentTime);
 
   function togglePlay() {
     const el = audioRef.current;
@@ -132,12 +158,10 @@ export function AudioPlayerOverlay({
 
   function seek(e: MouseEvent<HTMLDivElement>) {
     const el = audioRef.current;
-    if (!el) return;
-    const dur = effectiveDuration(el);
-    if (dur <= 0) return;
+    if (!el || total <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    try { el.currentTime = pct * dur; } catch { /* seek may be rejected mid-load */ }
+    try { el.currentTime = pct * total; } catch { /* seek may be rejected mid-load */ }
   }
 
   return (
@@ -149,11 +173,11 @@ export function AudioPlayerOverlay({
         onClick={onClose}
       />
       <div
-        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:w-[960px] lg:max-w-[92vw] lg:rounded-[28px] lg:shadow-2xl"
+        className="audio-player-overlay glass-overlay overflow-hidden rounded-t-[28px] lg:bottom-4 lg:left-auto lg:right-4 lg:w-[200px] lg:rounded-[24px] lg:shadow-2xl"
         style={{ paddingBottom: "var(--safe-bottom)" }}
       >
         {/* Artwork */}
-        <div className="relative h-[240px] w-full overflow-hidden">
+        <div className="relative h-[150px] w-full overflow-hidden max-lg:h-[200px]">
           {track.thumbnail_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={track.thumbnail_url} alt={track.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -167,7 +191,7 @@ export function AudioPlayerOverlay({
           <GenerativeVisual
             seed={track.id}
             variant="wave"
-            size={240}
+            size={200}
             animated={playing}
             audioPlaying={playing}
             className="absolute inset-0 opacity-30"
@@ -176,13 +200,12 @@ export function AudioPlayerOverlay({
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition hover:bg-black/45"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="absolute bottom-4 left-5 right-5">
-            <div className="truncate text-[19px] font-semibold text-white">{track.title}</div>
-            <div className="truncate text-[13px] text-white/75">{track.description ?? "Đang phát"}</div>
+          <div className="absolute bottom-3 left-3 right-3">
+            <div className="truncate text-[13px] font-semibold text-white">{track.title}</div>
           </div>
         </div>
 
@@ -193,67 +216,66 @@ export function AudioPlayerOverlay({
             loop={loop}
             className="sr-only"
             autoPlay
-            onLoadStart={() => { setProgress(0); setCurrentTime(0); setDuration(0); setLogged(false); }}
+            onLoadStart={() => { setCurrentTime(0); setDuration(0); setDetectedDur(0); setLogged(false); }}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
           />
         ) : null}
 
         {/* Seekable progress bar (click anywhere to jump) */}
-        <div className="px-5 pt-5">
-          <div className="group cursor-pointer py-2" onClick={seek} role="slider" aria-label="Tua" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100} tabIndex={0}>
-            <div className="relative h-2 rounded-full bg-[var(--border)]">
+        <div className="px-3 pt-3">
+          <div className="group cursor-pointer py-1.5" onClick={seek} role="slider" aria-label="Tua" aria-valuenow={Math.round(progressPct)} aria-valuemin={0} aria-valuemax={100} tabIndex={0}>
+            <div className="relative h-1.5 rounded-full bg-[var(--border)]">
               <div
                 className="absolute inset-y-0 left-0 rounded-full"
-                style={{ width: `${progress}%`, background: accentColor }}
+                style={{ width: `${progressPct}%`, background: accentColor }}
               />
-              {/* Draggable thumb dot (appears on hover) */}
               <div
-                className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow ring-1 ring-black/10 transition-opacity group-hover:opacity-100"
-                style={{ left: `${progress}%` }}
+                className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow ring-1 ring-black/10 transition-opacity group-hover:opacity-100"
+                style={{ left: `${progressPct}%` }}
               />
             </div>
           </div>
-          <div className="flex justify-between font-sans text-[12px] tabular-nums text-[var(--muted)]">
+          <div className="flex justify-between font-sans text-[11px] tabular-nums text-[var(--muted)]">
             <span>{formatTime(currentTime)}</span>
-            <span>{totalLabel}</span>
+            <span>{rightLabel}</span>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-6 px-5 pb-6 pt-3">
+        <div className="flex items-center justify-center gap-4 px-3 pb-4 pt-2">
           <button
             type="button"
             onClick={() => setLoop((v) => !v)}
             aria-label="Lặp lại"
             aria-pressed={loop}
-            className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
+            className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
               loop ? "text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
             style={loop ? { background: accentColor } : undefined}
           >
-            <Repeat className="h-[18px] w-[18px]" />
+            <Repeat className="h-4 w-4" />
           </button>
 
           <button
             type="button"
             onClick={togglePlay}
-            className="flex h-16 w-16 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)] transition hover:scale-105"
+            className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)] transition hover:scale-105"
             style={{ background: accentColor }}
             aria-label={playing ? "Tạm dừng" : "Phát"}
           >
             {playing ? (
-              <Pause className="h-6 w-6" fill="currentColor" />
+              <Pause className="h-5 w-5" fill="currentColor" />
             ) : (
-              <Play className="ml-0.5 h-6 w-6" fill="currentColor" />
+              <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
             )}
           </button>
 
           {/* Spacer keeps the play button optically centered */}
-          <div className="h-10 w-10" aria-hidden />
+          <div className="h-9 w-9" aria-hidden />
         </div>
 
-        {!url ? <p className="px-5 pb-4 text-center text-sm text-[var(--muted)]">Đang tải...</p> : null}
+        {!url ? <p className="px-3 pb-3 text-center text-[13px] text-[var(--muted)]">Đang tải...</p> : null}
       </div>
     </>
   );
