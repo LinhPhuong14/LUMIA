@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
+import { Lock, Pause, Play } from "lucide-react";
 
 import { AudioPlayerOverlay } from "@/components/audio/audio-player-overlay";
-import { CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
 import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PremiumSectionTeaser } from "@/components/ui/upsell-overlay";
@@ -51,89 +50,93 @@ export function AudioCategoryPage({
     const locked = track.locked ?? (!isActive && !track.is_free);
     const isPlaying = playing?.id === track.id;
     const stockQuery = AUDIO_STOCK_QUERIES[track.category] ?? "calm wellness";
-    const accent = CATEGORY_ACCENT[track.category] ?? "#8d9d76";
+    const minutes = track.duration_seconds ? Math.round(track.duration_seconds / 60) : null;
+    // Clean, Spotify-style subtitle — no raw category/description clutter.
+    const subtitle = locked ? "Premium" : minutes ? `${minutes} phút` : "Liên tục";
 
-    const card = (
+    return (
       <motion.button
+        key={track.id}
         type="button"
         variants={staggerItem}
         onClick={() => (locked ? setUpsellFor(track) : setPlaying(track))}
-        whileHover={{ y: -2 }}
-        className={`dash-panel group w-full overflow-hidden p-0 text-left transition ${locked ? "opacity-95" : ""}`}
+        className="group relative flex w-full flex-col rounded-2xl p-2.5 text-left transition hover:bg-[var(--surface-warm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)]/60"
       >
-        <div className="relative h-24 overflow-hidden sm:h-28">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--surface-warm)] shadow-sm">
           {track.thumbnail_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={track.thumbnail_url}
               alt={track.title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <PhotoImage
               stockQuery={stockQuery}
               alt={track.title}
-              overlay="dark"
-              overlayOpacity={0.4}
               fill
-              className="h-full w-full transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full transition-transform duration-500 group-hover:scale-105"
             />
           )}
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              background: `linear-gradient(to top, ${accent}cc, transparent)`,
-              maskImage: "linear-gradient(to bottom, black 40%, transparent)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)",
-            }}
-          />
-          {track.duration_seconds ? (
-            <span className="absolute bottom-2 right-2 rounded-full bg-black/35 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
-              {Math.round(track.duration_seconds / 60)} phút
-            </span>
-          ) : (
-            <span className="absolute bottom-2 right-2 rounded-full bg-black/35 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
-              ∞ loop
-            </span>
-          )}
-          {locked ? (
-            <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[10px] font-semibold text-matcha-deep backdrop-blur-sm">
-              <Lock className="h-3 w-3" />
-              Premium
-            </div>
-          ) : null}
+
+          {/* Now-playing equalizer */}
           {isPlaying ? (
-            <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-white/80">
-              <span className="flex gap-0.5">
+            <div className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
+              <span className="flex items-end gap-[2px]">
                 {[0, 1, 2].map((i) => (
                   <span
                     key={i}
-                    className="inline-block h-3 w-0.5 animate-waveform bg-white"
-                    style={{ animationDelay: `${i * 0.15}s` }}
+                    className="inline-block w-[2px] animate-waveform bg-white"
+                    style={{ height: 10, animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
               </span>
             </div>
           ) : null}
-        </div>
-        <div className="p-4">
-          <div className="font-medium text-matcha-deep">{track.title}</div>
-          <div className="mt-1 line-clamp-2 text-[12px] text-muted">{track.description ?? track.category}</div>
-          {locked ? (
-            <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--green)]">
-              <Lock className="h-3 w-3" />
-              Mở khóa với Premium
+
+          {/* Spotify-style play button: green circle, reveals on hover */}
+          <div
+            className={`absolute bottom-2 right-2 transition-all duration-200 ${
+              isPlaying
+                ? "translate-y-0 opacity-100"
+                : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+            }`}
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--green)] text-white shadow-[0_8px_18px_rgba(0,0,0,0.25)] transition group-hover:scale-105">
+              {locked ? (
+                <Lock className="h-4 w-4" />
+              ) : isPlaying ? (
+                <Pause className="h-5 w-5" fill="currentColor" />
+              ) : (
+                <Play className="h-5 w-5 translate-x-[1px]" fill="currentColor" />
+              )}
             </span>
-          ) : null}
+          </div>
+        </div>
+
+        <div className="mt-2.5 min-w-0 px-0.5">
+          <div className="truncate text-[14px] font-semibold text-[var(--foreground)]">{track.title}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-[12px] text-[var(--muted)]">
+            {locked ? <Lock className="h-3 w-3 shrink-0" /> : null}
+            <span className="truncate">{subtitle}</span>
+          </div>
         </div>
       </motion.button>
     );
-
-    return <div key={track.id}>{card}</div>;
   }
 
   if (loading) {
-    return <p className="text-sm text-muted">Đang tải thư viện...</p>;
+    return (
+      <div className="audio-track-grid">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="p-2.5">
+            <div className="aspect-square w-full animate-pulse rounded-xl bg-[var(--surface-warm)]" />
+            <div className="mt-3 h-3.5 w-3/4 animate-pulse rounded bg-[var(--surface-warm)]" />
+            <div className="mt-1.5 h-3 w-1/3 animate-pulse rounded bg-[var(--surface-warm)]" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   const hasPremiumSections = !isActive && sections.some((s) => s.activeOnly);
