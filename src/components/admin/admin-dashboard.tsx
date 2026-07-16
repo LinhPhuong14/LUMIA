@@ -2373,30 +2373,49 @@ function MediaTab() {
     setBulkOpen(true);
     setBulkItems(arr.map(f => ({ name: f.name, status: "pending" })));
 
-    for (let i = 0; i < arr.length; i++) {
-      const raw = arr[i]!;
+    // Uploads a File to storage via a signed URL and returns its public URL (or null).
+    const uploadOne = async (f: File): Promise<string | null> => {
+      const urlRes = await fetch("/api/admin/upload-media-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: f.name, contentType: f.type }),
+      });
+      if (!urlRes.ok) return null;
+      const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
+      return (await signedUpload(signedUrl, f)) ? publicUrl : null;
+    };
+
+    const processOne = async (raw: File, i: number) => {
       const update = (patch: Partial<BulkItem>) =>
         setBulkItems(prev => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it));
-
       try {
         const THRESHOLD = 10 * 1024 * 1024;
+        const isVideoFile = raw.type.startsWith("video/");
         let file = raw;
-        if (raw.type.startsWith("audio/") && raw.size > THRESHOLD) {
+        if (isVideoFile) {
+          // Fast path: demux/copy the AAC track to .m4a (seconds). Fallback: real-time re-encode.
+          update({ status: "compressing", progress: undefined });
+          file = (await extractAudioTrackFast(raw))
+            ?? await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
+        } else if (raw.type.startsWith("audio/") && raw.size > THRESHOLD) {
           update({ status: "compressing", progress: 0 });
           file = await compressAudio(raw, 64_000, pct => update({ progress: Math.round(pct) }));
         }
+
         update({ status: "uploading", progress: undefined });
+        const publicUrl = await uploadOne(file);
+        if (!publicUrl) throw new Error("Upload thất bại");
 
-        const urlRes = await fetch("/api/admin/upload-media-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: file.name, contentType: file.type }),
-        });
-        if (!urlRes.ok) throw new Error("Lỗi lấy URL upload");
-        const { signedUrl, publicUrl } = await urlRes.json() as { signedUrl: string; publicUrl: string };
-        if (!await signedUpload(signedUrl, file)) throw new Error("Upload thất bại");
+        // Video: extract a thumbnail frame in parallel (best-effort, non-blocking on failure).
+        let thumbnailUrl = "";
+        if (isVideoFile) {
+          try {
+            const thumb = await extractVideoThumbnail(raw);
+            if (thumb) thumbnailUrl = (await uploadOne(await compressImage(thumb))) ?? "";
+          } catch { /* thumbnail is optional */ }
+        }
 
-        // Get duration
+        // Duration from the (extracted) audio.
         const duration = await new Promise<number>(resolve => {
           const el = document.createElement("audio");
           el.preload = "metadata";
@@ -2405,20 +2424,32 @@ function MediaTab() {
           el.src = publicUrl;
         });
 
-        // Auto-create track record
         const base = raw.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
         const title = base.replace(/\b\w/g, c => c.toUpperCase());
         const saveRes = await fetch("/api/admin/media", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, description: "", category: "sleep_sound", duration_seconds: duration, file_url: publicUrl, thumbnail_url: "", is_free: true, sort_order: 0 }),
+          body: JSON.stringify({ title, description: "", category: "sleep_sound", duration_seconds: duration, file_url: publicUrl, thumbnail_url: thumbnailUrl, is_free: true, sort_order: 0 }),
         });
         if (!saveRes.ok) throw new Error("Lưu track thất bại");
         update({ status: "done" });
       } catch (e) {
         update({ status: "error", error: e instanceof Error ? e.message : "Lỗi" });
       }
-    }
+    };
+
+    // Process files with bounded concurrency so extraction/upload of multiple files overlap
+    // (wall-clock ≈ total / CONCURRENCY instead of the sum). Capped to limit peak memory when
+    // several large videos are decoded at once.
+    const CONCURRENCY = 3;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < arr.length) {
+        const i = cursor++;
+        await processOne(arr[i]!, i);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, arr.length) }, worker));
     loadTracks();
   }
 
