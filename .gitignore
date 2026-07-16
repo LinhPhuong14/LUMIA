@@ -41,3 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/worktrees/
+
+# local source media (do NOT commit — large files, exceed GitHub 100MB limit)
+/LUMIA VIDEO/
+*.mp4
+
+.vercel
+.env*

@@ -19,6 +19,7 @@ type Track = {
   category: string;
   duration_seconds: number | null;
   is_free: boolean;
+  thumbnail_url?: string | null;
   locked?: boolean;
 };
 
@@ -60,14 +61,23 @@ export function AudioCategoryPage({
         className={`dash-panel group w-full overflow-hidden p-0 text-left transition ${locked ? "opacity-95" : ""}`}
       >
         <div className="relative h-24 overflow-hidden sm:h-28">
-          <PhotoImage
-            stockQuery={stockQuery}
-            alt={track.title}
-            overlay="dark"
-            overlayOpacity={0.4}
-            fill
-            className="h-full w-full transition-transform duration-300 group-hover:scale-105"
-          />
+          {track.thumbnail_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={track.thumbnail_url}
+              alt={track.title}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <PhotoImage
+              stockQuery={stockQuery}
+              alt={track.title}
+              overlay="dark"
+              overlayOpacity={0.4}
+              fill
+              className="h-full w-full transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
           <div
             className="absolute inset-0 opacity-60"
             style={{

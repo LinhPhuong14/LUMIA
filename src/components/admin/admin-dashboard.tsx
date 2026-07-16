@@ -117,6 +117,54 @@ function validateMediaSize(file: File): string | null {
   return null;
 }
 
+// Capture a single frame from a video file as a JPEG thumbnail (client-side, no ffmpeg).
+// Seeks slightly past the start to avoid black/intro frames. Streams via object URL so
+// large videos (e.g. 240 MB MP4) are not fully loaded into memory. Returns null when the
+// browser can't decode the video (e.g. missing codec on Firefox).
+async function extractVideoThumbnail(file: File): Promise<File | null> {
+  if (typeof document === "undefined") return null;
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    const url = URL.createObjectURL(file);
+    let settled = false;
+    const done = (result: File | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      resolve(result);
+    };
+    const timer = setTimeout(() => done(null), 15000);
+    video.onloadedmetadata = () => {
+      const target = Number.isFinite(video.duration) && video.duration > 0
+        ? Math.min(video.duration * 0.1, 2)
+        : 0;
+      try { video.currentTime = target; } catch { done(null); }
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { done(null); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob) { done(null); return; }
+          const name = `${file.name.replace(/\.[^.]+$/, "")}-thumb.jpg`;
+          done(new File([blob], name, { type: "image/jpeg" }));
+        }, "image/jpeg", 0.82);
+      } catch { done(null); }
+    };
+    video.onerror = () => done(null);
+    video.src = url;
+  });
+}
+
 // Compress audio to Opus/WebM at targetBitrate (default 64 kbps).
 // Decodes → mono resample via OfflineAudioContext (fast) → re-encode via MediaRecorder (real-time).
 // Returns same file if MediaRecorder or AudioContext is unavailable.
@@ -2158,9 +2206,25 @@ function MediaTab() {
     setUploading(kind);
     const AUDIO_COMPRESS_THRESHOLD_MB = 10;
     const isAudioFile = raw.type.startsWith("audio/");
+    const isVideoFile = raw.type.startsWith("video/");
     const needsCompress = kind === "video" && isAudioFile && raw.size > AUDIO_COMPRESS_THRESHOLD_MB * 1024 * 1024;
     let file = raw;
-    if (needsCompress) {
+    if (kind === "video" && isVideoFile) {
+      // Video (e.g. MP4): strip the picture track and keep audio only.
+      // compressAudio decodes the container's audio and re-encodes to Opus/WebM in real time,
+      // so processing takes roughly the video's duration — keep the tab open.
+      setCompressionProgress(0);
+      const originalMB = (raw.size / 1024 / 1024).toFixed(1);
+      showToast(`Đang tách âm thanh khỏi video ${originalMB} MB… Xử lý mất khoảng bằng thời lượng video, vui lòng giữ tab mở.`);
+      file = await compressAudio(raw, 64_000, (pct) => setCompressionProgress(Math.round(pct)));
+      setCompressionProgress(null);
+      if (file.type.startsWith("video/")) {
+        showToast("Trình duyệt không tách được âm thanh — sẽ lưu nguyên video.");
+      } else {
+        const newMB = (file.size / 1024 / 1024).toFixed(1);
+        showToast(`Tách âm thanh xong: ${originalMB} MB → ${newMB} MB`);
+      }
+    } else if (needsCompress) {
       setCompressionProgress(0);
       const originalMB = (raw.size / 1024 / 1024).toFixed(1);
       showToast(`Đang nén audio ${originalMB} MB… Ước tính ${Math.ceil(raw.size / 1024 / 1024 / 0.48 / 60)} phút.`);
@@ -2196,6 +2260,31 @@ function MediaTab() {
         if (!f.duration_seconds && duration > 0) updates.duration_seconds = duration;
         return { ...f, ...updates };
       });
+
+      // Auto-extract a thumbnail from the source video (best-effort, non-blocking).
+      // Only fills thumbnail_url when the admin hasn't already set one.
+      if (isVideoFile) {
+        try {
+          const thumb = await extractVideoThumbnail(raw);
+          if (thumb) {
+            const compressed = await compressImage(thumb);
+            const tRes = await fetch("/api/admin/upload-media-url", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filename: compressed.name, contentType: compressed.type }),
+            });
+            if (tRes.ok) {
+              const { signedUrl: tSigned, publicUrl: tPublic } = await tRes.json() as { signedUrl: string; publicUrl: string };
+              if (await signedUpload(tSigned, compressed)) {
+                setForm(f => (f && !f.thumbnail_url) ? { ...f, thumbnail_url: tPublic } : f);
+                showToast("Đã tạo thumbnail từ video.");
+              }
+            }
+          }
+        } catch {
+          // Thumbnail is optional — ignore extraction/upload failures.
+        }
+      }
     } else {
       setForm(f => f ? { ...f, thumbnail_url: url } : f);
     }
