@@ -166,6 +166,54 @@ async function extractVideoThumbnail(file: File): Promise<File | null> {
 }
 
 // Compress audio to Opus/WebM at targetBitrate (default 64 kbps).
+// Fast path: demux the audio track from an MP4 and remux (copy — NO decode/re-encode) into a
+// fragmented .m4a. Runs in seconds regardless of duration, with no quality loss. Returns null
+// when there's no usable audio track or mp4box can't parse the container — the caller then
+// falls back to compressAudio (real-time, slower, but always works).
+async function extractAudioTrackFast(file: File): Promise<File | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { createFile, MP4BoxBuffer } = await import("mp4box");
+    const buf = await file.arrayBuffer();
+    const mp4 = createFile();
+    const chunks: ArrayBuffer[] = [];
+
+    return await new Promise<File | null>((resolve) => {
+      let done = false;
+      const finish = (result: File | null) => { if (!done) { done = true; clearTimeout(timer); resolve(result); } };
+      const timer = setTimeout(() => finish(null), 30000);
+
+      mp4.onError = () => finish(null);
+      mp4.onReady = (info) => {
+        try {
+          const audio = info.tracks.find((t) => t.type === "audio")
+            ?? info.tracks.find((t) => (t.codec || "").startsWith("mp4a"));
+          if (!audio) { finish(null); return; }
+
+          mp4.onSegment = (_id, _user, segBuf) => { chunks.push(segBuf); };
+          // ~1000 samples per fragment → standard fragmented MP4 (broad browser support).
+          mp4.setSegmentOptions(audio.id, null, { nbSamples: 1000 });
+          const init = mp4.initializeSegmentation();
+          chunks.unshift(init.buffer); // init segment (ftyp+moov) must come first
+          mp4.start();
+          mp4.flush();
+
+          if (chunks.length <= 1) { finish(null); return; } // only init, no media
+          const blob = new Blob(chunks, { type: "audio/mp4" });
+          const name = `${file.name.replace(/\.[^.]+$/, "")}.m4a`;
+          finish(new File([blob], name, { type: "audio/mp4" }));
+        } catch { finish(null); }
+      };
+
+      const mb = MP4BoxBuffer.fromArrayBuffer(buf, 0);
+      mp4.appendBuffer(mb);
+      mp4.flush();
+    });
+  } catch {
+    return null;
+  }
+}
+
 // Decodes → mono resample via OfflineAudioContext (fast) → re-encode via MediaRecorder (real-time).
 // Returns same file if MediaRecorder or AudioContext is unavailable.
 async function compressAudio(
@@ -2211,18 +2259,27 @@ function MediaTab() {
     let file = raw;
     if (kind === "video" && isVideoFile) {
       // Video (e.g. MP4): strip the picture track and keep audio only.
-      // compressAudio decodes the container's audio and re-encodes to Opus/WebM in real time,
-      // so processing takes roughly the video's duration — keep the tab open.
-      setCompressionProgress(0);
       const originalMB = (raw.size / 1024 / 1024).toFixed(1);
-      showToast(`Đang tách âm thanh khỏi video ${originalMB} MB… Xử lý mất khoảng bằng thời lượng video, vui lòng giữ tab mở.`);
-      file = await compressAudio(raw, 64_000, (pct) => setCompressionProgress(Math.round(pct)));
-      setCompressionProgress(null);
-      if (file.type.startsWith("video/")) {
-        showToast("Trình duyệt không tách được âm thanh — sẽ lưu nguyên video.");
-      } else {
+      // Fast path: demux/copy the AAC audio track into an .m4a (seconds, no re-encode).
+      setCompressionProgress(0);
+      showToast(`Đang tách âm thanh khỏi video ${originalMB} MB…`);
+      const fast = await extractAudioTrackFast(raw);
+      if (fast) {
+        file = fast;
+        setCompressionProgress(null);
         const newMB = (file.size / 1024 / 1024).toFixed(1);
-        showToast(`Tách âm thanh xong: ${originalMB} MB → ${newMB} MB`);
+        showToast(`Tách âm thanh (nhanh) xong: ${originalMB} MB → ${newMB} MB`);
+      } else {
+        // Fallback: real-time re-encode to Opus/WebM (slower, ~= video duration, but always works).
+        showToast("Dùng phương án dự phòng (nén lại), có thể mất vài phút — vui lòng giữ tab mở.");
+        file = await compressAudio(raw, 64_000, (pct) => setCompressionProgress(Math.round(pct)));
+        setCompressionProgress(null);
+        if (file.type.startsWith("video/")) {
+          showToast("Trình duyệt không tách được âm thanh — sẽ lưu nguyên video.");
+        } else {
+          const newMB = (file.size / 1024 / 1024).toFixed(1);
+          showToast(`Tách âm thanh xong: ${originalMB} MB → ${newMB} MB`);
+        }
       }
     } else if (needsCompress) {
       setCompressionProgress(0);

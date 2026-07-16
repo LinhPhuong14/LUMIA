@@ -1,0 +1,9 @@
+# Large local source media — never upload to Vercel
+LUMIA VIDEO/
+*.mp4
+
+# Local-only / not needed for the deployed app
+refs/
+docs/plans/
+scripts/debug-backend.mjs
+.claude/
