@@ -8,6 +8,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // client, which — after the project moved to ES256 JWT signing keys — comes
 // back empty and 307'd real admins off /admin. The proxy already blocks
 // non-admins, and every /api/admin route enforces role independently.
+// This page reads no cookies/headers, so Next would prerender it at build time
+// and serve a frozen user count forever — it kept showing ~3k after thousands
+// of accounts had been deleted. The counts must be read per request.
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   let stats = { users: 0, orders: 0, reports: 0 };
   const admin = createAdminClient();
