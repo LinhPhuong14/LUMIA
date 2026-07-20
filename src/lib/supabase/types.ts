@@ -22,6 +22,18 @@ export type AudioCategory =
 export type ActivityType = "mood" | "journal" | "audio" | "chat" | "breathing" | "timer";
 export type ReportType = "weekly" | "full_21";
 
+/** Answers collected in onboarding; editable later from the settings panel. */
+export type OnboardingData = {
+  motivation?: OnboardingGoal;
+  bedtime?: string;
+  sleepQuality?: number | null;
+  recentMood?: string;
+  companionMode?: string;
+  /** Set by migration 025 for accounts backfilled after the enum bug. */
+  autofilled?: boolean;
+  source?: string;
+};
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -30,6 +42,7 @@ export type Profile = {
   avatar_url: string | null;
   role: UserRole;
   onboarding_goal: OnboardingGoal | null;
+  onboarding_data: OnboardingData | null;
   created_at: string;
 };
 

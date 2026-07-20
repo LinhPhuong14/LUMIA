@@ -51,7 +51,16 @@ export async function POST(request: Request) {
     updates.nickname = parsed.data.nickname;
   }
   if (parsed.data.onboardingData !== undefined) {
-    updates.onboarding_data = parsed.data.onboardingData;
+    // Merge, don't replace: the settings panel patches one field at a time and
+    // a plain assignment would drop every other onboarding answer.
+    const { data: current } = await supabase
+      .from("profiles")
+      .select("onboarding_data")
+      .eq("id", session.id)
+      .maybeSingle();
+
+    const existing = (current?.onboarding_data ?? {}) as Record<string, unknown>;
+    updates.onboarding_data = { ...existing, ...parsed.data.onboardingData };
   }
 
   if (Object.keys(updates).length === 0) {

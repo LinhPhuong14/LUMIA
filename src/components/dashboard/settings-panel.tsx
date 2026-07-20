@@ -7,7 +7,7 @@ import { validateName } from "@/lib/validators";
 
 import { useLumiaTheme } from "@/components/theme/lumia-theme-provider";
 import { NotificationSettingsSection } from "@/components/dashboard/notification-settings-section";
-import type { OnboardingGoal } from "@/lib/supabase/types";
+import type { OnboardingData, OnboardingGoal } from "@/lib/supabase/types";
 import type { LumiaTheme } from "@/lib/lumia-theme";
 
 // Must stay in sync with MOTIVATION_OPTIONS in src/app/(standalone)/onboarding/page.tsx.
@@ -24,6 +24,71 @@ const legacyGoalLabels: Partial<Record<OnboardingGoal, string>> = {
   stress: "Giảm stress",
   meditation: "Tập thiền",
 };
+
+// The remaining onboarding answers, editable here so users are never sent back
+// through onboarding just to change their mind. Values must stay in sync with
+// src/app/(standalone)/onboarding/page.tsx.
+const bedtimeOptions = [
+  { value: "before_22", label: "Trước 22:00" },
+  { value: "22_23", label: "22:00 – 23:00" },
+  { value: "23_00", label: "23:00 – 00:00" },
+  { value: "after_00", label: "Sau 00:00" },
+];
+
+const sleepQualityOptions = [
+  { value: 1, label: "😴 Rất kém" },
+  { value: 2, label: "😕 Chưa tốt" },
+  { value: 3, label: "🙂 Tạm ổn" },
+  { value: 4, label: "😊 Khá tốt" },
+  { value: 5, label: "✨ Rất tốt" },
+];
+
+const recentMoodOptions = [
+  { value: "balanced", label: "😌 Thoải mái và cân bằng" },
+  { value: "slightly_stressed", label: "😤 Hơi căng thẳng" },
+  { value: "anxious", label: "😟 Lo âu thường xuyên" },
+  { value: "unmotivated", label: "😶 Thiếu động lực" },
+  { value: "dysregulated", label: "🌀 Khó kiểm soát cảm xúc" },
+];
+
+const companionModeOptions = [
+  { value: "digital", label: "Người bạn số" },
+  { value: "master", label: "Người dẫn dắt" },
+];
+
+function PillGroup<T extends string | number>({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  selected: T | null | undefined;
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[12px] font-semibold text-[var(--muted)]">{label}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onSelect(option.value)}
+            className={`rounded-full px-3.5 py-2 text-[12px] font-medium transition ${
+              selected === option.value
+                ? "bg-[var(--green)] text-white"
+                : "border border-[var(--border)] bg-[var(--surface-card)] text-[var(--foreground)]"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type ToggleKey =
   | "saveChats"
@@ -76,11 +141,13 @@ export function SettingsPanel({
   userName,
   initialNickname,
   userEmail,
+  initialOnboardingData,
 }: {
   initialGoal: OnboardingGoal | null;
   userName: string;
   initialNickname: string | null;
   userEmail: string;
+  initialOnboardingData: OnboardingData | null;
 }) {
   const router = useRouter();
   const { theme, setTheme } = useLumiaTheme();
@@ -107,6 +174,10 @@ export function SettingsPanel({
   const [nickVal, setNickVal] = useState(initialNickname ?? "");
   const [nickSaving, setNickSaving] = useState(false);
   const [pwResetSent, setPwResetSent] = useState(false);
+  const [habits, setHabits] = useState<OnboardingData>(initialOnboardingData ?? {});
+  const [habitsSaving, setHabitsSaving] = useState(false);
+  // Backfilled by migration 025 rather than chosen by the user — worth saying so.
+  const habitsWereGuessed = initialOnboardingData?.autofilled === true;
 
   const toggleSections = useMemo(
     () => [
@@ -188,6 +259,22 @@ export function SettingsPanel({
     }
   }
 
+  async function saveHabits(patch: Partial<OnboardingData>) {
+    const next = { ...habits, ...patch, autofilled: false };
+    setHabits(next);
+    setHabitsSaving(true);
+    const response = await fetch("/api/me/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ onboardingData: { ...patch, autofilled: false } }),
+    });
+    setHabitsSaving(false);
+    if (response.ok) {
+      setSaved("Đã cập nhật thói quen.");
+      window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2200);
+    }
+  }
+
   const goalLabel =
     goalOptions.find((g) => g.id === goal)?.label ??
     (goal ? legacyGoalLabels[goal] : undefined) ??
@@ -260,6 +347,46 @@ export function SettingsPanel({
             </div>
           </div>
         )}
+      </section>
+
+      {/* ── Thói quen cá nhân: các câu trả lời onboarding, sửa được bất cứ lúc nào ── */}
+
+      <section className="dash-panel p-5 md:col-span-2">
+        <span className="eyebrow">Thói quen cá nhân</span>
+        <p className="mt-2 text-[13px] text-[var(--muted)]">
+          {habitsWereGuessed
+            ? "Chúng tôi đã điền sẵn dựa trên hoạt động của bạn. Chỉnh lại bất cứ lúc nào để LUMIA hiểu bạn hơn."
+            : "Điều chỉnh bất cứ lúc nào — LUMIA dùng những thông tin này để cá nhân hoá gợi ý."}
+        </p>
+
+        <div className="mt-4 space-y-4">
+          <PillGroup
+            label="Bạn thường đi ngủ lúc nào?"
+            options={bedtimeOptions}
+            selected={habits.bedtime}
+            onSelect={(value) => saveHabits({ bedtime: value })}
+          />
+          <PillGroup
+            label="Chất lượng giấc ngủ gần đây"
+            options={sleepQualityOptions}
+            selected={habits.sleepQuality}
+            onSelect={(value) => saveHabits({ sleepQuality: value })}
+          />
+          <PillGroup
+            label="Cảm xúc gần đây của bạn"
+            options={recentMoodOptions}
+            selected={habits.recentMood}
+            onSelect={(value) => saveHabits({ recentMood: value })}
+          />
+          <PillGroup
+            label="Bạn muốn LUMIA đồng hành như thế nào?"
+            options={companionModeOptions}
+            selected={habits.companionMode}
+            onSelect={(value) => saveHabits({ companionMode: value })}
+          />
+        </div>
+
+        {habitsSaving && <p className="mt-3 text-[12px] text-[var(--muted)]">Đang lưu...</p>}
       </section>
 
       {/* ── Row 2: Báo thức thông minh — full width ── */}

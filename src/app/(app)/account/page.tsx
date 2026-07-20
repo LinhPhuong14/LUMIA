@@ -49,6 +49,7 @@ export default async function AccountPage({
           userName={session.fullName}
           initialNickname={session.nickname}
           userEmail={session.email}
+          initialOnboardingData={session.onboardingData}
         />
       )}
       {activeTab === "feedback" && <FeedbackPanel />}

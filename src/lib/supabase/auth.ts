@@ -2,7 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import type { OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
+import type { OnboardingData, OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -17,6 +17,8 @@ export type SessionUser = {
   nickname: string | null;
   role: UserRole;
   onboardingGoal: OnboardingGoal | null;
+  /** Full onboarding answers, editable from the settings panel. */
+  onboardingData: OnboardingData | null;
 };
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -44,7 +46,7 @@ export async function getSession(): Promise<SessionUser | null> {
   const db = admin ?? supabase;
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .select("full_name, nickname, role, onboarding_goal, email")
+    .select("full_name, nickname, role, onboarding_goal, onboarding_data, email")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -55,7 +57,10 @@ export async function getSession(): Promise<SessionUser | null> {
     console.error("[getSession] profile read failed", { userId: user.id, error: profileError.message });
   }
 
-  const row = profile as Pick<Profile, "full_name" | "nickname" | "role" | "onboarding_goal" | "email"> | null;
+  const row = profile as Pick<
+    Profile,
+    "full_name" | "nickname" | "role" | "onboarding_goal" | "onboarding_data" | "email"
+  > | null;
 
   const fullName =
     row?.full_name ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Bạn";
@@ -70,6 +75,7 @@ export async function getSession(): Promise<SessionUser | null> {
     nickname,
     role: row?.role ?? "user",
     onboardingGoal: row?.onboarding_goal ?? null,
+    onboardingData: row?.onboarding_data ?? null,
   };
 }
 
