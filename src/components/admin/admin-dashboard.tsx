@@ -546,6 +546,9 @@ function UsersTab() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
   const [loading, setLoading] = useState(!adminCache.has("users"));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
   const loadUsers = useCallback(() => {
     // Revalidate in the background; cached data already renders instantly.
@@ -642,6 +645,85 @@ function UsersTab() {
     setBusy(false);
   }
 
+  // Admins are never selectable, so "chọn tất cả" can't arm a self-inflicted wipe.
+  const selectableFiltered = useMemo(() => filtered.filter(u => u.role !== "admin"), [filtered]);
+  const allFilteredSelected =
+    selectableFiltered.length > 0 && selectableFiltered.every(u => selectedIds.has(u.id));
+
+  function toggleOne(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllFiltered() {
+    setSelectedIds(prev => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        selectableFiltered.forEach(u => next.delete(u.id));
+        return next;
+      }
+      return new Set([...prev, ...selectableFiltered.map(u => u.id)]);
+    });
+  }
+
+  async function bulkDelete() {
+    setConfirmBulk(false);
+    const ids = [...selectedIds];
+    setBusy(true); setStatus(null);
+    setBulkProgress({ done: 0, total: ids.length });
+
+    // Chunked to stay inside the serverless time limit; each chunk that lands is
+    // reflected immediately so a mid-way failure still leaves an honest table.
+    const CHUNK = 50;
+    let deletedCount = 0;
+    const failures: string[] = [];
+
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const chunk = ids.slice(i, i + CHUNK);
+      const res = await fetch("/api/admin/users/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: chunk }),
+      });
+      const data = await res.json() as {
+        error?: string;
+        deleted?: string[];
+        failed?: { id: string; error: string }[];
+      };
+
+      if (!res.ok) {
+        setStatus({ ok: false, msg: `${data.error ?? "Lỗi xoá"} (đã xoá ${deletedCount}/${ids.length})` });
+        setBulkProgress(null);
+        setBusy(false);
+        return;
+      }
+
+      const deleted = data.deleted ?? [];
+      deletedCount += deleted.length;
+      (data.failed ?? []).forEach(f => failures.push(f.error));
+
+      const gone = new Set(deleted);
+      setUsers(prev => prev.filter(u => !gone.has(u.id)));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        deleted.forEach(id => next.delete(id));
+        return next;
+      });
+      setBulkProgress({ done: Math.min(i + CHUNK, ids.length), total: ids.length });
+    }
+
+    setBulkProgress(null);
+    setBusy(false);
+    setStatus(
+      failures.length
+        ? { ok: false, msg: `Đã xoá ${deletedCount}/${ids.length}. ${failures.length} lỗi: ${failures[0]}` }
+        : { ok: true, msg: `Đã xoá ${deletedCount} user.` },
+    );
+  }
+
   const showModal = mode === "create" || selected !== null;
 
   return (
@@ -656,19 +738,59 @@ function UsersTab() {
           + Tạo user mới
         </button>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-[16px] border border-red-200 bg-red-50/60 px-4 py-3">
+          <span className="text-[13px] font-medium text-red-700">
+            Đã chọn {selectedIds.size} user
+          </span>
+          <button type="button" onClick={() => setSelectedIds(new Set())}
+            className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-[12px] text-[var(--muted)]">
+            Bỏ chọn
+          </button>
+          <button type="button" onClick={() => setConfirmBulk(true)} disabled={busy}
+            className="ml-auto rounded-[12px] bg-red-500 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-red-600 disabled:opacity-50">
+            {bulkProgress ? `Đang xoá ${bulkProgress.done}/${bulkProgress.total}...` : `Xoá ${selectedIds.size} user`}
+          </button>
+        </div>
+      )}
+
+      {status && (
+        <div className={`mb-3 rounded-[14px] px-4 py-2.5 text-[13px] ${status.ok ? "bg-[var(--green-wash)] text-[var(--green-deep)]" : "bg-red-50 text-red-600"}`}>
+          {status.msg}
+        </div>
+      )}
       <div className="overflow-x-auto rounded-[20px] border border-[var(--border)]">
         <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-[var(--surface-warm)]">
             <tr className="text-[11px] uppercase tracking-wider text-[var(--muted)]">
+              <th className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allFilteredSelected}
+                  onChange={toggleAllFiltered}
+                  disabled={selectableFiltered.length === 0}
+                  aria-label="Chọn tất cả user đang hiển thị"
+                />
+              </th>
               {["Email", "Tên", "Vai trò", "Gói", "Hết hạn", "Streak", ""].map(h => (
                 <th key={h} className="px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading && <LoadingRow colSpan={7} />}
+            {loading && <LoadingRow colSpan={8} />}
             {!loading && filtered.map(u => (
               <tr key={u.id} className="border-t border-[var(--border)]/50 transition hover:bg-[var(--green-wash)]/40">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(u.id)}
+                    onChange={() => toggleOne(u.id)}
+                    disabled={u.role === "admin"}
+                    aria-label={`Chọn ${u.email}`}
+                  />
+                </td>
                 <td className="px-4 py-3 text-[13px]">{u.email}</td>
                 <td className="px-4 py-3">{u.full_name || "-"}</td>
                 <td className="px-4 py-3">
@@ -698,11 +820,31 @@ function UsersTab() {
               </tr>
             ))}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy user</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-[var(--muted)]">Không tìm thấy user</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Confirm bulk delete dialog */}
+      {confirmBulk ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-full max-w-sm rounded-[20px] bg-[var(--surface-card)] p-6 shadow-2xl">
+            <h3 className="font-semibold text-[var(--foreground)]">Xoá {selectedIds.size} user</h3>
+            <p className="mt-2 text-[13px] text-[var(--muted)]">
+              Toàn bộ nhật ký, tin nhắn, mood và đơn hàng của những tài khoản này sẽ bị xoá theo.
+              Hành động này <strong>không thể hoàn tác</strong>.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setConfirmBulk(false)} className="button-secondary px-4 py-2 text-sm">Hủy</button>
+              <button type="button" onClick={bulkDelete}
+                className="rounded-[12px] bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600">
+                Xoá {selectedIds.size} user
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Confirm delete dialog */}
       {confirmDelete ? (
