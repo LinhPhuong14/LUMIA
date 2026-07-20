@@ -10,11 +10,20 @@ import { NotificationSettingsSection } from "@/components/dashboard/notification
 import type { OnboardingGoal } from "@/lib/supabase/types";
 import type { LumiaTheme } from "@/lib/lumia-theme";
 
+// Must stay in sync with MOTIVATION_OPTIONS in src/app/(standalone)/onboarding/page.tsx.
 const goalOptions: { id: OnboardingGoal; label: string }[] = [
-  { id: "sleep", label: "Ngủ tốt hơn" },
-  { id: "stress", label: "Giảm stress" },
-  { id: "meditation", label: "Tập thiền" },
+  { id: "peace", label: "Tìm kiếm sự bình yên" },
+  { id: "sleep", label: "Cải thiện giấc ngủ" },
+  { id: "habit", label: "Xây dựng thói quen" },
+  { id: "self_care", label: "Khám phá chăm sóc bản thân" },
+  { id: "sharing", label: "Tìm không gian chia sẻ" },
 ];
+
+// Older accounts may still carry the original enum values; used for display only.
+const legacyGoalLabels: Partial<Record<OnboardingGoal, string>> = {
+  stress: "Giảm stress",
+  meditation: "Tập thiền",
+};
 
 type ToggleKey =
   | "saveChats"
@@ -179,7 +188,10 @@ export function SettingsPanel({
     }
   }
 
-  const goalLabel = goalOptions.find((g) => g.id === goal)?.label ?? "Chưa chọn";
+  const goalLabel =
+    goalOptions.find((g) => g.id === goal)?.label ??
+    (goal ? legacyGoalLabels[goal] : undefined) ??
+    "Chưa chọn";
 
   return (
     <div className="relative grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">

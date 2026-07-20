@@ -1,5 +1,13 @@
 export type UserRole = "user" | "admin";
-export type OnboardingGoal = "sleep" | "stress" | "meditation";
+export type OnboardingGoal =
+  | "peace"
+  | "sleep"
+  | "habit"
+  | "self_care"
+  | "sharing"
+  // Legacy values from the original enum, still present on older rows.
+  | "stress"
+  | "meditation";
 export type SubscriptionStatus = "free" | "active" | "expired";
 export type OrderStatus = "pending_payment" | "paid" | "preparing" | "shipping" | "delivered";
 export type AudioCategory =
