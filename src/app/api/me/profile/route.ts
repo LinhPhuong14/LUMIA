@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
+import { ensureUserProfile } from "@/lib/supabase/ensure-profile";
 
 const profileSchema = z.object({
   fullName: z.string().min(2).optional(),
@@ -57,9 +58,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const { error } = await supabase.from("profiles").update(updates).eq("id", session.id);
+  // The auth trigger that seeds public.profiles does not always fire, which left
+  // users with no profile row at all. UPDATE then matched zero rows and Supabase
+  // reported no error, so onboarding "saved" successfully while persisting
+  // nothing — and /auth/callback sent the user straight back to /onboarding on
+  // the next login. Create the row first, then verify the write landed.
+  const ensured = await ensureUserProfile(session);
+  if (!ensured.ok) {
+    return NextResponse.json({ error: ensured.error }, { status: 500 });
+  }
+
+  const { data: updated, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", session.id)
+    .select("id");
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!updated || updated.length === 0) {
+    console.error("[api/me/profile] update matched no profile row", { userId: session.id });
+    return NextResponse.json({ error: "Không tìm thấy hồ sơ người dùng." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
