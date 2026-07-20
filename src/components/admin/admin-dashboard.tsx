@@ -628,9 +628,17 @@ function UsersTab() {
 
   async function deleteUser(u: UserRow) {
     setConfirmDelete(null);
-    setBusy(true);
-    await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
-    setUsers(prev => prev.filter(x => x.id !== u.id));
+    setBusy(true); setStatus(null);
+    // Drop the row only once the server confirms it. Removing it optimistically
+    // made every failed delete look like it had worked until the next reload.
+    const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
+    const data = await res.json() as { error?: string };
+    if (res.ok) {
+      setStatus({ ok: true, msg: "Đã xoá user." });
+      setUsers(prev => prev.filter(x => x.id !== u.id));
+    } else {
+      setStatus({ ok: false, msg: data.error ?? "Lỗi xoá user" });
+    }
     setBusy(false);
   }
 

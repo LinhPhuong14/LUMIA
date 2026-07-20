@@ -11,7 +11,9 @@ type PatchBody = {
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
-  if (!session) {
+  // Role check, not just a session check: without it any signed-in user could
+  // PATCH themselves to role "admin".
+  if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 
@@ -41,7 +43,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
-  if (!session) {
+  if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
   }
 
@@ -51,6 +53,10 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
+
+  if (id === session.id) {
+    return NextResponse.json({ error: "Không thể tự xoá tài khoản của mình." }, { status: 400 });
+  }
 
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
