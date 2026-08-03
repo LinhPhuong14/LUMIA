@@ -13,9 +13,9 @@ export function HeroVideoBackground({ evening = false }: { evening?: boolean }) 
     () => (evening ? eveningHeroSources : heroVideoSources),
     [evening],
   );
-  const { videoRef, videoReady, videoFailed, currentSource } = useHeroVideoLoop(sources);
+  const { videoRef, videoReady, videoFailed, shouldLoadVideo, currentSource } = useHeroVideoLoop(sources);
 
-  const showVideo = !videoFailed;
+  const showVideo = shouldLoadVideo && !videoFailed;
 
   return (
     <div
@@ -43,7 +43,7 @@ export function HeroVideoBackground({ evening = false }: { evening?: boolean }) 
           playsInline
           autoPlay
           loop
-          preload="auto"
+          preload="metadata"
           className={cn(
             "hero-video absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-700",
             evening ? "hero-video--evening" : "hero-video--day",

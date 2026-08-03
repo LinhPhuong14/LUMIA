@@ -1,15 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { ritualStageVideoSrc, ritualStages } from "@/components/landing/data/landing-content";
 
 export function RitualAccordionSection() {
   const [active, setActive] = useState(1);
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node) return;
+
+    const scrollRoot = document.querySelector<HTMLElement>(".landing-page.page-scroll-area");
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setVideoEnabled(true);
+        observer.disconnect();
+      },
+      {
+        root: scrollRoot,
+        rootMargin: "280px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section id="nghi-thuc" className="py-14">
+    <section ref={sectionRef} id="nghi-thuc" className="py-14">
       <div className="landing-frame">
         <div className="mb-8">
           <h2 className="lumia-h2">Năm bước nhỏ, dẫn bạn vào giấc ngủ.</h2>
@@ -33,15 +57,17 @@ export function RitualAccordionSection() {
                 }}
               >
                 <div className="lumia-grain-soft absolute inset-0 overflow-hidden bg-[var(--surface-warm)]">
-                  <video
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={ritualStageVideoSrc}
-                  />
+                  {videoEnabled && on ? (
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      src={ritualStageVideoSrc}
+                    />
+                  ) : null}
                 </div>
                 <div
                   className="pointer-events-none absolute inset-0 z-[1]"
@@ -105,7 +131,7 @@ export function RitualAccordionSection() {
                 onClick={() => setActive(stage.id)}
                 className="relative overflow-hidden rounded-[22px] text-left"
               >
-                {on ? (
+                {videoEnabled && on ? (
                   <video
                     autoPlay
                     muted

@@ -62,8 +62,8 @@ function formatVnd(n: number) {
   return n.toLocaleString("vi-VN") + " ₫";
 }
 
-export async function PromoSection() {
-  const [plan, session] = await Promise.all([getFirstTimePlan(), getSession()]);
+export async function PromoSection({ hasSessionCookie = false }: { hasSessionCookie?: boolean }) {
+  const [plan, session] = await Promise.all([getFirstTimePlan(), hasSessionCookie ? getSession() : null]);
   if (!plan) return null;
   // Hide promo for logged-in users who have already purchased
   if (session?.id) {
@@ -137,6 +137,8 @@ export async function PromoSection() {
                   <img
                     src={plan.box_image_url}
                     alt={plan.name}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover"
                   />
                 </div>
