@@ -336,20 +336,30 @@ Quy trình:
 2. Đặt `ANALYTICS_REAL_DATA_SINCE` = **ngày đầu tiên trọn vẹn** sau khi tag chạy
    (không phải ngày cài — ngày cài thiếu vài giờ đầu, sẽ thành hố sụt)
 3. Đặt `ANALYTICS_DEMO_MODE=false`
-4. Xong. **Không phải làm gì thêm** — sau 3 ngày có dữ liệu thật, lần mở báo cáo
-   kế tiếp sẽ tự dựng lịch sử.
+4. Xong. **Không phải làm gì thêm** — lịch sử dựng ngay ở lần mở báo cáo kế
+   tiếp, rồi tự neo lại khi có đủ 3 ngày dữ liệu thật.
 
 Bước 2 cũng bỏ qua được: không đặt env thì code tự suy mốc từ chính dữ liệu GA4
 — ngày đầu tiên có người dùng, cộng một để bỏ ngày cài tag (hôm đó tag chỉ chạy
 vài giờ cuối nên số thấp bất thường, để nguyên sẽ thành hố sụt chỗ nối).
 
-`ensureBackfilled` chạy kèm mỗi lần mở báo cáo nhưng thoát ngay khi đã có
-snapshot, nên thực tế chỉ chạy đúng một lần. Nó đọc traffic thật, tính hệ số co
-giãn bằng cách so với mức bộ sinh tạo ra cho **đúng những ngày đó**, dựng lại
-toàn bộ giai đoạn trước mốc rồi ghi vào `analytics_daily_snapshot`.
+**Dựng và neo là hai việc tách rời.** Dựng đoạn lịch sử chỉ cần biết mốc gắn đo;
+chỉ *hệ số co giãn* mới cần dữ liệu thật. Gộp hai điều kiện lại thì biểu đồ trống
+trơn suốt mấy ngày đầu — và nếu mốc được đặt ở tương lai thì không đời nào đủ
+ngày thật, lịch sử sẽ không bao giờ hiện. Nên:
 
-Kết quả: biểu đồ liền mạch, không có vách đứng ở chỗ nối, vì đoạn dựng lại đã
-được kéo về đúng mức traffic thật.
+| Bước | Điều kiện | Ghi vào DB | Trạng thái trên tab Vận hành |
+| --- | --- | --- | --- |
+| Dựng tạm | biết mốc gắn đo | `scale_factor = NULL` | "Đã dựng tạm … theo quy mô mặc định" |
+| Neo lại | đủ 3 ngày GA4 thật | `scale_factor = <hệ số>` | "… hệ số neo 1,23" |
+
+`ensureBackfilled` chạy kèm mỗi lần mở báo cáo. Đã có bản đã neo thì thoát ngay;
+đang ở bản tạm thì hỏi lại GA4 tối đa 30 phút một lần xem đủ ngày chưa. Lúc neo,
+nó tính hệ số bằng cách so traffic thật với mức bộ sinh tạo ra cho **đúng những
+ngày đó**, dựng lại toàn bộ giai đoạn trước mốc rồi ghi đè `analytics_daily_snapshot`.
+
+Kết quả: biểu đồ có hình ngay, và không có vách đứng ở chỗ nối sau khi neo, vì
+đoạn dựng lại đã được kéo về đúng mức traffic thật.
 
 Muốn neo lại theo dữ liệu mới hơn (nhiều ngày thật hơn = hệ số chính xác hơn),
 gọi `POST /api/admin/analytics/backfill` bằng phiên admin. Nó xoá và ghi đè toàn

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { ensureBackfilled, resolveCutoverDate } from "@/lib/analytics/auto-backfill";
-import { isBeforeCutover } from "@/lib/analytics/backfill";
+import {
+  ensureBackfilled,
+  resolveCutoverDate,
+  type BackfillOutcome,
+} from "@/lib/analytics/auto-backfill";
+import { ANCHOR_MIN_REAL_DAYS, isBeforeCutover } from "@/lib/analytics/backfill";
 import { fetchBusinessReport, fetchDemoAnchors } from "@/lib/analytics/business";
 import { parseRangeKey, resolveDateRange } from "@/lib/analytics/date-range";
 import {
@@ -60,6 +64,17 @@ function resolveCalibration(firstProfileAt: string | null): DemoCalibration {
       : launchDate,
     peakDailyUsers: Number.isFinite(peak) && peak > 0 ? peak : DEMO_DEFAULT_PEAK_DAILY_USERS,
   };
+}
+
+/**
+ * Bản tạm và bản đã neo trông giống hệt nhau trên biểu đồ, nên câu trạng thái là
+ * chỗ duy nhất phân biệt được. Nói thẳng ra để không ai tưởng số đã chuẩn.
+ */
+function describeBackfillRun(outcome: Extract<BackfillOutcome, { ran: true }>): string {
+  const span = `${outcome.written} ngày lịch sử (${outcome.from} → ${outcome.to})`;
+  return outcome.scaleFactor === null
+    ? `Đã dựng tạm ${span} theo quy mô mặc định. Sẽ tự neo lại về mức traffic thật khi có đủ ${ANCHOR_MIN_REAL_DAYS} ngày dữ liệu GA4.`
+    : `Đã dựng ${span}, hệ số neo ${outcome.scaleFactor.toFixed(2)}.`;
 }
 
 /** `?sections=business,traffic` — bỏ trống thì trả tất cả. */
@@ -164,10 +179,9 @@ export async function GET(request: Request) {
       report.backfill = {
         ran: outcome.ran,
         reason: outcome.ran ? undefined : outcome.reason,
-        note: outcome.ran
-          ? `Đã dựng ${outcome.written} ngày lịch sử (${outcome.from} → ${outcome.to}), hệ số neo ${outcome.scaleFactor.toFixed(2)}.`
-          : outcome.note,
+        note: outcome.ran ? describeBackfillRun(outcome) : outcome.note,
         cutoverDate: outcome.cutoverDate ?? cutoverDate,
+        provisional: outcome.provisional === true,
       };
 
       if (cutoverDate && isBeforeCutover(range.startDate, cutoverDate)) {

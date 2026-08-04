@@ -93,14 +93,18 @@ export type BackfillOutcome =
       note?: string;
       realDays?: number;
       cutoverDate?: string | null;
+      /** Lịch sử đang là bản tạm, chờ đủ ngày thật để neo lại. */
+      provisional?: boolean;
     }
   | {
       ran: true;
       written: number;
-      scaleFactor: number;
+      /** `null` = dựng tạm bằng quy mô mặc định, chưa neo vào traffic thật. */
+      scaleFactor: number | null;
       from: string;
       to: string;
       cutoverDate: string;
+      provisional: boolean;
     };
 
 export async function computeAnchorStatus(cutover: string | null): Promise<{
@@ -142,7 +146,23 @@ export async function computeAnchorStatus(cutover: string | null): Promise<{
   };
 }
 
-export async function runBackfill(cutover: string | null): Promise<BackfillOutcome> {
+/**
+ * Dựng lịch sử trước mốc gắn đo.
+ *
+ * Hai việc tách rời: **dựng** đoạn lịch sử chỉ cần biết mốc gắn đo, còn **neo**
+ * nó về đúng mức traffic thật mới cần 3 ngày dữ liệu GA4. Gộp hai điều kiện lại
+ * thì biểu đồ trống trơn suốt mấy ngày đầu — kể cả khi mốc nằm ở tương lai, lúc
+ * đó không đời nào đủ ngày thật. Nên khi chưa neo được, vẫn dựng bằng quy mô mặc
+ * định và đánh dấu `scale_factor = NULL`; đủ ngày thì `ensureBackfilled` dựng lại
+ * bằng hệ số thật.
+ *
+ * `requireAnchor` dùng cho lượt neo lại: đã có bản tạm rồi thì đừng ghi đè bằng
+ * một bản tạm y hệt ở mỗi request.
+ */
+export async function runBackfill(
+  cutover: string | null,
+  options: { requireAnchor?: boolean } = {},
+): Promise<BackfillOutcome> {
   if (!cutover) {
     return {
       ran: false,
@@ -153,13 +173,24 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
   }
 
   const { anchor, calibration, backfillEnd } = await computeAnchorStatus(cutover);
-  if (!anchor.ready || !backfillEnd) {
+
+  if (!backfillEnd) {
+    return {
+      ran: false,
+      reason: "nothing_to_fill",
+      cutoverDate: cutover,
+      note: `Mốc gắn đo "${cutover}" không đọc được thành ngày nên không biết dựng lại tới đâu.`,
+    };
+  }
+
+  if (!anchor.ready && options.requireAnchor) {
     return {
       ran: false,
       reason: "not_ready",
       realDays: anchor.realDays,
       cutoverDate: cutover,
-      note: `Cần ${ANCHOR_MIN_REAL_DAYS} ngày dữ liệu GA4 thật để neo, hiện có ${anchor.realDays}. Lịch sử sẽ tự dựng khi đủ.`,
+      provisional: true,
+      note: `Cần ${ANCHOR_MIN_REAL_DAYS} ngày dữ liệu GA4 thật để neo, hiện có ${anchor.realDays}.`,
     };
   }
 
@@ -173,9 +204,10 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
     };
   }
 
+  const scaleFactor = anchor.ready ? anchor.scaleFactor : null;
   const scaled: DemoCalibration = {
     ...calibration,
-    peakDailyUsers: calibration.peakDailyUsers * anchor.scaleFactor,
+    peakDailyUsers: calibration.peakDailyUsers * (scaleFactor ?? 1),
   };
 
   const rows: SnapshotRow[] = buildDemoDailySeries(launchIso, backfillEnd, scaled).map((point) => ({
@@ -191,7 +223,7 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
     impressions: point.impressions,
   }));
 
-  const { written, error } = await replaceDemoSnapshot(rows, anchor.scaleFactor);
+  const { written, error } = await replaceDemoSnapshot(rows, scaleFactor);
   if (error) {
     throw new Error(error);
   }
@@ -199,10 +231,11 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
   return {
     ran: true,
     written,
-    scaleFactor: anchor.scaleFactor,
+    scaleFactor,
     from: launchIso,
     to: backfillEnd,
     cutoverDate: cutover,
+    provisional: scaleFactor === null,
   };
 }
 
@@ -212,6 +245,14 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
  * lượt đan vào nhau có thể để lại bảng thiếu ngày.
  */
 let inFlight: Promise<BackfillOutcome> | null = null;
+
+/**
+ * Giãn nhịp hỏi lại GA4 xem đã đủ ngày để neo chưa. Bản tạm đã hiện được biểu đồ
+ * rồi, nên neo trễ nửa tiếng không ai thấy — còn hỏi mỗi request thì thêm một
+ * vòng gọi API cho một câu trả lời gần như luôn là "chưa".
+ */
+const REANCHOR_CHECK_MS = 30 * 60_000;
+let lastReanchorCheckAt = 0;
 
 /**
  * Nối lịch sử nếu đủ điều kiện và chưa từng nối. Nuốt mọi lỗi: đây là việc phụ
@@ -225,12 +266,14 @@ export async function ensureBackfilled(cutover: string | null): Promise<Backfill
     return { ran: false, reason: "failed", note: stats.error, cutoverDate: cutover };
   }
 
-  if (stats.demoDays > 0) {
+  const period = `${stats.firstDate} → ${stats.lastDate}`;
+
+  if (stats.demoDays > 0 && stats.anchored) {
     return {
       ran: false,
       reason: "already_done",
       cutoverDate: cutover,
-      note: `Đã dựng ${stats.demoDays} ngày lịch sử (${stats.firstDate} → ${stats.lastDate}).`,
+      note: `Đã dựng ${stats.demoDays} ngày lịch sử (${period}), đã neo về mức traffic thật.`,
     };
   }
 
@@ -245,11 +288,36 @@ export async function ensureBackfilled(cutover: string | null): Promise<Backfill
     };
   }
 
+  // Đã có bản tạm: chỉ ghi lại khi đã đủ ngày thật để neo, và không hỏi GA4 quá dày.
+  const hasProvisional = stats.demoDays > 0;
+  if (hasProvisional && Date.now() - lastReanchorCheckAt < REANCHOR_CHECK_MS) {
+    return {
+      ran: false,
+      reason: "already_done",
+      cutoverDate: cutover,
+      provisional: true,
+      note: `Đã dựng tạm ${stats.demoDays} ngày lịch sử (${period}) theo quy mô mặc định. Sẽ tự neo lại về mức traffic thật khi có đủ ${ANCHOR_MIN_REAL_DAYS} ngày dữ liệu GA4.`,
+    };
+  }
+
   if (inFlight) {
     return inFlight;
   }
 
-  inFlight = runBackfill(cutover)
+  if (hasProvisional) {
+    lastReanchorCheckAt = Date.now();
+  }
+
+  inFlight = runBackfill(cutover, { requireAnchor: hasProvisional })
+    .then((outcome): BackfillOutcome => {
+      if (!outcome.ran && outcome.reason === "not_ready" && hasProvisional) {
+        return {
+          ...outcome,
+          note: `${outcome.note} Lịch sử ${stats.demoDays} ngày (${period}) đang dùng quy mô mặc định, sẽ tự neo lại khi đủ.`,
+        };
+      }
+      return outcome;
+    })
     .catch(
       (error): BackfillOutcome => ({
         ran: false,

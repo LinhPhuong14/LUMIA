@@ -73,6 +73,12 @@ export type SnapshotStats = {
   firstDate: string | null;
   lastDate: string | null;
   /**
+   * `false` = lịch sử đã dựng nhưng CHƯA neo vào traffic thật (dùng quy mô mặc
+   * định). `scale_factor IS NULL` là dấu hiệu. Cần biết để còn neo lại khi đủ
+   * dữ liệu, thay vì thấy có dòng rồi bỏ qua luôn.
+   */
+  anchored: boolean;
+  /**
    * Lý do không đọc được bảng. Tách khỏi "bảng rỗng": chưa chạy migration và đã
    * chạy nhưng chưa có gì cho ra cùng một con số 0, mà cách xử lý thì khác hẳn.
    */
@@ -86,25 +92,33 @@ export async function getSnapshotStats(): Promise<SnapshotStats> {
       demoDays: 0,
       firstDate: null,
       lastDate: null,
+      anchored: false,
       error: "Thiếu SUPABASE_SECRET_KEY nên không đọc/ghi được bảng lịch sử.",
     };
   }
 
   const { data, error } = await admin
     .from("analytics_daily_snapshot")
-    .select("date")
+    .select("date,scale_factor")
     .eq("source", "demo")
     .order("date", { ascending: true });
 
   if (error) {
-    return { demoDays: 0, firstDate: null, lastDate: null, error: describeTableError(error) };
+    return {
+      demoDays: 0,
+      firstDate: null,
+      lastDate: null,
+      anchored: false,
+      error: describeTableError(error),
+    };
   }
 
-  const dates = ((data ?? []) as { date: string }[]).map((row) => row.date);
+  const rows = (data ?? []) as { date: string; scale_factor: number | null }[];
   return {
-    demoDays: dates.length,
-    firstDate: dates[0] ?? null,
-    lastDate: dates[dates.length - 1] ?? null,
+    demoDays: rows.length,
+    firstDate: rows[0]?.date ?? null,
+    lastDate: rows[rows.length - 1]?.date ?? null,
+    anchored: rows.length > 0 && rows.every((row) => row.scale_factor !== null),
     error: null,
   };
 }
@@ -131,7 +145,8 @@ function describeTableError(error: { message: string; code?: string }): string {
  */
 export async function replaceDemoSnapshot(
   rows: SnapshotRow[],
-  scaleFactor: number,
+  /** `null` = dựng tạm bằng quy mô mặc định, chưa neo vào traffic thật. */
+  scaleFactor: number | null,
 ): Promise<{ written: number; error: string | null }> {
   const admin = createAdminClient();
   if (!admin) {

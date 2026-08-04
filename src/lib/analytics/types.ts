@@ -131,6 +131,11 @@ export type BackfillState = {
   reason?: string;
   note?: string;
   cutoverDate?: string | null;
+  /**
+   * `true` = lịch sử đã dựng nhưng còn dùng quy mô mặc định, chưa neo về mức
+   * traffic thật (chưa đủ ngày GA4). Biểu đồ có hình, nhưng độ lớn chưa chuẩn.
+   */
+  provisional?: boolean;
 };
 
 export type AnalyticsReport = {
