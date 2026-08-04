@@ -47,6 +47,7 @@ import {
 import type {
   AnalyticsReport,
   BreakdownRow,
+  GaPageRow,
   GscRow,
   SourceState,
 } from "@/lib/analytics/types";
@@ -543,13 +544,56 @@ function ReportFooter({ report, note }: { report: AnalyticsReport; note?: string
   );
 }
 
-// ─── Tab "Báo cáo" — số thật từ database ─────────────────────────────────────
+/**
+ * Bảng trang được xem nhiều nhất. Dùng ở cả tab Báo cáo lẫn tab Vận hành nên
+ * tách riêng thay vì lặp lại hai lần.
+ */
+function TopPagesTable({ rows }: { rows: GaPageRow[] }) {
+  if (rows.length === 0) {
+    return <EmptyRows label="Chưa có dữ liệu." />;
+  }
+
+  return (
+    <div className="-mx-2 overflow-x-auto">
+      <table className="w-full min-w-[360px] border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+            <th className="px-2 pb-2 font-medium">Đường dẫn</th>
+            <th className="px-2 pb-2 text-right font-medium">Lượt xem</th>
+            <th className="px-2 pb-2 text-right font-medium">Người dùng</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((page) => (
+            <tr key={page.path} className="border-t border-[var(--border)]">
+              <td className="max-w-[240px] px-2 py-2.5">
+                <span className="block truncate text-[var(--foreground)]" title={page.path}>
+                  {shortenUrl(page.path)}
+                </span>
+              </td>
+              <td className="px-2 py-2.5 text-right tabular-nums">{formatNumber(page.views)}</td>
+              <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                {formatNumber(page.users)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Tab "Báo cáo" — kinh doanh + tổng quan truy cập ─────────────────────────
 
 export function AnalyticsReportPanel() {
   const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport([
     "business",
+    "traffic",
   ]);
   const business = report?.business;
+  const ga = report?.google;
+  const gsc = report?.searchConsole;
+  const showDemoLabel = Boolean(report?.showDemoLabel);
 
   const businessTrend = useMemo<TrendPoint[]>(
     () =>
@@ -559,6 +603,16 @@ export function AnalyticsReportPanel() {
         secondary: point.orders,
       })),
     [business],
+  );
+
+  const trafficTrend = useMemo<TrendPoint[]>(
+    () =>
+      (ga?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.users,
+        secondary: point.sessions,
+      })),
+    [ga],
   );
 
   return (
@@ -624,7 +678,92 @@ export function AnalyticsReportPanel() {
             )}
           </div>
 
-          <ReportFooter report={report} note="đơn hàng tính theo trạng thái đã thu tiền" />
+          {/* ── Truy cập ─────────────────────────────────────────────────── */}
+          <div className="space-y-4">
+            <SectionHeading
+              icon={Users}
+              title="Truy cập"
+              demo={showDemoLabel && (ga?.demo || gsc?.demo)}
+            />
+
+            {ga?.status !== "ok" || !ga.data ? (
+              <SourceNotice
+                state={ga ?? { status: "error", data: null }}
+                configuredHint="Cần GA4_PROPERTY_ID và service account của Google. Xem docs/ANALYTICS_SEO.md."
+              />
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiCard
+                    label="Người dùng"
+                    value={formatNumber(ga.data.summary.users)}
+                    change={percentChange(ga.data.summary.users, ga.data.previousSummary.users)}
+                    hint={`${formatNumber(ga.data.summary.newUsers)} người dùng mới`}
+                  />
+                  <KpiCard
+                    label="Lượt xem trang"
+                    value={formatNumber(ga.data.summary.pageViews)}
+                    change={percentChange(
+                      ga.data.summary.pageViews,
+                      ga.data.previousSummary.pageViews,
+                    )}
+                    hint={`${formatNumber(ga.data.summary.sessions)} phiên truy cập`}
+                  />
+                  <KpiCard
+                    label="Tỉ lệ tương tác"
+                    value={formatPercent(ga.data.summary.engagementRate)}
+                    change={percentChange(
+                      ga.data.summary.engagementRate,
+                      ga.data.previousSummary.engagementRate,
+                    )}
+                    hint={`TB ${formatDuration(ga.data.summary.avgSessionSeconds)}/phiên`}
+                  />
+                  {gsc?.status === "ok" && gsc.data ? (
+                    <KpiCard
+                      label="Click từ Google"
+                      value={formatNumber(gsc.data.summary.clicks)}
+                      change={percentChange(
+                        gsc.data.summary.clicks,
+                        gsc.data.previousSummary.clicks,
+                      )}
+                      hint={`${formatNumber(gsc.data.summary.impressions)} lượt hiển thị`}
+                    />
+                  ) : (
+                    <KpiCard
+                      label="Click từ Google"
+                      value="—"
+                      hint="Chưa nối Search Console"
+                    />
+                  )}
+                </div>
+
+                <SectionCard title="Người dùng & phiên theo ngày" icon={Users}>
+                  <TrendChart
+                    data={trafficTrend}
+                    series={[
+                      { key: "primary", label: "Người dùng", color: "var(--green-deep)" },
+                      { key: "secondary", label: "Phiên", color: "var(--green-bright)" },
+                    ]}
+                  />
+                </SectionCard>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <SectionCard title="Trang được xem nhiều nhất" icon={Globe}>
+                    <TopPagesTable rows={ga.data.topPages} />
+                  </SectionCard>
+
+                  <SectionCard title="Nguồn truy cập" icon={Gauge}>
+                    <BreakdownList rows={ga.data.channels} unit="phiên" />
+                  </SectionCard>
+                </div>
+              </>
+            )}
+          </div>
+
+          <ReportFooter
+            report={report}
+            note="đơn hàng tính theo trạng thái đã thu tiền, GA4 chốt số theo ngày"
+          />
         </>
       ) : null}
     </div>
@@ -748,41 +887,7 @@ export function OperationsReportPanel() {
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <SectionCard title="Trang được xem nhiều nhất" icon={Globe}>
-                    {ga.data.topPages.length === 0 ? (
-                      <EmptyRows label="Chưa có dữ liệu." />
-                    ) : (
-                      <div className="-mx-2 overflow-x-auto">
-                        <table className="w-full min-w-[360px] border-collapse text-left text-[13px]">
-                          <thead>
-                            <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
-                              <th className="px-2 pb-2 font-medium">Đường dẫn</th>
-                              <th className="px-2 pb-2 text-right font-medium">Lượt xem</th>
-                              <th className="px-2 pb-2 text-right font-medium">Người dùng</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ga.data.topPages.map((page) => (
-                              <tr key={page.path} className="border-t border-[var(--border)]">
-                                <td className="max-w-[240px] px-2 py-2.5">
-                                  <span
-                                    className="block truncate text-[var(--foreground)]"
-                                    title={page.path}
-                                  >
-                                    {shortenUrl(page.path)}
-                                  </span>
-                                </td>
-                                <td className="px-2 py-2.5 text-right tabular-nums">
-                                  {formatNumber(page.views)}
-                                </td>
-                                <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
-                                  {formatNumber(page.users)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    <TopPagesTable rows={ga.data.topPages} />
                   </SectionCard>
 
                   <SectionCard title="Nguồn truy cập" icon={Gauge}>
