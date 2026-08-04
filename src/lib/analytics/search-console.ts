@@ -4,9 +4,11 @@ import { getAppUrl } from "@/lib/app-url";
 import type { DateRange } from "@/lib/analytics/date-range";
 import {
   getGoogleAccessToken,
+  getServiceAccountCredentials,
   hasServiceAccount,
   SEARCH_CONSOLE_SCOPE,
 } from "@/lib/analytics/google-auth";
+import { describeGoogleApiError } from "@/lib/analytics/google-errors";
 import type {
   GscReport,
   GscRow,
@@ -244,23 +246,29 @@ export async function fetchSearchConsoleReport(
       },
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không gọi được Search Console API.";
+    const raw = error instanceof Error ? error.message : "Không gọi được Search Console API.";
+    const email = getServiceAccountCredentials()?.email;
+    const described = describeGoogleApiError(raw, "searchConsole", email);
 
-    if (!message.includes("403")) {
-      return { status: "error", message, data: null };
+    // API chưa bật thì chưa gọi được gì cả — liệt kê property cũng vô nghĩa.
+    if (described !== raw) {
+      return { status: "error", message: described, data: null };
     }
 
-    // 403 có đúng hai nguyên nhân, và phân biệt được bằng danh sách property:
-    // hoặc service account chưa được add, hoặc đang gọi nhầm dạng property.
-    const sites = await fetchAccessibleSites(token);
-    const available = sites.map((site) => site.siteUrl);
+    if (!raw.includes("403")) {
+      return { status: "error", message: raw, data: null };
+    }
+
+    // 403 còn lại phân biệt được bằng danh sách property: hoặc service account
+    // chưa được add, hoặc đang gọi nhầm dạng property.
+    const available = (await fetchAccessibleSites(token)).map((site) => site.siteUrl);
 
     return {
       status: "error",
       message:
         available.length > 0
           ? `Không đọc được property "${siteUrl}". Service account đang có quyền trên: ${available.join(", ")}. Đặt GSC_SITE_URL đúng một trong số đó — xác minh bằng DNS (TXT/CNAME) thì property có dạng sc-domain:...`
-          : `${message} — service account chưa được thêm làm user của property nào trong Search Console.`,
+          : `${raw} — service account chưa được thêm làm user của property nào trong Search Console.`,
       data: null,
     };
   }

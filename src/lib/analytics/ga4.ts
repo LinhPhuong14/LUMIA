@@ -2,7 +2,8 @@ import "server-only";
 
 import type { DateRange } from "@/lib/analytics/date-range";
 import { normalizeGaDate } from "@/lib/analytics/date-range";
-import { GA4_SCOPE, getGoogleAccessToken, hasServiceAccount } from "@/lib/analytics/google-auth";
+import { GA4_SCOPE, getGoogleAccessToken, getServiceAccountCredentials, hasServiceAccount } from "@/lib/analytics/google-auth";
+import { describeGoogleApiError } from "@/lib/analytics/google-errors";
 import type {
   BreakdownRow,
   GaPageRow,
@@ -251,9 +252,10 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
       },
     };
   } catch (error) {
+    const raw = error instanceof Error ? error.message : "Không gọi được GA4 Data API.";
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Không gọi được GA4 Data API.",
+      message: describeGoogleApiError(raw, "ga4", getServiceAccountCredentials()?.email),
       data: null,
     };
   }

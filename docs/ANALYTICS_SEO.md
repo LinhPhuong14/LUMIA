@@ -171,11 +171,18 @@ vẫn hiện, phần lỗi hiển thị đúng nguyên nhân thay vì màn hình
 1. [console.cloud.google.com](https://console.cloud.google.com) → **IAM & Admin**
    → **Service Accounts** → **Create service account**
 2. **Keys** → **Add key** → **JSON** → tải file về
-3. **APIs & Services** → **Library** → bật **Google Analytics Data API**
-4. GA4 → **Admin** → **Property access management** → thêm `client_email` của
-   service account với quyền **Viewer**
-5. Search Console → **Settings** → **Users and permissions** → thêm chính email
-   đó (quyền **Full** hoặc **Restricted**)
+3. **APIs & Services** → **Library** → bật **CẢ HAI** API dưới đây. Mỗi API bật
+   riêng, bật cái này không kéo theo cái kia:
+   - [Google Analytics Data API](https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com)
+   - [Google Search Console API](https://console.cloud.google.com/apis/library/searchconsole.googleapis.com)
+4. GA4 → **Admin** → **Property access management** → **+** → thêm `client_email`
+   của service account với quyền **Viewer**
+5. Search Console → **Settings** → **Users and permissions** → **Add user** →
+   thêm chính email đó (quyền **Full** hoặc **Restricted**)
+
+Bước 3 và bước 4-5 là **hai việc tách rời**: bật API cho phép gọi, cấp quyền cho
+phép đọc dữ liệu. Làm xong bước tạo key rất dễ tưởng là đã xong, nhưng thiếu bất
+kỳ bước nào cũng ra lỗi.
 
 Rồi set env trên Vercel:
 
@@ -193,6 +200,8 @@ server, không bao giờ lọt vào bundle của trình duyệt.
 
 | Triệu chứng | Nguyên nhân |
 |---|---|
+| "Chưa bật … API trong Google Cloud" | Quên bật API đó ở bước 3. Thông báo lỗi có sẵn link Enable đúng project |
+| "User does not have sufficient permission" | Token lấy được rồi (key đúng), chỉ thiếu bước 4/5 — cấp quyền cho service account trên property |
 | "Chưa cấu hình GA4_PROPERTY_ID…" | Thiếu env, hoặc điền nhầm `G-XXXXXXXXXX` vào `GA4_PROPERTY_ID` |
 | "Không lấy được access token" | `private_key` mất newline — phải giữ `\n`, đừng xoá |
 | Search Console trả 403 | Thông báo lỗi liệt kê property đang có quyền. Không có property nào = chưa add service account. Có nhưng khác chuỗi đang gọi = `GSC_SITE_URL` sai dạng (verify bằng DNS thì phải là `sc-domain:...`) — bỏ trống biến này để code tự dò |
