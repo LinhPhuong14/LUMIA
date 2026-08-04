@@ -192,6 +192,21 @@ function eachDay(startDate: string, endDate: string, calibration: DemoCalibratio
   return points;
 }
 
+/** Chuỗi theo ngày của bộ sinh — dùng khi đóng băng lịch sử vào DB. */
+export type DemoDailyPoint = DailyPoint;
+
+/**
+ * Chuỗi theo ngày cho một khoảng bất kỳ. Tách ra public để bước đóng băng lịch
+ * sử dùng đúng cùng một bộ sinh với báo cáo, không phải viết lại logic lần hai.
+ */
+export function buildDemoDailySeries(
+  startDate: string,
+  endDate: string,
+  calibration: DemoCalibration,
+): DemoDailyPoint[] {
+  return eachDay(startDate, endDate, calibration);
+}
+
 // ─── Tỉ trọng các nhóm ───────────────────────────────────────────────────────
 
 /**

@@ -294,6 +294,57 @@ Hai tính chất được test khoá lại (`demo-data.test.ts`):
    từng ngày với biểu đồ 7 ngày, nên đổi kỳ không bao giờ ra hai câu chuyện
    mâu thuẫn.
 
+### Chuyển từ dữ liệu mẫu sang số thật
+
+GA4 **không có dữ liệu hồi tố** — chỉ đếm từ lúc tag chạy. Search Console thì
+ngược lại: verify property là có ngay tới 16 tháng lịch sử, vì Google vẫn ghi
+nhận impression/click từ trước. Nên chỉ **một nửa** cần xử lý.
+
+Quy trình:
+
+1. Nối GA4 + GSC theo mục trên, redeploy, kiểm bằng GA4 Realtime
+2. Đặt `ANALYTICS_REAL_DATA_SINCE` = **ngày đầu tiên trọn vẹn** sau khi tag chạy
+   (không phải ngày cài — ngày cài thiếu vài giờ đầu, sẽ thành hố sụt)
+3. Đặt `ANALYTICS_DEMO_MODE=false`
+4. Chờ **3 ngày**, rồi vào `/admin` → tab Báo cáo → khối *Lịch sử trước ngày gắn
+   đo* → bấm **Nối lịch sử**
+
+Bước 4 làm ba việc: đọc traffic thật của 3 ngày đầu, tính hệ số co giãn bằng
+cách so với mức mà bộ sinh tạo ra cho **đúng những ngày đó**, rồi dựng lại toàn
+bộ giai đoạn trước mốc theo hệ số đó và ghi vào `analytics_daily_snapshot`.
+
+Kết quả: biểu đồ liền mạch, không có vách đứng ở chỗ nối, vì đoạn dựng lại đã
+được kéo về đúng mức traffic thật.
+
+Bấm lại nút bất cứ lúc nào để neo lại theo dữ liệu mới hơn — nó xoá và ghi đè
+toàn bộ đoạn `source = 'demo'`, không đụng tới dòng nào là số đo được.
+
+#### Vì sao phải đóng băng vào DB
+
+Bộ sinh neo theo profile sớm nhất trong DB, nên chỉ cần xoá một user cũ là cả
+lịch sử dịch chuyển. Chấp nhận được khi nó là placeholder tạm, không chấp nhận
+được khi đã thành lịch sử chính thức của báo cáo.
+
+Bảng lưu cột `source` (`demo` / `ga4`) cho từng ngày, và `scale_factor` đã dùng.
+Sáu tháng nữa vẫn tra được ngày nào là số đo được, và xoá đoạn dựng lại chỉ là
+một câu `DELETE ... WHERE source = 'demo'`.
+
+#### Ràng buộc khi nối
+
+- **Một ngày chỉ thuộc một nguồn.** Ngày nào GA4 có số thì số thật thắng tuyệt
+  đối, không bao giờ cộng hai nguồn cho cùng một ngày.
+- **Tỉ lệ tương tác và thời lượng phiên lấy trọng số theo số phiên**, không phải
+  trung bình cộng — đoạn lịch sử dài gấp nhiều lần đoạn thật, trung bình cộng sẽ
+  để vài ngày thật đè bẹp hai tháng.
+- **Hệ số neo bị chặn trong [0,05 … 20].** Với 3 ngày mẫu, một ngày bất thường
+  (bài viral, bot, hay chính bạn F5 50 lần) đủ để nhân hoặc chia cả hai tháng.
+- **Cơ cấu nguồn/thiết bị/quốc gia và top trang giữ nguyên bản thật.** Cơ cấu đo
+  được đáng tin hơn cơ cấu dựng lại, và trộn hai bộ tỉ trọng chỉ tạo ra một phân
+  bố không thuộc về ai.
+
+Đoạn dựng lại tự rơi khỏi cả ba kỳ báo cáo sau 90 ngày — giải pháp này có tuổi
+thọ hữu hạn, không phải tính năng sống mãi.
+
 ### Vì sao kỳ báo cáo dừng ở hôm qua
 
 GA4 chốt số theo ngày và Search Console trễ 2-3 ngày. Nếu tính tới hôm nay,

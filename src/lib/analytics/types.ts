@@ -12,6 +12,13 @@ export type SourceState<T> = {
    * UI bắt buộc gắn nhãn khi cờ này bật.
    */
   demo?: boolean;
+  /**
+   * `true` = kỳ này gồm cả đoạn lịch sử dựng lại trước ngày gắn đo, đã neo về
+   * mức traffic thật. Phần từ ngày gắn đo trở đi luôn là số đo được.
+   */
+  spliced?: boolean;
+  /** Ngày đầu tiên có số đo thật — mọi ngày trước đó là dựng lại. */
+  realDataSince?: string;
   data: T | null;
 };
 

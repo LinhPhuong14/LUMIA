@@ -50,6 +50,23 @@ function buildTrend(orders: OrderRow[], range: DateRange): BusinessTrendPoint[] 
   return [...byDate.entries()].map(([date, bucket]) => ({ date, ...bucket }));
 }
 
+/** Ngày tạo profile sớm nhất — mốc "mở bán" của đường tăng trưởng. */
+export async function fetchFirstProfileAt(): Promise<string | null> {
+  const admin = createAdminClient();
+  if (!admin) {
+    return null;
+  }
+
+  const { data } = await admin
+    .from("profiles")
+    .select("created_at")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (data?.created_at as string | undefined) ?? null;
+}
+
 /**
  * Hai mẩu dữ liệu thật mà bộ sinh số liệu mẫu cần để bám sát thực tế: mốc
  * "mở bán" và số tài khoản đăng ký trong kỳ. Tách riêng để tab chỉ xem traffic

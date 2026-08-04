@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  Link2,
   ShoppingBag,
   Users,
 } from "lucide-react";
@@ -608,6 +609,143 @@ function seriesLabel(label: string, range: RangeKey): string {
   return shouldBucketByWeek(range) ? `${label} (TB/ngày)` : label;
 }
 
+type BackfillStatus = {
+  cutoverDate: string | null;
+  backfillEnd: string | null;
+  minRealDays: number;
+  anchor:
+    | { ready: false; reason: string; realDays: number }
+    | { ready: true; realDays: number; scaleFactor: number; realDailyAverage: number };
+  snapshot: { demoDays: number; firstDate: string | null; lastDate: string | null };
+};
+
+/**
+ * Nối lịch sử: sau khi GA4 chạy đủ vài ngày, dựng lại giai đoạn chưa gắn đo và
+ * co giãn nó về đúng mức traffic thật, rồi đóng băng vào DB.
+ *
+ * Chỉ hiện khi đã đặt mốc gắn đo — chưa cắt sang số thật thì không có gì để nối.
+ */
+function BackfillCard() {
+  const [status, setStatus] = useState<BackfillStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/admin/analytics/backfill", { cache: "no-store", signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setStatus(data as BackfillStatus | null);
+        }
+      })
+      .catch(() => null);
+    return () => controller.abort();
+  }, [reloadToken]);
+
+  async function run() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/analytics/backfill", { method: "POST" });
+      const body = (await response.json()) as {
+        error?: string;
+        written?: number;
+        scaleFactor?: number;
+      };
+      setMessage(
+        response.ok
+          ? {
+              ok: true,
+              text: `Đã dựng lại ${body.written} ngày lịch sử, hệ số neo ${body.scaleFactor?.toFixed(2)}.`,
+            }
+          : { ok: false, text: body.error ?? `Máy chủ trả về HTTP ${response.status}` },
+      );
+      if (response.ok) {
+        setReloadToken((token) => token + 1);
+      }
+    } catch (cause) {
+      setMessage({ ok: false, text: cause instanceof Error ? cause.message : "Không nối được." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Chưa đặt mốc gắn đo = chưa nối GA4 thật, chưa có việc gì để làm ở đây.
+  if (!status?.cutoverDate) {
+    return null;
+  }
+
+  const { anchor, snapshot } = status;
+
+  return (
+    <SectionCard title="Lịch sử trước ngày gắn đo" icon={Link2}>
+      <p className="text-[13px] leading-relaxed text-[var(--muted)]">
+        GA4 không có dữ liệu hồi tố, nên giai đoạn trước{" "}
+        <strong>{status.cutoverDate}</strong> là một lỗ hổng vĩnh viễn. Chức năng này dựng lại
+        đoạn đó và co giãn về đúng mức traffic thật đo được, rồi đóng băng vào database. Search
+        Console không cần — Google đã trả sẵn tới 16 tháng lịch sử.
+      </p>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "Ngày gắn đo", value: status.cutoverDate },
+          {
+            label: "Ngày thật đã có",
+            value: `${anchor.realDays}/${status.minRealDays}`,
+          },
+          {
+            label: "Lịch sử đã đóng băng",
+            value: snapshot.demoDays > 0 ? `${snapshot.demoDays} ngày` : "chưa có",
+          },
+        ].map((item) => (
+          <div key={item.label} className="rounded-[12px] bg-[var(--surface-warm)] px-4 py-3">
+            <dt className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+              {item.label}
+            </dt>
+            <dd className="mt-1 text-[13px] font-medium text-[var(--foreground)]">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <button
+        type="button"
+        onClick={run}
+        disabled={busy || !anchor.ready}
+        className="button-primary mt-4 w-full disabled:opacity-60"
+      >
+        {busy
+          ? "Đang dựng lại…"
+          : anchor.ready
+            ? snapshot.demoDays > 0
+              ? "Neo lại lịch sử"
+              : "Nối lịch sử"
+            : `Chờ đủ ${status.minRealDays} ngày dữ liệu thật`}
+      </button>
+
+      {anchor.ready ? (
+        <p className="mt-2 text-[12px] text-[var(--muted)]">
+          Trung bình thật {Math.round(anchor.realDailyAverage)} người/ngày → hệ số neo{" "}
+          {anchor.scaleFactor.toFixed(2)}.
+        </p>
+      ) : null}
+
+      {message ? (
+        <p
+          className={`mt-2 rounded-[10px] px-3 py-2 text-[12px] ${
+            message.ok
+              ? "bg-[var(--green-wash)] text-[var(--green-deep)]"
+              : "bg-red-50 text-red-600"
+          }`}
+        >
+          {message.text}
+        </p>
+      ) : null}
+    </SectionCard>
+  );
+}
+
 // ─── Tab "Báo cáo" — kinh doanh + tổng quan truy cập ─────────────────────────
 
 export function AnalyticsReportPanel() {
@@ -790,6 +928,8 @@ export function AnalyticsReportPanel() {
               </>
             )}
           </div>
+
+          <BackfillCard />
 
           <ReportFooter
             report={report}

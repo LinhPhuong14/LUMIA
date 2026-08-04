@@ -112,6 +112,47 @@ async function runBatch(
   return data;
 }
 
+/**
+ * Chuỗi người dùng theo ngày, chỉ một chỉ số. Dùng để neo lịch sử dựng lại vào
+ * mức traffic thật — không cần kéo cả báo cáo đầy đủ chỉ để lấy một cột số.
+ *
+ * Trả mảng rỗng khi chưa cấu hình hoặc API lỗi: bên gọi coi như "chưa đủ ngày
+ * thật" và không neo, thay vì neo bằng số rác.
+ */
+export async function fetchGaDailyUsers(
+  startDate: string,
+  endDate: string,
+): Promise<{ date: string; users: number }[]> {
+  const propertyId = getPropertyId();
+  if (!hasServiceAccount() || !propertyId) {
+    return [];
+  }
+
+  const token = await getGoogleAccessToken(GA4_SCOPE);
+  if (!token) {
+    return [];
+  }
+
+  try {
+    const data = await runBatch(propertyId, token, [
+      {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: "date" }],
+        metrics: [{ name: "activeUsers" }],
+        orderBys: [{ dimension: { dimensionName: "date" } }],
+        limit: 400,
+      },
+    ]);
+
+    return (data.reports?.[0]?.rows ?? []).map((row) => ({
+      date: normalizeGaDate(dim(row, 0)),
+      users: metric(row, 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchGaReport(range: DateRange): Promise<SourceState<GaReport>> {
   const propertyId = getPropertyId();
 

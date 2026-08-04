@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isBeforeCutover } from "@/lib/analytics/backfill";
 import { fetchBusinessReport, fetchDemoAnchors } from "@/lib/analytics/business";
 import { parseRangeKey, resolveDateRange } from "@/lib/analytics/date-range";
 import {
@@ -11,6 +12,12 @@ import {
 } from "@/lib/analytics/demo-data";
 import { fetchGaReport } from "@/lib/analytics/ga4";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
+import { readSnapshot } from "@/lib/analytics/snapshot";
+import {
+  selectHistorical,
+  spliceGaSummary,
+  spliceTrend,
+} from "@/lib/analytics/splice";
 import type { AnalyticsReport } from "@/lib/analytics/types";
 import { getAppUrl } from "@/lib/app-url";
 import { env } from "@/lib/env";
@@ -52,6 +59,12 @@ function resolveCalibration(firstProfileAt: string | null): DemoCalibration {
       : launchDate,
     peakDailyUsers: Number.isFinite(peak) && peak > 0 ? peak : DEMO_DEFAULT_PEAK_DAILY_USERS,
   };
+}
+
+/** Ngày đầu tiên có dữ liệu GA4 thật. Chưa đặt = chưa cắt sang số thật. */
+function getCutoverDate(): string | null {
+  const raw = process.env.ANALYTICS_REAL_DATA_SINCE?.trim();
+  return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
 }
 
 /** `?sections=business,traffic` — bỏ trống thì trả tất cả. */
@@ -138,6 +151,38 @@ export async function GET(request: Request) {
           status: "ok",
           demo: true,
           data: buildDemoGscReport(range, calibration, resolveSiteUrl()),
+        };
+      }
+    }
+
+    // Nối lịch sử đã đóng băng vào đầu kỳ, khi đã cắt sang số thật.
+    //
+    // Chỉ làm cho GA4: Search Console trả về tới 16 tháng lịch sử lúc verify
+    // property, nên phần tìm kiếm đã là số thật, nối vào chỉ làm hỏng.
+    const cutoverDate = getCutoverDate();
+    const ga = report.google;
+
+    if (cutoverDate && isBeforeCutover(range.startDate, cutoverDate) && ga?.status === "ok" && ga.data && !ga.demo) {
+      const historical = selectHistorical(
+        await readSnapshot(range.startDate, range.endDate),
+        range.startDate,
+        range.endDate,
+        cutoverDate,
+      );
+
+      if (historical.length > 0) {
+        report.google = {
+          ...ga,
+          spliced: true,
+          realDataSince: cutoverDate,
+          data: {
+            ...ga.data,
+            summary: spliceGaSummary(historical, ga.data.summary),
+            // Tỉ trọng nguồn/thiết bị/quốc gia và top trang giữ nguyên bản thật:
+            // cơ cấu đo được đáng tin hơn cơ cấu dựng lại, và trộn hai bộ tỉ
+            // trọng khác nhau chỉ tạo ra một phân bố không thuộc về ai.
+            trend: spliceTrend(historical, ga.data.trend),
+          },
         };
       }
     }
