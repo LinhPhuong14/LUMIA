@@ -115,3 +115,49 @@ export function inferCutoverDate(daily: { date: string; users: number }[]): stri
   date.setUTCDate(date.getUTCDate() + 1);
   return date.toISOString().slice(0, 10);
 }
+
+export type CutoverEnvResult =
+  | { kind: "unset" }
+  | { kind: "ok"; date: string }
+  | { kind: "invalid"; reason: string };
+
+/**
+ * Đọc `ANALYTICS_REAL_DATA_SINCE`.
+ *
+ * Trước đây giá trị sai định dạng bị bỏ qua lặng lẽ và rơi về chế độ tự dò —
+ * người điền không thấy gì đổi và không biết vì sao. Giờ trả lỗi rõ ràng.
+ *
+ * Chấp nhận `YYYY-MM-DD` và biến thể chưa đệm số 0 (`2026-8-6`) hoặc dùng dấu
+ * gạch chéo (`2026/08/06`). KHÔNG chấp nhận kiểu ngày-trước như `06/08/2026`:
+ * nhìn không phân biệt được với `MM/DD/YYYY`, mà đoán sai thì lệch vài tháng
+ * lịch sử một cách âm thầm — thà báo lỗi.
+ */
+export function parseCutoverEnv(raw: string | undefined): CutoverEnvResult {
+  const value = raw?.trim().replace(/^["']|["']$/g, "");
+  if (!value) {
+    return { kind: "unset" };
+  }
+
+  const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value);
+  if (!match) {
+    return {
+      kind: "invalid",
+      reason: `ANALYTICS_REAL_DATA_SINCE = "${value}" sai định dạng. Phải là YYYY-MM-DD, ví dụ 2026-08-06.`,
+    };
+  }
+
+  const [, year, month, day] = match;
+  const iso = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+  // Chặn ngày không tồn tại (2026-02-31): Date tự nhảy sang tháng sau, và một
+  // mốc lệch âm thầm còn khó phát hiện hơn một lỗi rõ ràng.
+  const parsed = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== iso) {
+    return {
+      kind: "invalid",
+      reason: `ANALYTICS_REAL_DATA_SINCE = "${value}" không phải ngày có thật.`,
+    };
+  }
+
+  return { kind: "ok", date: iso };
+}

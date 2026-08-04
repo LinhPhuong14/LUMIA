@@ -5,6 +5,7 @@ import {
   clampScaleFactor,
   inferCutoverDate,
   isBeforeCutover,
+  parseCutoverEnv,
   resolveAnchor,
   resolveBackfillEnd,
 } from "@/lib/analytics/backfill";
@@ -128,5 +129,36 @@ describe("inferCutoverDate", () => {
 
   it("ngày sai định dạng trả null thay vì ngày rác", () => {
     expect(inferCutoverDate([{ date: "31/08/2026", users: 5 }])).toBeNull();
+  });
+});
+
+describe("parseCutoverEnv", () => {
+  it("nhận định dạng chuẩn", () => {
+    expect(parseCutoverEnv("2026-08-06")).toEqual({ kind: "ok", date: "2026-08-06" });
+  });
+
+  it("tha thứ cho thiếu số 0 và dấu gạch chéo", () => {
+    expect(parseCutoverEnv("2026-8-6")).toEqual({ kind: "ok", date: "2026-08-06" });
+    expect(parseCutoverEnv("2026/08/06")).toEqual({ kind: "ok", date: "2026-08-06" });
+  });
+
+  it("bỏ khoảng trắng và dấu nháy khi dán từ chỗ khác", () => {
+    expect(parseCutoverEnv(' "2026-08-06" ')).toEqual({ kind: "ok", date: "2026-08-06" });
+  });
+
+  it("bỏ trống là chưa đặt, không phải lỗi", () => {
+    expect(parseCutoverEnv(undefined).kind).toBe("unset");
+    expect(parseCutoverEnv("   ").kind).toBe("unset");
+  });
+
+  it("từ chối kiểu ngày-trước vì không phân biệt được với MM/DD/YYYY", () => {
+    const result = parseCutoverEnv("06/08/2026");
+    expect(result.kind).toBe("invalid");
+    if (result.kind === "invalid") expect(result.reason).toContain("YYYY-MM-DD");
+  });
+
+  it("từ chối ngày không có thật thay vì để Date nhảy sang tháng sau", () => {
+    expect(parseCutoverEnv("2026-02-31").kind).toBe("invalid");
+    expect(parseCutoverEnv("2026-13-01").kind).toBe("invalid");
   });
 });

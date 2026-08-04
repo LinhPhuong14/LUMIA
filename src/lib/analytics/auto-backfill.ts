@@ -3,6 +3,7 @@ import "server-only";
 import {
   ANCHOR_MIN_REAL_DAYS,
   inferCutoverDate,
+  parseCutoverEnv,
   resolveAnchor,
   resolveBackfillEnd,
   type AnchorStatus,
@@ -43,10 +44,19 @@ function shiftDays(days: number): string {
 let cachedCutover: { value: string | null; at: number } | null = null;
 const CUTOVER_CACHE_MS = 30 * 60_000;
 
+/** Lỗi định dạng của env, giữ lại để hiện lên báo cáo thay vì bỏ qua lặng lẽ. */
+let cutoverEnvError: string | null = null;
+
+export function getCutoverEnvError(): string | null {
+  return cutoverEnvError;
+}
+
 export async function resolveCutoverDate(): Promise<string | null> {
-  const configured = process.env.ANALYTICS_REAL_DATA_SINCE?.trim();
-  if (configured && /^\d{4}-\d{2}-\d{2}$/.test(configured)) {
-    return configured;
+  const configured = parseCutoverEnv(process.env.ANALYTICS_REAL_DATA_SINCE);
+  cutoverEnvError = configured.kind === "invalid" ? configured.reason : null;
+
+  if (configured.kind === "ok") {
+    return configured.date;
   }
 
   if (cachedCutover && Date.now() - cachedCutover.at < CUTOVER_CACHE_MS) {
@@ -229,7 +239,9 @@ export async function ensureBackfilled(cutover: string | null): Promise<Backfill
       ran: false,
       reason: "no_cutover",
       cutoverDate: null,
-      note: "Chưa đo được ngày nào có người dùng trong GA4 nên chưa biết mốc gắn đo ở đâu.",
+      note:
+        getCutoverEnvError() ??
+        "GA4 chưa có ngày trọn vẹn nào có người dùng nên chưa suy được mốc gắn đo. Dữ liệu vào Data API chậm hơn Realtime khoảng 24-48h — chờ thêm, hoặc đặt ANALYTICS_REAL_DATA_SINCE=YYYY-MM-DD để chỉ định thẳng.",
     };
   }
 
