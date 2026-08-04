@@ -244,11 +244,33 @@ Các biến tinh chỉnh:
   trở lại thì xoá prefix đó. Vì không có trang nội dung để hứng truy vấn kiểu
   "cách/mẹo", cơ cấu từ khoá cũng nghiêng về truy vấn thương hiệu và sản phẩm.
 
-Với mặc định `45`, mỗi ngày dao động **30-49 người dùng**; kỳ 28 ngày ra khoảng
-**1.057 người dùng (729 mới) / 1.344 phiên / 3.962 lượt xem**, kèm **206 click /
-7.407 lượt hiển thị** từ tìm kiếm. Tăng `ANALYTICS_DEMO_PEAK_DAILY_USERS` thì
-mọi chỉ số co giãn cùng nhau — kể cả impression của Search Console — nên tỉ lệ
-giữa các con số vẫn hợp lý.
+Với mặc định `30`, mỗi ngày dao động **23-33 người dùng**:
+
+| Kỳ | Người dùng | Mới | Phiên | Lượt xem | Click |
+|---|---|---|---|---|---|
+| 7 ngày | 189 | 123 | 240 | 707 | 36 |
+| 28 ngày | 703 | 488 | 895 | 2.639 | 137 |
+| 90 ngày | 1.196 | 884 | 1.520 | 4.487 | 159 |
+
+Tăng `ANALYTICS_DEMO_PEAK_DAILY_USERS` thì mọi chỉ số co giãn cùng nhau — kể cả
+impression của Search Console — nên tỉ lệ giữa các con số vẫn hợp lý.
+
+Tổng của 28 ngày luôn xấp xỉ 4 lần tổng của 7 ngày; đó là số học chứ không phải
+lỗi cấu hình. Muốn so sánh ba kỳ trên cùng thang đo thì nhìn biểu đồ, không nhìn
+ô tổng.
+
+#### Số điểm trên biểu đồ
+
+| Kỳ | Số điểm | Mỗi điểm là |
+|---|---|---|
+| 7 ngày | 7 | một ngày |
+| 28 ngày | 28 | một ngày |
+| 90 ngày | 13 | trung bình mỗi ngày trong một tuần |
+
+Kỳ 90 ngày vẽ từng ngày sẽ ra 90 cột chen chúc, không đọc được nhãn nào. Gom
+theo tuần và lấy **trung bình mỗi ngày** — không phải tổng: dùng tổng thì trục Y
+cao gấp 7 lần các kỳ ngắn, đổi tab một cái là tưởng lưu lượng tăng vọt trong khi
+thực tế không đổi. Nhãn series kèm hậu tố `(TB/ngày)` để không ai đọc nhầm.
 
 #### Sàn theo số tài khoản thật
 

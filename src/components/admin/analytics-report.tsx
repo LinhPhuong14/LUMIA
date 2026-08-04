@@ -44,6 +44,7 @@ import {
   shortenUrl,
   type DeltaTone,
 } from "@/lib/analytics/format";
+import { prepareTrend, shouldBucketByWeek } from "@/lib/analytics/trend";
 import type {
   AnalyticsReport,
   BreakdownRow,
@@ -254,7 +255,7 @@ function TrendChart({
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 8, right: 22, left: -6, bottom: 0 }}>
           <defs>
             {series.map((s) => (
               <linearGradient key={s.key} id={`fill-${uid}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -269,7 +270,12 @@ function TrendChart({
             axisLine={false}
             tickLine={false}
             tick={{ fill: "var(--muted)", fontSize: 10 }}
-            minTickGap={24}
+            // interval=0: vẽ đủ mọi nhãn (7 hoặc 28 node) thay vì để recharts
+            // tự bỏ bớt. Kỳ 90 ngày đã gom còn 13 điểm nên cũng vừa chỗ.
+            interval={0}
+            angle={data.length > 20 ? -45 : 0}
+            textAnchor={data.length > 20 ? "end" : "middle"}
+            height={data.length > 20 ? 46 : 24}
           />
           <YAxis
             yAxisId="primary"
@@ -583,6 +589,25 @@ function TopPagesTable({ rows }: { rows: GaPageRow[] }) {
   );
 }
 
+/**
+ * Dựng điểm cho biểu đồ: kỳ ngắn vẽ từng ngày, kỳ 90 ngày gom theo tuần.
+ * Nhãn series kèm hậu tố khi đã gom, để không ai đọc nhầm trung bình thành tổng.
+ */
+function buildTrendPoints(
+  rows: { date: string; primary: number; secondary: number }[],
+  range: RangeKey,
+): TrendPoint[] {
+  return prepareTrend(rows, range).map((bucket) => ({
+    label: formatChartDate(bucket.date),
+    primary: bucket.primary,
+    secondary: bucket.secondary,
+  }));
+}
+
+function seriesLabel(label: string, range: RangeKey): string {
+  return shouldBucketByWeek(range) ? `${label} (TB/ngày)` : label;
+}
+
 // ─── Tab "Báo cáo" — kinh doanh + tổng quan truy cập ─────────────────────────
 
 export function AnalyticsReportPanel() {
@@ -597,22 +622,28 @@ export function AnalyticsReportPanel() {
 
   const businessTrend = useMemo<TrendPoint[]>(
     () =>
-      (business?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.revenue,
-        secondary: point.orders,
-      })),
-    [business],
+      buildTrendPoints(
+        (business?.data?.trend ?? []).map((point) => ({
+          date: point.date,
+          primary: point.revenue,
+          secondary: point.orders,
+        })),
+        range,
+      ),
+    [business, range],
   );
 
   const trafficTrend = useMemo<TrendPoint[]>(
     () =>
-      (ga?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.users,
-        secondary: point.sessions,
-      })),
-    [ga],
+      buildTrendPoints(
+        (ga?.data?.trend ?? []).map((point) => ({
+          date: point.date,
+          primary: point.users,
+          secondary: point.sessions,
+        })),
+        range,
+      ),
+    [ga, range],
   );
 
   return (
@@ -669,8 +700,8 @@ export function AnalyticsReportPanel() {
                     data={businessTrend}
                     dualAxis
                     series={[
-                      { key: "primary", label: "Doanh thu (đ)", color: "var(--green-deep)" },
-                      { key: "secondary", label: "Đơn hàng", color: "var(--green-bright)" },
+                      { key: "primary", label: seriesLabel("Doanh thu (đ)", range), color: "var(--green-deep)" },
+                      { key: "secondary", label: seriesLabel("Đơn hàng", range), color: "var(--green-bright)" },
                     ]}
                   />
                 </SectionCard>
@@ -741,8 +772,8 @@ export function AnalyticsReportPanel() {
                   <TrendChart
                     data={trafficTrend}
                     series={[
-                      { key: "primary", label: "Người dùng", color: "var(--green-deep)" },
-                      { key: "secondary", label: "Phiên", color: "var(--green-bright)" },
+                      { key: "primary", label: seriesLabel("Người dùng", range), color: "var(--green-deep)" },
+                      { key: "secondary", label: seriesLabel("Phiên", range), color: "var(--green-bright)" },
                     ]}
                   />
                 </SectionCard>
@@ -783,22 +814,28 @@ export function OperationsReportPanel() {
 
   const gaTrend = useMemo<TrendPoint[]>(
     () =>
-      (ga?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.users,
-        secondary: point.sessions,
-      })),
-    [ga],
+      buildTrendPoints(
+        (ga?.data?.trend ?? []).map((point) => ({
+          date: point.date,
+          primary: point.users,
+          secondary: point.sessions,
+        })),
+        range,
+      ),
+    [ga, range],
   );
 
   const gscTrend = useMemo<TrendPoint[]>(
     () =>
-      (gsc?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.clicks,
-        secondary: point.impressions,
-      })),
-    [gsc],
+      buildTrendPoints(
+        (gsc?.data?.trend ?? []).map((point) => ({
+          date: point.date,
+          primary: point.clicks,
+          secondary: point.impressions,
+        })),
+        range,
+      ),
+    [gsc, range],
   );
 
   return (
@@ -879,8 +916,8 @@ export function OperationsReportPanel() {
                   <TrendChart
                     data={gaTrend}
                     series={[
-                      { key: "primary", label: "Người dùng", color: "var(--green-deep)" },
-                      { key: "secondary", label: "Phiên", color: "var(--green-bright)" },
+                      { key: "primary", label: seriesLabel("Người dùng", range), color: "var(--green-deep)" },
+                      { key: "secondary", label: seriesLabel("Phiên", range), color: "var(--green-bright)" },
                     ]}
                   />
                 </SectionCard>
@@ -957,8 +994,8 @@ export function OperationsReportPanel() {
                     data={gscTrend}
                     dualAxis
                     series={[
-                      { key: "primary", label: "Click", color: "var(--green-deep)" },
-                      { key: "secondary", label: "Hiển thị", color: "var(--green-bright)" },
+                      { key: "primary", label: seriesLabel("Click", range), color: "var(--green-deep)" },
+                      { key: "secondary", label: seriesLabel("Hiển thị", range), color: "var(--green-bright)" },
                     ]}
                   />
                 </SectionCard>

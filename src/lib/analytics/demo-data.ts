@@ -32,11 +32,16 @@ export type DemoCalibration = {
 };
 
 /**
- * Trần người dùng/ngày mà đường tăng trưởng tiệm cận. Ở mức 45, kỳ 28 ngày dao
- * động khoảng 30-49 người/ngày — cỡ một site vừa mở, marketing chưa chạy hiệu
- * quả. Đây là trần chứ không phải giá trị mỗi ngày: những ngày đầu thấp hơn.
+ * Trần người dùng/ngày mà đường tăng trưởng tiệm cận. Ở mức 30, mỗi ngày dao
+ * động khoảng 23-33 người — cỡ một site vừa mở, marketing chưa chạy hiệu quả.
+ * Đây là trần chứ không phải giá trị mỗi ngày: những ngày đầu thấp hơn.
+ *
+ * Lưu ý về tổng theo kỳ: với lưu lượng đều, tổng của 28 ngày luôn xấp xỉ 4 lần
+ * tổng của 7 ngày — đó là số học, không phải lỗi cấu hình. Muốn ba kỳ nhìn
+ * cùng thang đo thì so sánh ở biểu đồ (kỳ 90 ngày đã quy về trung bình/ngày),
+ * chứ không phải ở ô tổng.
  */
-export const DEMO_DEFAULT_PEAK_DAILY_USERS = 45;
+export const DEMO_DEFAULT_PEAK_DAILY_USERS = 30;
 
 /** Google mất khoảng hai tuần mới index xong site mới — trước đó chưa có impression. */
 const SEARCH_INDEX_DELAY_DAYS = 14;
