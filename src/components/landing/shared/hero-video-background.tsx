@@ -43,15 +43,19 @@ export function HeroVideoBackground({ evening = false }: { evening?: boolean }) 
           playsInline
           autoPlay
           loop
-          preload="metadata"
+          // `auto` chứ không phải `metadata`: tới đây đã chốt là sẽ phát video
+          // rồi (desktop, không tiết kiệm dữ liệu, sau khi trang load xong), nên
+          // bảo trình duyệt dừng ở metadata chỉ làm chậm thêm một vòng.
+          preload="auto"
+          // Đặt src thẳng trên <video> thay vì qua <source>: cách cũ kết hợp với
+          // lời gọi video.load() trong hook làm file bị tải hai lần.
+          src={currentSource}
           className={cn(
             "hero-video absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-700",
             evening ? "hero-video--evening" : "hero-video--day",
             videoReady ? "opacity-100" : "opacity-0",
           )}
-        >
-          <source src={currentSource} type="video/mp4" />
-        </video>
+        />
       ) : null}
 
       <div

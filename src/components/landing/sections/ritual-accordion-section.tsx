@@ -4,11 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { ritualStageVideoSrc, ritualStages } from "@/components/landing/data/landing-content";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 export function RitualAccordionSection() {
   const [active, setActive] = useState(1);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
+
+  // `display:none` KHÔNG ngăn <video src> tải file. Hai khối desktop/mobile đều
+  // render video và chỉ ẩn nhau bằng CSS, nên trước đây cùng một file bị tải hai
+  // lần song song — gấp đôi băng thông cho thứ chỉ hiện được một bản.
+  // Khoá theo media query trong JS để mỗi lúc chỉ một khối gắn video.
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   useEffect(() => {
     const node = sectionRef.current;
@@ -57,7 +64,7 @@ export function RitualAccordionSection() {
                 }}
               >
                 <div className="lumia-grain-soft absolute inset-0 overflow-hidden bg-[var(--surface-warm)]">
-                  {videoEnabled && on ? (
+                  {videoEnabled && on && isDesktop ? (
                     <video
                       autoPlay
                       muted
@@ -131,7 +138,7 @@ export function RitualAccordionSection() {
                 onClick={() => setActive(stage.id)}
                 className="relative overflow-hidden rounded-[22px] text-left"
               >
-                {videoEnabled && on ? (
+                {videoEnabled && on && !isDesktop ? (
                   <video
                     autoPlay
                     muted
