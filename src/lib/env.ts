@@ -42,6 +42,10 @@ export const env = {
   CRON_SECRET: process.env.CRON_SECRET,
   SEED_SECRET: process.env.SEED_SECRET,
   NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
+  /** Meta tag `google-site-verification` để xác minh domain với Google Search Console */
+  NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  /** Kill switch chung: set `true` để tắt toàn bộ analytics (GA + Vercel) */
+  NEXT_PUBLIC_ANALYTICS_DISABLED: process.env.NEXT_PUBLIC_ANALYTICS_DISABLED === "true",
 };
 
 export function hasSupabaseConfig() {
@@ -68,6 +72,15 @@ export function hasLlmConfig() {
 /** @deprecated use hasLlmConfig - AI runs in-process, no separate service URL */
 export function hasLumiaServiceConfig() {
   return hasLlmConfig();
+}
+
+/** Analytics chỉ chạy khi không bị tắt thủ công qua env. */
+export function isAnalyticsEnabled() {
+  return !env.NEXT_PUBLIC_ANALYTICS_DISABLED;
+}
+
+export function hasGoogleAnalytics() {
+  return isAnalyticsEnabled() && Boolean(env.NEXT_PUBLIC_GA_ID);
 }
 
 export function isVercelCronAuthorized(request: Request) {

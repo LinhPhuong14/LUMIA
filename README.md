@@ -29,6 +29,9 @@ git push origin main
 | `CRON_SECRET` | ✅ | Random string — Vercel Cron dùng làm Bearer token |
 | `PAYOS_*` | Khi bật shop | Webhook → `https://your-app.vercel.app/api/payos/webhook` |
 | `SEED_SECRET` | Tùy chọn | Bảo vệ `POST /api/seed` trên production |
+| `NEXT_PUBLIC_GA_ID` | Tùy chọn | Google Analytics 4 — `G-XXXXXXXXXX` |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Tùy chọn | Xác minh Google Search Console |
+| `NEXT_PUBLIC_ANALYTICS_DISABLED` | Tùy chọn | `true` để tắt toàn bộ analytics |
 
 ### 4. Supabase Auth redirect
 
@@ -52,7 +55,14 @@ curl -X POST https://your-app.vercel.app/api/seed \
 
 ```bash
 curl https://your-app.vercel.app/api/health
+curl https://your-app.vercel.app/robots.txt
+curl https://your-app.vercel.app/sitemap.xml
 ```
+
+### 8. Analytics & SEO
+
+Google Analytics 4, Google Search Console và Vercel Analytics đã tích hợp sẵn.
+Xem hướng dẫn setup: [`docs/ANALYTICS_SEO.md`](docs/ANALYTICS_SEO.md)
 
 ---
 

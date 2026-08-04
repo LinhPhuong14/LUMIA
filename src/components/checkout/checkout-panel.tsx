@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 
 import { Button } from "@/components/ui/button";
 import type { BoxProduct } from "@/data/catalog";
+import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { formatCurrency } from "@/lib/utils";
 import { validateName, validatePhone, validateRequired } from "@/lib/validators";
 
@@ -258,6 +259,12 @@ export function CheckoutPanel({
       return;
     }
 
+    trackBeginCheckout({
+      value: result.amount,
+      itemId: product.slug,
+      itemName: product.name,
+    });
+
     setPaymentInfo(result);
     setLoading(false);
     setStep("pay");
@@ -270,7 +277,13 @@ export function CheckoutPanel({
           info={paymentInfo}
           productName={product.name}
           onClose={() => { setPaymentInfo(null); setStep("form"); }}
-          onSuccess={() => router.push("/checkout/success")}
+          onSuccess={() => {
+            trackPurchase({
+              transactionId: String(paymentInfo.orderCode),
+              value: paymentInfo.amount,
+            });
+            router.push("/checkout/success");
+          }}
         />
       </div>
     );
