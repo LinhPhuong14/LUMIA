@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ANCHOR_MIN_REAL_DAYS,
   clampScaleFactor,
+  inferCutoverDate,
   isBeforeCutover,
   resolveAnchor,
   resolveBackfillEnd,
@@ -102,5 +103,30 @@ describe("isBeforeCutover", () => {
 
   it("chưa đặt mốc thì không ngày nào bị coi là quá khứ", () => {
     expect(isBeforeCutover("2020-01-01", null)).toBe(false);
+  });
+});
+
+describe("inferCutoverDate", () => {
+  it("lấy ngày đầu có dữ liệu rồi cộng một, để bỏ ngày cài tag chỉ chạy nửa buổi", () => {
+    expect(
+      inferCutoverDate([
+        { date: "2026-08-01", users: 0 },
+        { date: "2026-08-02", users: 3 },
+        { date: "2026-08-03", users: 25 },
+      ]),
+    ).toBe("2026-08-03");
+  });
+
+  it("chưa có dữ liệu nào thì chưa suy được mốc", () => {
+    expect(inferCutoverDate([])).toBeNull();
+    expect(inferCutoverDate([{ date: "2026-08-01", users: 0 }])).toBeNull();
+  });
+
+  it("lùi qua mốc cuối tháng đúng", () => {
+    expect(inferCutoverDate([{ date: "2026-08-31", users: 5 }])).toBe("2026-09-01");
+  });
+
+  it("ngày sai định dạng trả null thay vì ngày rác", () => {
+    expect(inferCutoverDate([{ date: "31/08/2026", users: 5 }])).toBeNull();
   });
 });

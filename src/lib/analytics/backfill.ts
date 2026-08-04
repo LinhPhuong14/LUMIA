@@ -92,3 +92,26 @@ export function resolveBackfillEnd(cutoverDate: string | null): string | null {
 export function isBeforeCutover(date: string, cutoverDate: string | null): boolean {
   return Boolean(cutoverDate) && date < cutoverDate!;
 }
+
+/**
+ * Suy ngày gắn đo từ chính dữ liệu GA4: ngày đầu tiên có người dùng, cộng một.
+ *
+ * Cộng một để **bỏ ngày cài tag** — hôm đó tag chỉ chạy được vài giờ cuối nên
+ * số luôn thấp bất thường, để nguyên sẽ thành một hố sụt ngay chỗ nối. Ngày đó
+ * rơi vào vùng dựng lại và được thay bằng số theo đường tăng trưởng.
+ *
+ * Nhờ hàm này mà không cần ai đặt `ANALYTICS_REAL_DATA_SINCE` bằng tay.
+ */
+export function inferCutoverDate(daily: { date: string; users: number }[]): string | null {
+  const firstWithData = daily.find((point) => point.users > 0);
+  if (!firstWithData) {
+    return null;
+  }
+
+  const date = new Date(`${firstWithData.date}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}

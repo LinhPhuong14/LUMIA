@@ -145,10 +145,6 @@ mọi KPI đều kèm so sánh với kỳ liền trước:
 | **Báo cáo** | Doanh thu, đơn hàng, giá trị đơn TB, tài khoản mới + biểu đồ theo ngày | Supabase — **luôn là số thật** |
 | **Vận hành** | Google Analytics, Search Console, Vercel | API Google (hoặc dữ liệu mẫu) |
 
-> Tab **Vận hành** đang **tạm ẩn**. Bật lại bằng cách bỏ comment hai dòng
-> `operations` trong `src/components/admin/admin-dashboard.tsx` (mục `TABS`
-> và phần render), giống cách tab Blog đang được tắt.
-
 Đường đi của dữ liệu:
 
 ```
@@ -331,18 +327,25 @@ Quy trình:
 2. Đặt `ANALYTICS_REAL_DATA_SINCE` = **ngày đầu tiên trọn vẹn** sau khi tag chạy
    (không phải ngày cài — ngày cài thiếu vài giờ đầu, sẽ thành hố sụt)
 3. Đặt `ANALYTICS_DEMO_MODE=false`
-4. Chờ **3 ngày**, rồi vào `/admin` → tab Báo cáo → khối *Lịch sử trước ngày gắn
-   đo* → bấm **Nối lịch sử**
+4. Xong. **Không phải làm gì thêm** — sau 3 ngày có dữ liệu thật, lần mở báo cáo
+   kế tiếp sẽ tự dựng lịch sử.
 
-Bước 4 làm ba việc: đọc traffic thật của 3 ngày đầu, tính hệ số co giãn bằng
-cách so với mức mà bộ sinh tạo ra cho **đúng những ngày đó**, rồi dựng lại toàn
-bộ giai đoạn trước mốc theo hệ số đó và ghi vào `analytics_daily_snapshot`.
+Bước 2 cũng bỏ qua được: không đặt env thì code tự suy mốc từ chính dữ liệu GA4
+— ngày đầu tiên có người dùng, cộng một để bỏ ngày cài tag (hôm đó tag chỉ chạy
+vài giờ cuối nên số thấp bất thường, để nguyên sẽ thành hố sụt chỗ nối).
+
+`ensureBackfilled` chạy kèm mỗi lần mở báo cáo nhưng thoát ngay khi đã có
+snapshot, nên thực tế chỉ chạy đúng một lần. Nó đọc traffic thật, tính hệ số co
+giãn bằng cách so với mức bộ sinh tạo ra cho **đúng những ngày đó**, dựng lại
+toàn bộ giai đoạn trước mốc rồi ghi vào `analytics_daily_snapshot`.
 
 Kết quả: biểu đồ liền mạch, không có vách đứng ở chỗ nối, vì đoạn dựng lại đã
 được kéo về đúng mức traffic thật.
 
-Bấm lại nút bất cứ lúc nào để neo lại theo dữ liệu mới hơn — nó xoá và ghi đè
-toàn bộ đoạn `source = 'demo'`, không đụng tới dòng nào là số đo được.
+Muốn neo lại theo dữ liệu mới hơn (nhiều ngày thật hơn = hệ số chính xác hơn),
+gọi `POST /api/admin/analytics/backfill` bằng phiên admin. Nó xoá và ghi đè toàn
+bộ đoạn `source = 'demo'`, không đụng dòng nào là số đo được. `GET` cùng endpoint
+trả trạng thái: mốc gắn đo, hệ số neo, số ngày đã dựng.
 
 #### Vì sao phải đóng băng vào DB
 
