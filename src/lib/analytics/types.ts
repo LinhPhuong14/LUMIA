@@ -8,6 +8,11 @@ export type SourceState<T> = {
   /** Lý do hiển thị cho admin khi status khác `ok`. */
   message?: string;
   /**
+   * Bằng chứng thô cho lúc thông báo đã diễn giải vẫn không gỡ được: nguyên văn
+   * lỗi của Google kèm định danh đang gọi. Hiện trong phần "Chi tiết kỹ thuật".
+   */
+  detail?: string;
+  /**
    * `true` = số liệu mẫu do app tự sinh, KHÔNG phải dữ liệu thật từ API.
    * UI bắt buộc gắn nhãn khi cờ này bật.
    */

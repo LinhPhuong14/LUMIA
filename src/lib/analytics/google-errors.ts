@@ -55,6 +55,7 @@ export function describeGoogleApiError(
   message: string,
   api: GoogleApiName,
   serviceAccountEmail?: string,
+  resourceId?: string,
 ): string {
   if (isApiDisabled(message)) {
     const url = buildEnableUrl(api, extractProjectNumber(message));
@@ -62,9 +63,31 @@ export function describeGoogleApiError(
   }
 
   if (isPermissionDenied(message)) {
-    const who = serviceAccountEmail ? `\`${serviceAccountEmail}\`` : "email service account";
-    return `Service account chưa được cấp quyền đọc. Thêm ${who} vào: ${GRANT_HINT[api]}. Token đã lấy được nên phần key là đúng — chỉ thiếu bước cấp quyền.`;
+    const who = serviceAccountEmail ? `"${serviceAccountEmail}"` : "email service account";
+    return [
+      `Service account chưa đọc được. Token lấy được rồi nên private key là ĐÚNG — vấn đề nằm ở quyền hoặc ở việc đang trỏ nhầm property.`,
+      `Kiểm hai thứ theo thứ tự:`,
+      `(1) ${resourceHint(api, resourceId)}`,
+      `(2) Đã thêm ${who} vào ${GRANT_HINT[api]} chưa. Nếu vừa thêm, chờ 2-3 phút cho Google lan quyền.`,
+    ].join(" ");
   }
 
   return message;
+}
+
+/**
+ * Nhắc kiểm định danh tài nguyên TRƯỚC khi đi kiểm quyền.
+ *
+ * Trỏ nhầm property cho ra đúng cùng một lỗi "insufficient permission" như thiếu
+ * quyền, và đây mới là nguyên nhân hay gặp hơn: trong màn hình Admin của GA4 có
+ * vài con số đều trông giống ID (Account ID, Property ID, Stream ID), rất dễ
+ * chép nhầm — mà cấp quyền lại thì bao nhiêu lần cũng không hết lỗi.
+ */
+function resourceHint(api: GoogleApiName, resourceId?: string): string {
+  if (api === "ga4") {
+    const current = resourceId ? ` Đang gọi property \`${resourceId}\`.` : "";
+    return `GA4_PROPERTY_ID có đúng là **Property ID** không.${current} Lấy ở GA4 → Admin → Property Settings, KHÔNG phải Stream ID (Data Streams) hay Account ID — cả ba đều là dãy số nhìn giống nhau.`;
+  }
+  const current = resourceId ? ` Đang gọi property \`${resourceId}\`.` : "";
+  return `Property đang gọi có khớp property đã verify không.${current} Verify bằng DNS thì phải là dạng \`sc-domain:...\`.`;
 }

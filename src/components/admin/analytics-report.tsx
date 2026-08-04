@@ -183,6 +183,20 @@ function SourceNotice({
       <div className="min-w-0">
         <p className="break-words font-medium">{state.message ?? "Chưa có dữ liệu."}</p>
         <p className="mt-1 break-words opacity-80">{configuredHint}</p>
+        {state.detail ? (
+          // Nguyên văn lỗi của Google, thu gọn sẵn. Khi hướng dẫn đã diễn giải
+          // vẫn không gỡ được thì đây là thứ duy nhất còn dùng để đối chiếu —
+          // nhất là định danh property, vì trỏ nhầm property và thiếu quyền cho
+          // ra y hệt một thông báo.
+          <details className="mt-2">
+            <summary className="cursor-pointer text-[12px] font-medium opacity-80">
+              Chi tiết kỹ thuật
+            </summary>
+            <p className="mt-1 break-all font-mono text-[11px] leading-relaxed opacity-70">
+              {state.detail}
+            </p>
+          </details>
+        ) : null}
       </div>
     </div>
   );

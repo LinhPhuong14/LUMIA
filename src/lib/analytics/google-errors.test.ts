@@ -56,7 +56,17 @@ describe("describeGoogleApiError", () => {
   });
 
   it("nói rõ key đã đúng, để không đi sửa nhầm private key", () => {
-    expect(describeGoogleApiError(DENIED, "ga4")).toContain("phần key là đúng");
+    expect(describeGoogleApiError(DENIED, "ga4")).toContain("private key là ĐÚNG");
+  });
+
+  it("nhắc kiểm property ID TRƯỚC quyền, vì trỏ nhầm cho ra cùng một lỗi", () => {
+    const message = describeGoogleApiError(DENIED, "ga4", undefined, "412345678");
+    expect(message).toContain("412345678");
+    expect(message).toContain("Property Settings");
+    expect(message).toContain("Stream ID");
+    // Thứ tự quan trọng: kiểm ID trước, vì cấp quyền lại bao nhiêu lần cũng
+    // không sửa được việc gọi nhầm property.
+    expect(message.indexOf("Property ID")).toBeLessThan(message.indexOf("Đã thêm"));
   });
 
   it("lỗi lạ thì giữ nguyên văn, không đoán bừa lời khuyên", () => {

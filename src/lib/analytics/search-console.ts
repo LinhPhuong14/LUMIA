@@ -248,15 +248,17 @@ export async function fetchSearchConsoleReport(
   } catch (error) {
     const raw = error instanceof Error ? error.message : "Không gọi được Search Console API.";
     const email = getServiceAccountCredentials()?.email;
-    const described = describeGoogleApiError(raw, "searchConsole", email);
+    const described = describeGoogleApiError(raw, "searchConsole", email, siteUrl);
 
     // API chưa bật thì chưa gọi được gì cả — liệt kê property cũng vô nghĩa.
+    const detail = `Property ${siteUrl} · service account ${email ?? "?"} · lỗi gốc: ${raw}`;
+
     if (described !== raw) {
-      return { status: "error", message: described, data: null };
+      return { status: "error", message: described, detail, data: null };
     }
 
     if (!raw.includes("403")) {
-      return { status: "error", message: raw, data: null };
+      return { status: "error", message: raw, detail, data: null };
     }
 
     // 403 còn lại phân biệt được bằng danh sách property: hoặc service account
@@ -269,6 +271,7 @@ export async function fetchSearchConsoleReport(
         available.length > 0
           ? `Không đọc được property "${siteUrl}". Service account đang có quyền trên: ${available.join(", ")}. Đặt GSC_SITE_URL đúng một trong số đó — xác minh bằng DNS (TXT/CNAME) thì property có dạng sc-domain:...`
           : `${raw} — service account chưa được thêm làm user của property nào trong Search Console.`,
+      detail,
       data: null,
     };
   }

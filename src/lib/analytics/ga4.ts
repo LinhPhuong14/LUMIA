@@ -255,7 +255,15 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
     const raw = error instanceof Error ? error.message : "Không gọi được GA4 Data API.";
     return {
       status: "error",
-      message: describeGoogleApiError(raw, "ga4", getServiceAccountCredentials()?.email),
+      message: describeGoogleApiError(
+        raw,
+        "ga4",
+        getServiceAccountCredentials()?.email,
+        propertyId,
+      ),
+      // Giữ nguyên văn của Google: thông báo đã diễn giải giúp biết phải làm gì,
+      // nhưng khi cách đó không ăn thì chỉ còn lỗi gốc là bằng chứng dùng được.
+      detail: `GA4 property ${propertyId} · service account ${getServiceAccountCredentials()?.email ?? "?"} · lỗi gốc: ${raw}`,
       data: null,
     };
   }
