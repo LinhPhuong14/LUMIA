@@ -31,9 +31,15 @@ type GscApiResponse = {
 };
 
 /**
- * Property của Search Console có hai dạng: URL prefix (`https://domain/`)
- * và domain property (`sc-domain:domain`). URL prefix phải khớp **chính xác**,
- * kể cả dấu `/` cuối, nếu không API trả 403.
+ * Property của Search Console có hai dạng, tuỳ cách xác minh:
+ *
+ * - **URL prefix** (`https://domain/`) — xác minh bằng thẻ HTML hoặc file HTML.
+ *   Phải khớp **chính xác**, kể cả `www` và dấu `/` cuối.
+ * - **Domain property** (`sc-domain:domain`) — xác minh bằng DNS (TXT hoặc
+ *   CNAME). Gộp cả apex, www, http, https và mọi subdomain.
+ *
+ * Gọi nhầm dạng là API trả 403, nên khi không cấu hình tường minh thì code hỏi
+ * Google xem service account đang có quyền trên property nào (`pickBestSite`).
  */
 export function resolveSiteUrl(): string {
   const configured = process.env.GSC_SITE_URL?.trim();
@@ -41,6 +47,65 @@ export function resolveSiteUrl(): string {
     return configured.startsWith("sc-domain:") ? configured : ensureTrailingSlash(configured);
   }
   return ensureTrailingSlash(getAppUrl());
+}
+
+export type GscSite = { siteUrl: string; permissionLevel?: string };
+
+function hostOf(value: string): string | null {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** Bỏ `www.` để so hai host ở mức tên miền gốc. */
+function apexOf(host: string): string {
+  return host.replace(/^www\./, "");
+}
+
+/**
+ * Chọn property khớp nhất với domain của app trong số những property mà service
+ * account thực sự có quyền đọc.
+ *
+ * Thứ tự ưu tiên:
+ *   1. Domain property của apex — bao trọn www lẫn non-www, không bao giờ lệch
+ *   2. URL prefix trùng đúng host đang chạy
+ *   3. URL prefix cùng apex (vd đã verify non-www nhưng app chạy ở www)
+ *
+ * Bỏ qua property chỉ có quyền `siteUnverifiedUser`: liệt kê ra được nhưng gọi
+ * searchAnalytics vẫn 403, chọn vào chỉ đổi một lỗi khó hiểu lấy một lỗi khác.
+ */
+export function pickBestSite(sites: GscSite[], appUrl: string): string | null {
+  const usable = sites.filter((site) => site.permissionLevel !== "siteUnverifiedUser");
+  if (usable.length === 0) {
+    return null;
+  }
+
+  const host = hostOf(appUrl);
+  if (!host) {
+    return usable[0].siteUrl;
+  }
+  const apex = apexOf(host);
+
+  const domainProperty = usable.find(
+    (site) => site.siteUrl.toLowerCase() === `sc-domain:${apex}`,
+  );
+  if (domainProperty) {
+    return domainProperty.siteUrl;
+  }
+
+  const exactHost = usable.find((site) => hostOf(site.siteUrl) === host);
+  if (exactHost) {
+    return exactHost.siteUrl;
+  }
+
+  const sameApex = usable.find((site) => {
+    const siteHost = hostOf(site.siteUrl);
+    return siteHost !== null && apexOf(siteHost) === apex;
+  });
+
+  return sameApex?.siteUrl ?? null;
 }
 
 function ensureTrailingSlash(url: string): string {
@@ -96,6 +161,27 @@ async function query(
   return data;
 }
 
+/**
+ * Danh sách property mà service account có quyền. Trả mảng rỗng khi lỗi — bên
+ * gọi chỉ dùng nó để chọn giúp và để báo lỗi cho dễ hiểu, không phải đường dữ
+ * liệu chính nên hỏng cũng không được làm sập cả báo cáo.
+ */
+export async function fetchAccessibleSites(token: string): Promise<GscSite[]> {
+  try {
+    const response = await fetch(API_BASE, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const data = (await response.json()) as { siteEntry?: GscSite[] };
+    return data.siteEntry ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchSearchConsoleReport(
   range: DateRange,
 ): Promise<SourceState<GscReport>> {
@@ -116,7 +202,15 @@ export async function fetchSearchConsoleReport(
     };
   }
 
-  const siteUrl = resolveSiteUrl();
+  // Chưa cấu hình tường minh thì hỏi Google xem có property nào, rồi tự chọn.
+  // Xác minh bằng DNS (TXT/CNAME) tạo ra domain property `sc-domain:...`, còn
+  // mặc định suy từ APP_URL lại là URL prefix — đoán sai là 403.
+  const configuredSiteUrl = process.env.GSC_SITE_URL?.trim();
+  const accessibleSites = configuredSiteUrl ? [] : await fetchAccessibleSites(token);
+  const siteUrl = configuredSiteUrl
+    ? resolveSiteUrl()
+    : (pickBestSite(accessibleSites, getAppUrl()) ?? resolveSiteUrl());
+
   const current = { startDate: range.startDate, endDate: range.endDate };
   const previous = { startDate: range.previousStartDate, endDate: range.previousEndDate };
 
@@ -151,12 +245,22 @@ export async function fetchSearchConsoleReport(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Không gọi được Search Console API.";
+
+    if (!message.includes("403")) {
+      return { status: "error", message, data: null };
+    }
+
+    // 403 có đúng hai nguyên nhân, và phân biệt được bằng danh sách property:
+    // hoặc service account chưa được add, hoặc đang gọi nhầm dạng property.
+    const sites = await fetchAccessibleSites(token);
+    const available = sites.map((site) => site.siteUrl);
+
     return {
       status: "error",
-      // 403 gần như luôn là quên add service account vào property — nói thẳng cách sửa.
-      message: message.includes("403")
-        ? `${message} — hãy thêm service account làm user của property "${siteUrl}" trong Search Console.`
-        : message,
+      message:
+        available.length > 0
+          ? `Không đọc được property "${siteUrl}". Service account đang có quyền trên: ${available.join(", ")}. Đặt GSC_SITE_URL đúng một trong số đó — xác minh bằng DNS (TXT/CNAME) thì property có dạng sc-domain:...`
+          : `${message} — service account chưa được thêm làm user của property nào trong Search Console.`,
       data: null,
     };
   }

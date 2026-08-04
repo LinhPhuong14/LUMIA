@@ -57,18 +57,43 @@ Mọi hàm đều no-op và trả `false` nếu gtag chưa load / GA tắt — g
 
 ### Xác minh domain
 
-1. [search.google.com/search-console](https://search.google.com/search-console) → **Add property**
-   → chọn **URL prefix** → nhập `https://www.lumia.com.vn`
-2. Chọn cách verify **HTML tag**, copy giá trị trong `content="..."`
-3. Vercel → Environment Variables:
+Có hai đường, và **cách xác minh quyết định định danh property** — chọn nhầm là
+API trả 403:
 
-   ```
-   NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION = <giá trị content>
-   ```
+| Cách xác minh | Loại property | `GSC_SITE_URL` |
+|---|---|---|
+| DNS (**TXT** hoặc **CNAME**) | Domain property | `sc-domain:lumia.com.vn` |
+| HTML tag / HTML file | URL prefix | `https://www.lumia.com.vn/` |
 
-4. Redeploy → bấm **Verify**
+**Khuyên dùng Domain property** (xác minh bằng DNS): nó gộp apex, `www`, http,
+https và mọi subdomain vào một property, thay vì phải tạo bốn cái riêng.
 
-Thẻ meta được render từ `metadata.verification.google` trong `src/app/layout.tsx`.
+DNS của dự án do Vercel quản lý (`ns1/ns2.vercel-dns.com`), nên bản ghi thêm ở
+**Vercel → Domains → DNS Records**, không phải ở nhà đăng ký tên miền.
+
+Nếu chọn **HTML tag**: copy giá trị trong `content="..."` rồi set
+
+```
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION = <giá trị content>
+```
+
+và redeploy trước khi bấm Verify. Thẻ meta render từ `metadata.verification.google`
+trong `src/app/layout.tsx`. Xác minh bằng DNS thì biến này không cần.
+
+### Không phải đoán `GSC_SITE_URL`
+
+Bỏ trống biến đó thì code gọi `GET /webmasters/v3/sites` hỏi Google xem service
+account đang có quyền trên property nào, rồi tự chọn (`pickBestSite`):
+
+1. Domain property của tên miền gốc — bao trọn www lẫn non-www
+2. URL prefix trùng đúng host đang chạy
+3. URL prefix cùng tên miền gốc (đã verify non-www nhưng app chạy ở www)
+
+Property chỉ có quyền `siteUnverifiedUser` bị bỏ qua: liệt kê ra được nhưng gọi
+`searchAnalytics` vẫn 403.
+
+Khi vẫn 403, thông báo lỗi liệt kê thẳng những property service account đang có
+quyền — đủ để thấy ngay là thiếu quyền hay gọi nhầm dạng property.
 
 ### Sitemap
 
@@ -163,7 +188,7 @@ Rồi set env trên Vercel:
 | `GA4_PROPERTY_ID` | Chỉ số, lấy ở GA4 → Admin → Property Settings. **Không phải** `G-XXXXXXXXXX` |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` trong file JSON |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | `private_key` trong file JSON, giữ nguyên `\n`, bọc trong nháy kép |
-| `GSC_SITE_URL` | Property của Search Console. Bỏ trống = lấy theo `NEXT_PUBLIC_APP_URL` |
+| `GSC_SITE_URL` | Property Search Console. **Nên bỏ trống** — code tự dò, xem mục 2 |
 
 Các biến này **không** có tiền tố `NEXT_PUBLIC_` — private key chỉ được đọc ở
 server, không bao giờ lọt vào bundle của trình duyệt.
@@ -174,7 +199,7 @@ server, không bao giờ lọt vào bundle của trình duyệt.
 |---|---|
 | "Chưa cấu hình GA4_PROPERTY_ID…" | Thiếu env, hoặc điền nhầm `G-XXXXXXXXXX` vào `GA4_PROPERTY_ID` |
 | "Không lấy được access token" | `private_key` mất newline — phải giữ `\n`, đừng xoá |
-| Search Console trả 403 | Service account chưa được thêm vào property, hoặc `GSC_SITE_URL` không khớp chính xác (thiếu `/` cuối, thiếu `www`, hay property là dạng `sc-domain:`) |
+| Search Console trả 403 | Thông báo lỗi liệt kê property đang có quyền. Không có property nào = chưa add service account. Có nhưng khác chuỗi đang gọi = `GSC_SITE_URL` sai dạng (verify bằng DNS thì phải là `sc-domain:...`) — bỏ trống biến này để code tự dò |
 | GA4 trả 403 | Chưa bật Google Analytics Data API, hoặc service account chưa có quyền Viewer trên property |
 
 ### Khối "Kinh doanh" — luôn là số thật
