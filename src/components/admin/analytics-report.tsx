@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   BarChart3,
   ExternalLink,
+  FlaskConical,
   Gauge,
   Globe,
   Loader2,
@@ -22,6 +23,7 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  ShoppingBag,
   Users,
 } from "lucide-react";
 
@@ -48,6 +50,7 @@ import type {
   GscRow,
   SourceState,
 } from "@/lib/analytics/types";
+import { formatCurrency } from "@/lib/utils";
 
 // ─── Mảnh giao diện dùng lại ─────────────────────────────────────────────────
 
@@ -118,6 +121,40 @@ function SectionCard({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Nhãn cảnh báo số liệu do app tự sinh. Bắt buộc hiện cạnh mọi khối đang chạy
+ * dữ liệu mẫu — báo cáo không gắn nhãn thì người xem sẽ tưởng là số thật.
+ */
+function DemoBadge() {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800"
+      title="Số liệu mẫu do app tự sinh, không phải dữ liệu thật từ Google"
+    >
+      <FlaskConical className="h-3 w-3" />
+      Dữ liệu mẫu
+    </span>
+  );
+}
+
+function SectionHeading({
+  icon: Icon,
+  title,
+  demo,
+}: {
+  icon: typeof BarChart3;
+  title: string;
+  demo?: boolean;
+}) {
+  return (
+    <h2 className="flex flex-wrap items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+      <Icon className="h-4 w-4 text-[var(--green)]" />
+      {title}
+      {demo ? <DemoBadge /> : null}
+    </h2>
   );
 }
 
@@ -404,8 +441,20 @@ export function AnalyticsReportPanel() {
     return () => controller.abort();
   }, [range, reloadToken]);
 
+  const business = report?.business;
   const ga = report?.google;
   const gsc = report?.searchConsole;
+  const hasDemoSection = Boolean(ga?.demo || gsc?.demo);
+
+  const businessTrend = useMemo<TrendPoint[]>(
+    () =>
+      (business?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.revenue,
+        secondary: point.orders,
+      })),
+    [business],
+  );
 
   const gaTrend = useMemo<TrendPoint[]>(
     () =>
@@ -482,12 +531,73 @@ export function AnalyticsReportPanel() {
 
       {report ? (
         <>
+          {hasDemoSection ? (
+            <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+              <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Đang bật <strong>ANALYTICS_DEMO_MODE</strong>. Các khối có nhãn{" "}
+                <em>Dữ liệu mẫu</em> là số do app tự sinh để xem trước giao diện —{" "}
+                <strong>không phải số thật</strong>, đừng dùng để ra quyết định hay báo cáo ra
+                ngoài. Khối <em>Kinh doanh</em> luôn là số thật từ database. Nối GA4 và Search
+                Console theo <code>docs/ANALYTICS_SEO.md</code> thì dữ liệu thật sẽ tự thay thế.
+              </span>
+            </div>
+          ) : null}
+
+          {/* ── Kinh doanh (dữ liệu thật từ DB) ──────────────────────────── */}
+          <div className="space-y-4">
+            <SectionHeading icon={ShoppingBag} title="Kinh doanh" />
+
+            {business?.status !== "ok" || !business.data ? (
+              <SourceNotice
+                state={business ?? { status: "error", data: null }}
+                configuredHint="Số liệu đơn hàng đọc trực tiếp từ Supabase, cần SUPABASE_SECRET_KEY."
+              />
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiCard
+                    label="Doanh thu"
+                    value={formatCurrency(business.data.revenue)}
+                    change={percentChange(business.data.revenue, business.data.previousRevenue)}
+                  />
+                  <KpiCard
+                    label="Đơn hàng"
+                    value={formatNumber(business.data.orders)}
+                    change={percentChange(business.data.orders, business.data.previousOrders)}
+                  />
+                  <KpiCard
+                    label="Giá trị đơn TB"
+                    value={formatCurrency(business.data.averageOrderValue)}
+                    change={percentChange(
+                      business.data.averageOrderValue,
+                      business.data.previousAverageOrderValue,
+                    )}
+                  />
+                  <KpiCard
+                    label="Tài khoản mới"
+                    value={formatNumber(business.data.signups)}
+                    change={percentChange(business.data.signups, business.data.previousSignups)}
+                  />
+                </div>
+
+                <SectionCard title="Doanh thu & đơn hàng theo ngày" icon={ShoppingBag}>
+                  <TrendChart
+                    data={businessTrend}
+                    dualAxis
+                    series={[
+                      { key: "primary", label: "Doanh thu (đ)", color: "var(--green-deep)" },
+                      { key: "secondary", label: "Đơn hàng", color: "var(--green-bright)" },
+                    ]}
+                  />
+                </SectionCard>
+              </>
+            )}
+          </div>
+
           {/* ── Google Analytics ─────────────────────────────────────────── */}
           <div className="space-y-4">
-            <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-              <BarChart3 className="h-4 w-4 text-[var(--green)]" />
-              Google Analytics
-            </h2>
+            <SectionHeading icon={BarChart3} title="Google Analytics" demo={ga?.demo} />
 
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice
@@ -597,10 +707,7 @@ export function AnalyticsReportPanel() {
 
           {/* ── Search Console ───────────────────────────────────────────── */}
           <div className="space-y-4">
-            <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-              <Search className="h-4 w-4 text-[var(--green)]" />
-              Google Search Console
-            </h2>
+            <SectionHeading icon={Search} title="Google Search Console" demo={gsc?.demo} />
 
             {gsc?.status !== "ok" || !gsc.data ? (
               <SourceNotice

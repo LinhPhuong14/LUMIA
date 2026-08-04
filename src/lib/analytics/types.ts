@@ -7,6 +7,11 @@ export type SourceState<T> = {
   status: SourceStatus;
   /** Lý do hiển thị cho admin khi status khác `ok`. */
   message?: string;
+  /**
+   * `true` = số liệu mẫu do app tự sinh, KHÔNG phải dữ liệu thật từ API.
+   * UI bắt buộc gắn nhãn khi cờ này bật.
+   */
+  demo?: boolean;
   data: T | null;
 };
 
@@ -87,9 +92,31 @@ export type VercelState = {
   analyticsDisabled: boolean;
 };
 
+export type BusinessTrendPoint = {
+  date: string;
+  revenue: number;
+  orders: number;
+};
+
+/** Số liệu kinh doanh — luôn đọc thật từ Supabase, không có bản demo. */
+export type BusinessReport = {
+  revenue: number;
+  previousRevenue: number;
+  orders: number;
+  previousOrders: number;
+  signups: number;
+  previousSignups: number;
+  averageOrderValue: number;
+  previousAverageOrderValue: number;
+  /** Profile sớm nhất — dùng làm mốc "mở bán" cho đường tăng trưởng của dữ liệu mẫu. */
+  firstProfileAt: string | null;
+  trend: BusinessTrendPoint[];
+};
+
 export type AnalyticsReport = {
   range: DateRange;
   generatedAt: string;
+  business: SourceState<BusinessReport>;
   google: SourceState<GaReport>;
   searchConsole: SourceState<GscReport>;
   vercel: VercelState;

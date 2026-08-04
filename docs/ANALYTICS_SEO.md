@@ -162,6 +162,69 @@ server, không bao giờ lọt vào bundle của trình duyệt.
 | Search Console trả 403 | Service account chưa được thêm vào property, hoặc `GSC_SITE_URL` không khớp chính xác (thiếu `/` cuối, thiếu `www`, hay property là dạng `sc-domain:`) |
 | GA4 trả 403 | Chưa bật Google Analytics Data API, hoặc service account chưa có quyền Viewer trên property |
 
+### Khối "Kinh doanh" — luôn là số thật
+
+Doanh thu, số đơn, giá trị đơn trung bình và tài khoản mới đọc thẳng từ Supabase
+(`src/lib/analytics/business.ts`): gộp `orders` (gói subscription/box) và
+`store_orders` (sản phẩm lẻ), chỉ tính các trạng thái đã thu tiền
+(`paid`, `preparing`, `shipping`, `delivered`).
+
+Khối này **không có bản demo** và không bao giờ bị thay bằng số mẫu.
+
+### Dữ liệu mẫu khi chưa nối được API
+
+Site mới mở thường chưa kịp cấu hình GA4/Search Console, mà tab Báo cáo trống
+thì không đánh giá được giao diện. Bật:
+
+```
+ANALYTICS_DEMO_MODE=true
+```
+
+Tab Báo cáo sẽ sinh số liệu mẫu cho khối GA4 và Search Console.
+
+**Ràng buộc an toàn** — đọc kỹ trước khi bật:
+
+- Mọi khối chạy dữ liệu mẫu đều mang nhãn **Dữ liệu mẫu** kèm banner cảnh báo
+  ở đầu trang. Đừng gỡ nhãn; đừng dùng những con số này để báo cáo ra ngoài
+  hay ra quyết định kinh doanh.
+- Chỉ lấp chỗ nguồn có trạng thái `not_configured`. Đã nối được API thật thì
+  **dữ liệu thật luôn thắng**, kể cả khi API trả về 0. Nguồn đang lỗi cũng giữ
+  nguyên thông báo lỗi để còn biết mà sửa.
+- Nên tắt trên production.
+
+Hai biến tinh chỉnh:
+
+| Variable | Ghi chú |
+|---|---|
+| `ANALYTICS_DEMO_LAUNCH_DATE` | Mốc mở bán. Bỏ trống = profile sớm nhất trong DB, không có thì lùi 60 ngày |
+| `ANALYTICS_DEMO_PEAK_DAILY_USERS` | Trần người dùng/ngày, mặc định `110` |
+
+#### Mô hình đằng sau số liệu mẫu
+
+`src/lib/analytics/demo-data.ts` dựng theo vòng đời một site mới:
+
+- **Lưu lượng** — spike tuần đầu (bạn bè, mạng xã hội) tắt dần, cộng đường bão hoà
+  tiến tới `ANALYTICS_DEMO_PEAK_DAILY_USERS`. Cuối tuần nhỉnh hơn ngày thường.
+- **Chất lượng phiên** — tỉ lệ tương tác và thời lượng phiên tăng dần theo tuổi
+  site; tỉ lệ người dùng mới giảm dần khi tệp quay lại lớn lên.
+- **Search Console** — **0 impression trong 14 ngày đầu** vì Google chưa index
+  xong site mới, sau đó impression bò lên, CTR nhích từ ~1,4% lên ~3,2%, vị trí
+  trung bình từ ~38 về ~18.
+- **Kênh vào** — Organic Social dẫn đầu, Organic Search còn thấp: đúng hình dạng
+  của một thương hiệu DTC mới ở VN chưa có tuổi domain. Thiết bị nghiêng hẳn về
+  mobile (74%), thị trường chủ yếu là Việt Nam (94,5%).
+
+Với mặc định `110`, 60 ngày đầu ra khoảng **4.400 người dùng / 5.600 phiên /
+16.500 lượt xem**, tương ứng ~100 tài khoản đăng ký ở mức chuyển đổi ~2,3%.
+
+Hai tính chất được test khoá lại (`demo-data.test.ts`):
+
+1. **Tất định** — cùng một ngày luôn ra cùng con số. Số nhảy sau mỗi lần bấm
+   "Làm mới" là dấu hiệu rõ nhất của dữ liệu bịa.
+2. **Tính theo ngày tuyệt đối** — 7 ngày cuối của biểu đồ 90 ngày trùng khớp
+   từng ngày với biểu đồ 7 ngày, nên đổi kỳ không bao giờ ra hai câu chuyện
+   mâu thuẫn.
+
 ### Vì sao kỳ báo cáo dừng ở hôm qua
 
 GA4 chốt số theo ngày và Search Console trễ 2-3 ngày. Nếu tính tới hôm nay,
