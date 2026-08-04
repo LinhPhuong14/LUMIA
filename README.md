@@ -32,6 +32,10 @@ git push origin main
 | `NEXT_PUBLIC_GA_ID` | Tùy chọn | Google Analytics 4 — `G-XXXXXXXXXX` |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Tùy chọn | Xác minh Google Search Console |
 | `NEXT_PUBLIC_ANALYTICS_DISABLED` | Tùy chọn | `true` để tắt toàn bộ analytics |
+| `GA4_PROPERTY_ID` | Tùy chọn | Bật tab **Báo cáo** trong `/admin` |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Tùy chọn | Service account đọc GA4 + Search Console |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Tùy chọn | Private key của service account (giữ nguyên `\n`) |
+| `GSC_SITE_URL` | Tùy chọn | Property Search Console, mặc định theo `NEXT_PUBLIC_APP_URL` |
 
 ### 4. Supabase Auth redirect
 
@@ -62,6 +66,7 @@ curl https://your-app.vercel.app/sitemap.xml
 ### 8. Analytics & SEO
 
 Google Analytics 4, Google Search Console và Vercel Analytics đã tích hợp sẵn.
+Số liệu GA4 + Search Console xem trực tiếp ở `/admin` → tab **Báo cáo**.
 Xem hướng dẫn setup: [`docs/ANALYTICS_SEO.md`](docs/ANALYTICS_SEO.md)
 
 ---

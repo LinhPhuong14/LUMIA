@@ -6,6 +6,7 @@ import {
   Loader2, Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
+import { AnalyticsReportPanel } from "@/components/admin/analytics-report";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { RichEditor } from "@/components/admin/rich-editor";
 import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
@@ -450,6 +451,7 @@ function OverviewTab({ stats }: { stats: Stats }) {
       <div className="mt-6 soft-card p-6">
         <h3 className="text-sm font-semibold text-[var(--foreground)]">Hướng dẫn nhanh</h3>
         <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+          <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Báo cáo</strong> — traffic từ Google Analytics và thứ hạng tìm kiếm từ Search Console</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Người dùng</strong> — tìm, tạo, sửa, nâng cấp subscription cho user</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Đơn hàng</strong> — theo dõi và cập nhật trạng thái giao hàng</li>
           <li className="flex items-center gap-2"><ChevronRight className="h-3 w-3 text-[var(--green)]" /> Tab <strong>Sản phẩm</strong> — quản lý, thêm, sửa, xóa sản phẩm và tồn kho</li>
@@ -2970,6 +2972,7 @@ function MediaTab() {
 
 const TABS = [
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
+  { id: "analytics", label: "Báo cáo", icon: BarChart3 },
   { id: "users", label: "Người dùng", icon: Users },
   { id: "orders", label: "Đơn hàng", icon: ShoppingBag },
   { id: "products", label: "Sản phẩm", icon: Package },
@@ -3006,6 +3009,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
       {/* Tab content */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
         {tab === "overview" && <OverviewTab stats={stats} />}
+        {tab === "analytics" && <AnalyticsReportPanel />}
         {tab === "users" && <UsersTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "products" && <ProductsTab />}

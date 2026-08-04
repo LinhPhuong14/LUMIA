@@ -5,6 +5,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // `server-only` cố tình throw khi import ngoài điều kiện `react-server`,
+      // mà vitest chạy ở node — alias sang stub rỗng để test được module server.
+      "server-only": path.resolve(__dirname, "./src/test/server-only-stub.ts"),
     },
   },
   test: {

@@ -1,0 +1,721 @@
+"use client";
+
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  AlertTriangle,
+  BarChart3,
+  ExternalLink,
+  Gauge,
+  Globe,
+  Loader2,
+  MonitorSmartphone,
+  RefreshCw,
+  Search,
+  Settings2,
+  Users,
+} from "lucide-react";
+
+import {
+  percentChange,
+  RANGE_KEYS,
+  RANGE_LABELS,
+  type RangeKey,
+} from "@/lib/analytics/date-range";
+import {
+  formatChartDate,
+  formatCompactNumber,
+  formatDelta,
+  formatDuration,
+  formatNumber,
+  formatPercent,
+  formatPosition,
+  shortenUrl,
+  type DeltaTone,
+} from "@/lib/analytics/format";
+import type {
+  AnalyticsReport,
+  BreakdownRow,
+  GscRow,
+  SourceState,
+} from "@/lib/analytics/types";
+
+// ─── Mảnh giao diện dùng lại ─────────────────────────────────────────────────
+
+const DELTA_TONE_CLASS: Record<DeltaTone, string> = {
+  up: "bg-[var(--green-wash)] text-[var(--green-deep)]",
+  down: "bg-red-50 text-red-600",
+  flat: "bg-[var(--surface-warm)] text-[var(--muted)]",
+  none: "bg-[var(--surface-warm)] text-[var(--muted)]",
+};
+
+function KpiCard({
+  label,
+  value,
+  change,
+  lowerIsBetter = false,
+  hint,
+}: {
+  label: string;
+  value: string;
+  change?: number | null;
+  lowerIsBetter?: boolean;
+  hint?: string;
+}) {
+  const delta = formatDelta(change ?? null, lowerIsBetter);
+
+  return (
+    <div className="soft-card p-5">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          {label}
+        </span>
+        {change !== undefined && (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${DELTA_TONE_CLASS[delta.tone]}`}
+            title="So với kỳ liền trước"
+          >
+            {delta.text}
+          </span>
+        )}
+      </div>
+      <div className="mt-3 text-2xl font-bold tabular-nums text-[var(--foreground)]">{value}</div>
+      {hint ? <div className="mt-1 text-[12px] text-[var(--muted)]">{hint}</div> : null}
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  icon: Icon,
+  action,
+  children,
+}: {
+  title: string;
+  icon?: typeof BarChart3;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    // `min-w-0`: grid item mặc định là `min-width: auto` nên nó nở ra vừa bảng
+    // bên trong thay vì để `overflow-x-auto` cuộn — làm tràn ngang cả trang.
+    <section className="soft-card min-w-0 p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+          {Icon ? <Icon className="h-4 w-4 text-[var(--green)]" /> : null}
+          {title}
+        </h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Hiện khi một nguồn chưa cấu hình hoặc gọi API lỗi — kèm cách khắc phục. */
+function SourceNotice({
+  state,
+  configuredHint,
+}: {
+  state: SourceState<unknown>;
+  configuredHint: string;
+}) {
+  const isError = state.status === "error";
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-[14px] px-4 py-3 text-[13px] ${
+        isError ? "bg-red-50 text-red-700" : "bg-[var(--surface-warm)] text-[var(--muted)]"
+      }`}
+    >
+      {isError ? (
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      ) : (
+        <Settings2 className="mt-0.5 h-4 w-4 shrink-0" />
+      )}
+      <div className="min-w-0">
+        <p className="break-words font-medium">{state.message ?? "Chưa có dữ liệu."}</p>
+        <p className="mt-1 break-words opacity-80">{configuredHint}</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyRows({ label }: { label: string }) {
+  return <p className="py-6 text-center text-[13px] text-[var(--muted)]">{label}</p>;
+}
+
+/** Thanh ngang xếp hạng — dùng cho kênh traffic, thiết bị, quốc gia. */
+function BreakdownList({ rows, unit }: { rows: BreakdownRow[]; unit: string }) {
+  const max = Math.max(...rows.map((row) => row.value), 1);
+
+  if (rows.length === 0) {
+    return <EmptyRows label="Chưa có dữ liệu." />;
+  }
+
+  return (
+    <ul className="space-y-2.5">
+      {rows.map((row) => (
+        <li key={row.label}>
+          <div className="flex items-baseline justify-between gap-3 text-[13px]">
+            <span className="min-w-0 truncate text-[var(--foreground)]" title={row.label}>
+              {row.label}
+            </span>
+            <span className="shrink-0 tabular-nums text-[var(--muted)]">
+              {formatNumber(row.value)} {unit}
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-warm)]">
+            <div
+              className="h-full rounded-full bg-[var(--green)]"
+              style={{ width: `${Math.max((row.value / max) * 100, 2)}%` }}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Điểm của biểu đồ: key luôn là ASCII, nhãn tiếng Việt đi qua `name` của series. */
+type TrendPoint = { label: string; primary: number; secondary: number };
+
+type TrendSeries = { key: "primary" | "secondary"; label: string; color: string };
+
+function TrendChart({
+  data,
+  series,
+  height = 220,
+  dualAxis = false,
+}: {
+  data: TrendPoint[];
+  series: TrendSeries[];
+  height?: number;
+  /**
+   * Bật khi hai chuỗi lệch thang đo hàng chục lần (click vs hiển thị): dùng
+   * chung một trục thì chuỗi nhỏ bị ép sát đáy và không còn đọc được xu hướng.
+   */
+  dualAxis?: boolean;
+}) {
+  // Hai biểu đồ trên cùng trang sẽ đụng id gradient nếu id không kèm uid riêng —
+  // trình duyệt lấy def đầu tiên khớp và một biểu đồ bị tô sai màu.
+  const uid = useId().replace(/:/g, "");
+
+  if (data.length === 0) {
+    return <EmptyRows label="Chưa có dữ liệu trong kỳ này." />;
+  }
+
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
+          <defs>
+            {series.map((s) => (
+              <linearGradient key={s.key} id={`fill-${uid}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.color} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={s.color} stopOpacity={0.02} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 6" vertical={false} />
+          <XAxis
+            dataKey="label"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "var(--muted)", fontSize: 10 }}
+            minTickGap={24}
+          />
+          <YAxis
+            yAxisId="primary"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "var(--muted)", fontSize: 10 }}
+            width={52}
+            tickFormatter={(value: number) => formatCompactNumber(value)}
+          />
+          {dualAxis ? (
+            <YAxis
+              yAxisId="secondary"
+              orientation="right"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "var(--muted)", fontSize: 10 }}
+              width={52}
+              tickFormatter={(value: number) => formatCompactNumber(value)}
+            />
+          ) : null}
+          <Tooltip
+            contentStyle={{
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "var(--surface-card)",
+              fontSize: 12,
+            }}
+            formatter={(value: unknown, name: unknown) => [formatNumber(Number(value)), String(name)]}
+          />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            wrapperStyle={{ fontSize: 12, color: "var(--muted)" }}
+          />
+          {series.map((s) => (
+            <Area
+              key={s.key}
+              yAxisId={dualAxis ? s.key : "primary"}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label}
+              stroke={s.color}
+              strokeWidth={2}
+              fill={`url(#fill-${uid}-${s.key})`}
+              isAnimationActive={false}
+            />
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SearchRowsTable({
+  rows,
+  firstColumn,
+  linkPrefix,
+}: {
+  rows: GscRow[];
+  firstColumn: string;
+  linkPrefix?: boolean;
+}) {
+  if (rows.length === 0) {
+    return <EmptyRows label="Chưa có dữ liệu." />;
+  }
+
+  return (
+    <div className="-mx-2 overflow-x-auto">
+      <table className="w-full min-w-[520px] border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+            <th className="px-2 pb-2 font-medium">{firstColumn}</th>
+            <th className="px-2 pb-2 text-right font-medium">Click</th>
+            <th className="px-2 pb-2 text-right font-medium">Hiển thị</th>
+            <th className="px-2 pb-2 text-right font-medium">CTR</th>
+            <th className="px-2 pb-2 text-right font-medium">Vị trí</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label} className="border-t border-[var(--border)]">
+              <td className="max-w-[280px] px-2 py-2.5">
+                {linkPrefix ? (
+                  <a
+                    href={row.label}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-[var(--green-deep)] hover:underline"
+                    title={row.label}
+                  >
+                    {shortenUrl(row.label)}
+                  </a>
+                ) : (
+                  <span className="block truncate text-[var(--foreground)]" title={row.label}>
+                    {row.label}
+                  </span>
+                )}
+              </td>
+              <td className="px-2 py-2.5 text-right tabular-nums">{formatNumber(row.clicks)}</td>
+              <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                {formatNumber(row.impressions)}
+              </td>
+              <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                {formatPercent(row.ctr)}
+              </td>
+              <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                {formatPosition(row.position)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Màn hình chính ──────────────────────────────────────────────────────────
+
+export function AnalyticsReportPanel() {
+  const [range, setRange] = useState<RangeKey>("28d");
+  const [reloadToken, setReloadToken] = useState(0);
+  const [report, setReport] = useState<AnalyticsReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // `loading` được bật ngay trong event handler (đổi kỳ / bấm làm mới) thay vì
+  // trong effect — effect chỉ set state ở callback bất đồng bộ.
+  const requestRange = useCallback((key: RangeKey) => {
+    setLoading(true);
+    setError(null);
+    setRange(key);
+  }, []);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setReloadToken((token) => token + 1);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function run() {
+      try {
+        const response = await fetch(`/api/admin/analytics?range=${range}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error ?? `Máy chủ trả về HTTP ${response.status}`);
+        }
+        const data = (await response.json()) as AnalyticsReport;
+        if (!controller.signal.aborted) {
+          setReport(data);
+          setLoading(false);
+        }
+      } catch (cause) {
+        // Đổi kỳ liên tục sẽ abort request cũ — đó không phải lỗi để hiện ra.
+        if (controller.signal.aborted) {
+          return;
+        }
+        setReport(null);
+        setError(cause instanceof Error ? cause.message : "Không tải được báo cáo.");
+        setLoading(false);
+      }
+    }
+
+    void run();
+    return () => controller.abort();
+  }, [range, reloadToken]);
+
+  const ga = report?.google;
+  const gsc = report?.searchConsole;
+
+  const gaTrend = useMemo<TrendPoint[]>(
+    () =>
+      (ga?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.users,
+        secondary: point.sessions,
+      })),
+    [ga],
+  );
+
+  const gscTrend = useMemo<TrendPoint[]>(
+    () =>
+      (gsc?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.clicks,
+        secondary: point.impressions,
+      })),
+    [gsc],
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Thanh điều khiển */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-full bg-[var(--surface-warm)] p-1">
+          {RANGE_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => requestRange(key)}
+              className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition ${
+                range === key
+                  ? "bg-[var(--surface-card)] text-[var(--green-deep)] shadow-sm"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {RANGE_LABELS[key]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 text-[12px] text-[var(--muted)]">
+          {report ? (
+            <span className="hidden sm:inline">
+              {report.range.startDate} → {report.range.endDate}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 font-medium transition hover:bg-[var(--surface-warm)] disabled:opacity-60"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="flex items-start gap-3 rounded-[14px] bg-red-50 px-4 py-3 text-[13px] text-red-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      {loading && !report ? (
+        <div className="flex items-center justify-center gap-2 py-20 text-[13px] text-[var(--muted)]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Đang tải dữ liệu báo cáo…
+        </div>
+      ) : null}
+
+      {report ? (
+        <>
+          {/* ── Google Analytics ─────────────────────────────────────────── */}
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+              <BarChart3 className="h-4 w-4 text-[var(--green)]" />
+              Google Analytics
+            </h2>
+
+            {ga?.status !== "ok" || !ga.data ? (
+              <SourceNotice
+                state={ga ?? { status: "error", data: null }}
+                configuredHint="Cần GA4_PROPERTY_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL và GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY. Xem docs/ANALYTICS_SEO.md."
+              />
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiCard
+                    label="Người dùng"
+                    value={formatNumber(ga.data.summary.users)}
+                    change={percentChange(ga.data.summary.users, ga.data.previousSummary.users)}
+                    hint={`${formatNumber(ga.data.summary.newUsers)} người dùng mới`}
+                  />
+                  <KpiCard
+                    label="Phiên truy cập"
+                    value={formatNumber(ga.data.summary.sessions)}
+                    change={percentChange(
+                      ga.data.summary.sessions,
+                      ga.data.previousSummary.sessions,
+                    )}
+                    hint={`TB ${formatDuration(ga.data.summary.avgSessionSeconds)}/phiên`}
+                  />
+                  <KpiCard
+                    label="Lượt xem trang"
+                    value={formatNumber(ga.data.summary.pageViews)}
+                    change={percentChange(
+                      ga.data.summary.pageViews,
+                      ga.data.previousSummary.pageViews,
+                    )}
+                  />
+                  <KpiCard
+                    label="Tỉ lệ tương tác"
+                    value={formatPercent(ga.data.summary.engagementRate)}
+                    change={percentChange(
+                      ga.data.summary.engagementRate,
+                      ga.data.previousSummary.engagementRate,
+                    )}
+                  />
+                </div>
+
+                <SectionCard title="Người dùng & phiên theo ngày" icon={Users}>
+                  <TrendChart
+                    data={gaTrend}
+                    series={[
+                      { key: "primary", label: "Người dùng", color: "var(--green-deep)" },
+                      { key: "secondary", label: "Phiên", color: "var(--green-bright)" },
+                    ]}
+                  />
+                </SectionCard>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <SectionCard title="Trang được xem nhiều nhất" icon={Globe}>
+                    {ga.data.topPages.length === 0 ? (
+                      <EmptyRows label="Chưa có dữ liệu." />
+                    ) : (
+                      <div className="-mx-2 overflow-x-auto">
+                        <table className="w-full min-w-[360px] border-collapse text-left text-[13px]">
+                          <thead>
+                            <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                              <th className="px-2 pb-2 font-medium">Đường dẫn</th>
+                              <th className="px-2 pb-2 text-right font-medium">Lượt xem</th>
+                              <th className="px-2 pb-2 text-right font-medium">Người dùng</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ga.data.topPages.map((page) => (
+                              <tr key={page.path} className="border-t border-[var(--border)]">
+                                <td className="max-w-[240px] px-2 py-2.5">
+                                  <span
+                                    className="block truncate text-[var(--foreground)]"
+                                    title={page.path}
+                                  >
+                                    {shortenUrl(page.path)}
+                                  </span>
+                                </td>
+                                <td className="px-2 py-2.5 text-right tabular-nums">
+                                  {formatNumber(page.views)}
+                                </td>
+                                <td className="px-2 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                                  {formatNumber(page.users)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </SectionCard>
+
+                  <SectionCard title="Nguồn truy cập" icon={Gauge}>
+                    <BreakdownList rows={ga.data.channels} unit="phiên" />
+                  </SectionCard>
+
+                  <SectionCard title="Thiết bị" icon={MonitorSmartphone}>
+                    <BreakdownList rows={ga.data.devices} unit="người" />
+                  </SectionCard>
+
+                  <SectionCard title="Quốc gia" icon={Globe}>
+                    <BreakdownList rows={ga.data.countries} unit="người" />
+                  </SectionCard>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Search Console ───────────────────────────────────────────── */}
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+              <Search className="h-4 w-4 text-[var(--green)]" />
+              Google Search Console
+            </h2>
+
+            {gsc?.status !== "ok" || !gsc.data ? (
+              <SourceNotice
+                state={gsc ?? { status: "error", data: null }}
+                configuredHint="Cần service account của Google được thêm làm user của property trong Search Console, và GSC_SITE_URL khớp chính xác property đó."
+              />
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiCard
+                    label="Lượt click"
+                    value={formatNumber(gsc.data.summary.clicks)}
+                    change={percentChange(gsc.data.summary.clicks, gsc.data.previousSummary.clicks)}
+                  />
+                  <KpiCard
+                    label="Lượt hiển thị"
+                    value={formatNumber(gsc.data.summary.impressions)}
+                    change={percentChange(
+                      gsc.data.summary.impressions,
+                      gsc.data.previousSummary.impressions,
+                    )}
+                  />
+                  <KpiCard
+                    label="CTR"
+                    value={formatPercent(gsc.data.summary.ctr)}
+                    change={percentChange(gsc.data.summary.ctr, gsc.data.previousSummary.ctr)}
+                  />
+                  <KpiCard
+                    label="Vị trí trung bình"
+                    value={formatPosition(gsc.data.summary.position)}
+                    change={percentChange(
+                      gsc.data.summary.position,
+                      gsc.data.previousSummary.position,
+                    )}
+                    lowerIsBetter
+                    hint="Số nhỏ hơn = xếp hạng cao hơn"
+                  />
+                </div>
+
+                <SectionCard title="Click & hiển thị theo ngày" icon={Search}>
+                  <TrendChart
+                    data={gscTrend}
+                    dualAxis
+                    series={[
+                      { key: "primary", label: "Click", color: "var(--green-deep)" },
+                      { key: "secondary", label: "Hiển thị", color: "var(--green-bright)" },
+                    ]}
+                  />
+                </SectionCard>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <SectionCard title="Từ khoá hàng đầu">
+                    <SearchRowsTable rows={gsc.data.topQueries} firstColumn="Từ khoá" />
+                  </SectionCard>
+                  <SectionCard title="Trang hàng đầu">
+                    <SearchRowsTable rows={gsc.data.topPages} firstColumn="Trang" linkPrefix />
+                  </SectionCard>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Vercel ───────────────────────────────────────────────────── */}
+          <SectionCard
+            title="Vercel Analytics"
+            icon={Gauge}
+            action={
+              <a
+                href="https://vercel.com/dashboard"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--green-deep)] hover:underline"
+              >
+                Mở Vercel Dashboard
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            }
+          >
+            <p className="text-[13px] leading-relaxed text-[var(--muted)]">
+              Vercel Web Analytics và Speed Insights không mở API đọc số liệu, nên báo cáo chi tiết
+              chỉ xem được trên Vercel Dashboard. Phần dưới cho biết script đã được nhúng đúng chưa.
+            </p>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+              {[
+                {
+                  label: "Môi trường",
+                  value: report.vercel.onVercel
+                    ? (report.vercel.environment ?? "vercel")
+                    : "Ngoài Vercel",
+                },
+                {
+                  label: "Script analytics",
+                  value: report.vercel.analyticsDisabled ? "Đang tắt" : "Đang bật",
+                },
+                { label: "Domain", value: report.vercel.projectUrl ?? "—" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-[12px] bg-[var(--surface-warm)] px-4 py-3">
+                  <dt className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                    {item.label}
+                  </dt>
+                  <dd className="mt-1 break-all text-[13px] font-medium text-[var(--foreground)]">
+                    {item.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </SectionCard>
+
+          <p className="text-center text-[11px] text-[var(--muted)]">
+            Dữ liệu tính tới hết ngày {report.range.endDate} — GA4 chốt số theo ngày, Search Console
+            trễ khoảng 2-3 ngày. Cập nhật lúc{" "}
+            {new Date(report.generatedAt).toLocaleString("vi-VN")}.
+          </p>
+        </>
+      ) : null}
+    </div>
+  );
+}
