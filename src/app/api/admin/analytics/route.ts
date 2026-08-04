@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { fetchBusinessReport, fetchFirstProfileAt } from "@/lib/analytics/business";
+import { fetchBusinessReport, fetchDemoAnchors } from "@/lib/analytics/business";
 import { parseRangeKey, resolveDateRange } from "@/lib/analytics/date-range";
 import {
   buildDemoGaReport,
   buildDemoGscReport,
+  calibrateForSignups,
   DEMO_DEFAULT_PEAK_DAILY_USERS,
   type DemoCalibration,
 } from "@/lib/analytics/demo-data";
@@ -115,11 +116,19 @@ export async function GET(request: Request) {
       (google?.status === "not_configured" || searchConsole?.status === "not_configured");
 
     if (needsDemo) {
-      // Tab Vận hành không kéo báo cáo doanh thu, nên lấy mốc mở bán bằng một
+      // Tab Vận hành không kéo báo cáo doanh thu, nên lấy mốc neo bằng một
       // query nhỏ riêng thay vì để rơi về mặc định 60 ngày.
-      const firstProfileAt =
-        business?.data?.firstProfileAt ?? (business ? null : await fetchFirstProfileAt());
-      const calibration = resolveCalibration(firstProfileAt);
+      const anchors = business?.data
+        ? { firstProfileAt: business.data.firstProfileAt, signups: business.data.signups }
+        : await fetchDemoAnchors(range);
+
+      // Nâng quy mô cho đủ phủ số tài khoản thật, nếu không báo cáo sẽ hiện
+      // nhiều người đăng ký hơn người ghé thăm.
+      const calibration = calibrateForSignups(
+        range,
+        resolveCalibration(anchors.firstProfileAt),
+        anchors.signups,
+      );
 
       if (google?.status === "not_configured") {
         report.google = { status: "ok", demo: true, data: buildDemoGaReport(range, calibration) };

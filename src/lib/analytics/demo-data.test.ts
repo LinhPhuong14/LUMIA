@@ -5,6 +5,7 @@ import {
   baselineDailyUsers,
   buildDemoGaReport,
   buildDemoGscReport,
+  calibrateForSignups,
   DEMO_DEFAULT_PEAK_DAILY_USERS,
   type DemoCalibration,
 } from "@/lib/analytics/demo-data";
@@ -98,6 +99,22 @@ describe("buildDemoGaReport", () => {
     expect(paths).toContain("/journal");
   });
 
+  it("không bịa lưu lượng cho blog vì blog đang bị ẩn khỏi điều hướng", () => {
+    for (const page of report.topPages) {
+      expect(page.path.startsWith("/blog")).toBe(false);
+    }
+  });
+
+  it("mỗi ngày rơi vào khoảng 20-50 người dùng — đúng cỡ site marketing chưa chạy", () => {
+    const daily = report.trend.map((point) => point.users);
+    expect(Math.min(...daily)).toBeGreaterThanOrEqual(20);
+    expect(Math.max(...daily)).toBeLessThanOrEqual(50);
+  });
+
+  it("Direct dẫn đầu vì marketing chưa kéo được traffic", () => {
+    expect(report.channels[0]?.label).toBe("Direct");
+  });
+
   it("mỗi trang có lượt xem ≥ số người dùng", () => {
     for (const page of report.topPages) {
       expect(page.views).toBeGreaterThanOrEqual(page.users);
@@ -116,6 +133,47 @@ describe("buildDemoGaReport", () => {
     for (const page of report.topPages) {
       expect(page.users).toBeLessThanOrEqual(report.summary.users);
     }
+  });
+});
+
+describe("calibrateForSignups", () => {
+  const range = resolveDateRange("28d", TODAY);
+  const baseUsers = buildDemoGaReport(range, CALIBRATION).summary.users;
+
+  it("giữ nguyên quy mô khi số tài khoản thật còn thấp", () => {
+    expect(calibrateForSignups(range, CALIBRATION, 10)).toEqual(CALIBRATION);
+    expect(calibrateForSignups(range, CALIBRATION, 0)).toEqual(CALIBRATION);
+  });
+
+  it("nâng quy mô khi tài khoản thật vượt trần chuyển đổi 25%", () => {
+    // 600 tài khoản trong kỳ cần ít nhất 2.400 khách ghé mới hợp lý.
+    const scaled = calibrateForSignups(range, CALIBRATION, 600);
+    expect(scaled.peakDailyUsers).toBeGreaterThan(CALIBRATION.peakDailyUsers);
+
+    const users = buildDemoGaReport(range, scaled).summary.users;
+    expect(users).toBeGreaterThanOrEqual(2400);
+  });
+
+  it("không bao giờ để số tài khoản mới vượt số khách ghé — điều bất khả", () => {
+    for (const signups of [50, 300, 900, 5000]) {
+      const users = buildDemoGaReport(
+        range,
+        calibrateForSignups(range, CALIBRATION, signups),
+      ).summary.users;
+      expect(users).toBeGreaterThan(signups);
+    }
+  });
+
+  it("không đụng tới mốc mở bán khi nâng quy mô", () => {
+    expect(calibrateForSignups(range, CALIBRATION, 900).launchDate).toEqual(
+      CALIBRATION.launchDate,
+    );
+  });
+
+  it("bỏ qua giá trị vô nghĩa thay vì tính ra NaN", () => {
+    expect(calibrateForSignups(range, CALIBRATION, Number.NaN)).toEqual(CALIBRATION);
+    expect(calibrateForSignups(range, CALIBRATION, -5)).toEqual(CALIBRATION);
+    expect(baseUsers).toBeGreaterThan(0);
   });
 });
 
@@ -170,6 +228,12 @@ describe("buildDemoGscReport", () => {
   it("top trang trả về URL tuyệt đối của đúng site", () => {
     for (const row of report.topPages) {
       expect(row.label.startsWith("https://www.lumia.com.vn/")).toBe(true);
+    }
+  });
+
+  it("không có trang blog nào trong kết quả tìm kiếm", () => {
+    for (const row of report.topPages) {
+      expect(row.label).not.toContain("/blog");
     }
   });
 });

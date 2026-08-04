@@ -31,10 +31,18 @@ export type DemoCalibration = {
   peakDailyUsers: number;
 };
 
-export const DEMO_DEFAULT_PEAK_DAILY_USERS = 110;
+/**
+ * Trần người dùng/ngày mà đường tăng trưởng tiệm cận. Ở mức 45, kỳ 28 ngày dao
+ * động khoảng 30-49 người/ngày — cỡ một site vừa mở, marketing chưa chạy hiệu
+ * quả. Đây là trần chứ không phải giá trị mỗi ngày: những ngày đầu thấp hơn.
+ */
+export const DEMO_DEFAULT_PEAK_DAILY_USERS = 45;
 
 /** Google mất khoảng hai tuần mới index xong site mới — trước đó chưa có impression. */
 const SEARCH_INDEX_DELAY_DAYS = 14;
+
+/** Trần impression/ngày trên mỗi đơn vị `peakDailyUsers` — giữ hai chỉ số cùng tỉ lệ. */
+const IMPRESSIONS_PER_PEAK_USER = 8.6;
 
 const DAY_MS = 86_400_000;
 
@@ -130,12 +138,18 @@ function buildDay(date: Date, calibration: DemoCalibration): DailyPoint {
   const pageViews = Math.round(sessions * 2.95 * jitter(isoDate, "views", 0.08));
 
   // Search Console: chưa index thì chưa có impression, sau đó mới bò lên.
+  // Trần impression buộc theo quy mô site (`peakDailyUsers`) thay vì hardcode,
+  // để chỉnh một tham số là cả traffic lẫn hiển thị tìm kiếm co giãn cùng nhau.
   const searchDay = daysSinceLaunch - SEARCH_INDEX_DELAY_DAYS;
+  const impressionCeiling = calibration.peakDailyUsers * IMPRESSIONS_PER_PEAK_USER;
   const impressions =
     searchDay < 0
       ? 0
       : Math.round(
-          950 * (1 - Math.exp(-searchDay / 30)) * weekdayFactor(date) * jitter(isoDate, "imp", 0.18),
+          impressionCeiling *
+            (1 - Math.exp(-searchDay / 30)) *
+            weekdayFactor(date) *
+            jitter(isoDate, "imp", 0.18),
         );
   // CTR nhích từ ~1,4% lên ~3,2% khi thứ hạng cải thiện.
   const ctr = Math.min(0.032, 0.014 + Math.max(0, searchDay) * 0.0004);
@@ -176,14 +190,15 @@ function eachDay(startDate: string, endDate: string, calibration: DemoCalibratio
 // ─── Tỉ trọng các nhóm ───────────────────────────────────────────────────────
 
 /**
- * Kênh vào site của một thương hiệu DTC mới ở VN: mạng xã hội dẫn đầu,
- * organic search còn thấp vì site chưa có tuổi domain.
+ * Kênh vào site khi marketing chưa chạy hiệu quả: phần lớn là Direct — người
+ * đã biết thương hiệu, bạn bè, khách được giới thiệu tay đôi. Organic Social
+ * có nhưng chưa kéo được nhiều, còn Organic Search thấp vì domain chưa có tuổi.
  */
 const CHANNEL_SHARES: [string, number][] = [
-  ["Organic Social", 0.34],
-  ["Direct", 0.27],
-  ["Organic Search", 0.21],
-  ["Referral", 0.1],
+  ["Direct", 0.38],
+  ["Organic Social", 0.24],
+  ["Organic Search", 0.18],
+  ["Referral", 0.12],
   ["Unassigned", 0.08],
 ];
 
@@ -211,46 +226,63 @@ const COUNTRY_SHARES: [string, number][] = [
  * trong bảng này thì báo cáo trông như site chưa có ai dùng thật.
  */
 const PAGE_SHARES: [string, number, number][] = [
-  ["/", 0.2, 1.6],
-  ["/store", 0.115, 2.1],
+  ["/", 0.21, 1.6],
+  ["/store", 0.12, 2.1],
   ["/dashboard", 0.105, 6.5],
-  ["/quiz", 0.085, 1.9],
-  ["/journal", 0.075, 5.8],
-  ["/boxes", 0.065, 2.3],
+  ["/quiz", 0.088, 1.9],
+  ["/journal", 0.078, 5.8],
+  ["/boxes", 0.068, 2.3],
   ["/ai", 0.06, 4.2],
-  ["/blog", 0.055, 1.7],
-  ["/audio", 0.05, 3.6],
-  ["/blog/giac-ngu-va-cam-xuc", 0.045, 1.4],
-  ["/boxes/standard", 0.04, 2],
-  ["/about", 0.035, 1.3],
-  ["/journey", 0.03, 3.1],
-  ["/login", 0.025, 2.4],
+  ["/audio", 0.052, 3.6],
+  ["/boxes/standard", 0.042, 2],
+  ["/about", 0.036, 1.3],
+  ["/journey", 0.031, 3.1],
+  ["/login", 0.026, 2.4],
+  ["/boxes/first-time-user", 0.022, 2],
+  ["/mood-test", 0.018, 2.8],
 ];
+
+/**
+ * Blog đang bị ẩn khỏi điều hướng (xem `marketingNavLinks`, `footerColumns` và
+ * tab Blog trong admin), nên không có đường nào dẫn tới `/blog` — dữ liệu mẫu
+ * không được bịa lưu lượng cho nó. Bỏ chặn này khi bật blog trở lại.
+ */
+const HIDDEN_PATH_PREFIXES = ["/blog"];
+
+function isHiddenPath(path: string): boolean {
+  return HIDDEN_PATH_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+}
 
 /** GA4 chỉ trả về top 10 đường dẫn, giữ đúng con số đó cho khớp API thật. */
 const TOP_PAGES_LIMIT = 10;
 
-/** Từ khoá tiếng Việt quanh chủ đề giấc ngủ; `lumia` là truy vấn thương hiệu. */
+/**
+ * Từ khoá tiếng Việt quanh chủ đề giấc ngủ; `lumia` là truy vấn thương hiệu.
+ * Không có blog nghĩa là không có trang nội dung để hứng truy vấn kiểu
+ * "cách/mẹo/hướng dẫn", nên cơ cấu nghiêng hẳn về truy vấn thương hiệu và
+ * sản phẩm — đúng với những gì site thật sự có trang để xếp hạng.
+ */
 const QUERY_SHARES: [string, number, { ctr: number; position: number }][] = [
-  ["lumia", 0.155, { ctr: 0.243, position: 1.8 }],
-  ["hộp quà chăm sóc giấc ngủ", 0.121, { ctr: 0.052, position: 8.4 }],
-  ["cách cải thiện giấc ngủ", 0.114, { ctr: 0.021, position: 16.7 }],
-  ["trà thảo mộc dễ ngủ", 0.098, { ctr: 0.028, position: 13.2 }],
-  ["thiền trước khi ngủ", 0.089, { ctr: 0.019, position: 19.5 }],
-  ["nhật ký cảm xúc mỗi ngày", 0.081, { ctr: 0.024, position: 15.1 }],
-  ["tinh dầu giúp ngủ ngon", 0.074, { ctr: 0.026, position: 14.8 }],
-  ["quà tặng sức khoẻ tinh thần", 0.068, { ctr: 0.031, position: 11.9 }],
-  ["bài test chất lượng giấc ngủ", 0.061, { ctr: 0.035, position: 10.3 }],
-  ["app theo dõi giấc ngủ tiếng việt", 0.054, { ctr: 0.018, position: 21.4 }],
+  ["lumia", 0.19, { ctr: 0.243, position: 1.8 }],
+  ["hộp quà chăm sóc giấc ngủ", 0.15, { ctr: 0.052, position: 8.4 }],
+  ["quà tặng sức khoẻ tinh thần", 0.115, { ctr: 0.031, position: 11.9 }],
+  ["trà thảo mộc dễ ngủ", 0.105, { ctr: 0.028, position: 13.2 }],
+  ["bài test chất lượng giấc ngủ", 0.095, { ctr: 0.035, position: 10.3 }],
+  ["tinh dầu giúp ngủ ngon", 0.088, { ctr: 0.026, position: 14.8 }],
+  ["lumia giấc ngủ", 0.075, { ctr: 0.198, position: 2.3 }],
+  ["cách cải thiện giấc ngủ", 0.068, { ctr: 0.021, position: 16.7 }],
+  ["app theo dõi giấc ngủ tiếng việt", 0.06, { ctr: 0.018, position: 21.4 }],
+  ["hộp quà wellness", 0.054, { ctr: 0.029, position: 12.6 }],
 ];
 
 const SEARCH_PAGE_SHARES: [string, number, { ctr: number; position: number }][] = [
-  ["/", 0.32, { ctr: 0.041, position: 6.2 }],
-  ["/blog/giac-ngu-va-cam-xuc", 0.19, { ctr: 0.026, position: 12.8 }],
-  ["/store", 0.16, { ctr: 0.029, position: 11.4 }],
-  ["/quiz", 0.13, { ctr: 0.033, position: 10.1 }],
-  ["/boxes", 0.11, { ctr: 0.024, position: 15.6 }],
-  ["/about", 0.09, { ctr: 0.017, position: 22.3 }],
+  ["/", 0.38, { ctr: 0.041, position: 6.2 }],
+  ["/store", 0.22, { ctr: 0.029, position: 11.4 }],
+  ["/quiz", 0.17, { ctr: 0.033, position: 10.1 }],
+  ["/boxes", 0.13, { ctr: 0.024, position: 15.6 }],
+  ["/about", 0.1, { ctr: 0.017, position: 22.3 }],
 ];
 
 /**
@@ -312,6 +344,47 @@ function summarizeSearch(points: DailyPoint[]): GscSummary {
   };
 }
 
+/**
+ * Trần chuyển đổi khách ghé → tài khoản. Site nhỏ đi bằng giới thiệu tay đôi
+ * có thể đạt rất cao, nhưng vượt 25% thì là dấu hiệu số liệu sai chứ không
+ * phải marketing giỏi.
+ */
+const SIGNUP_CONVERSION_CEILING = 0.25;
+
+/**
+ * Nâng quy mô dữ liệu mẫu cho đủ phủ số tài khoản **thật** đã đăng ký trong kỳ.
+ *
+ * Không có bước này, báo cáo sẽ tự mâu thuẫn ngay trên một màn hình: khối Kinh
+ * doanh đọc từ DB có thể hiện 400 tài khoản mới trong khi khối Truy cập chỉ có
+ * 233 khách ghé — nhiều người đăng ký hơn người vào site là điều bất khả.
+ *
+ * Đây là **sàn**, không phải mục tiêu: khi số tài khoản thật đã nằm gọn dưới
+ * trần chuyển đổi thì giữ nguyên quy mô đã cấu hình.
+ */
+export function calibrateForSignups(
+  range: DateRange,
+  calibration: DemoCalibration,
+  signupsInPeriod: number,
+): DemoCalibration {
+  if (!Number.isFinite(signupsInPeriod) || signupsInPeriod <= 0) {
+    return calibration;
+  }
+
+  const baseUsers = summarize(eachDay(range.startDate, range.endDate, calibration)).users;
+  const requiredUsers = Math.ceil(signupsInPeriod / SIGNUP_CONVERSION_CEILING);
+
+  if (baseUsers >= requiredUsers || baseUsers <= 0) {
+    return calibration;
+  }
+
+  return {
+    ...calibration,
+    // Biên 2%: số của từng ngày được làm tròn nên nhân tuyến tính rồi round lại
+    // có thể hụt vài đơn vị so với mục tiêu, đủ để phá vỡ đúng cái sàn này.
+    peakDailyUsers: calibration.peakDailyUsers * (requiredUsers / baseUsers) * 1.02,
+  };
+}
+
 export function buildDemoGaReport(range: DateRange, calibration: DemoCalibration): GaReport {
   const current = eachDay(range.startDate, range.endDate, calibration);
   const previous = eachDay(range.previousStartDate, range.previousEndDate, calibration);
@@ -327,7 +400,7 @@ export function buildDemoGaReport(range: DateRange, calibration: DemoCalibration
       users: point.users,
       sessions: point.sessions,
     })),
-    topPages: PAGE_SHARES.map(([path, share, viewsPerUser]) => {
+    topPages: PAGE_SHARES.filter(([path]) => !isHiddenPath(path)).map(([path, share, viewsPerUser]) => {
       const views = Math.max(1, Math.round(summary.pageViews * share * jitter(seed, path, 0.05)));
       return {
         path,
@@ -352,6 +425,7 @@ function toSearchRows(
   seed: string,
 ): GscRow[] {
   return shares
+    .filter(([label]) => !isHiddenPath(label))
     .map(([label, share, profile]) => {
       const clicks = Math.max(1, Math.round(totalClicks * share * jitter(seed, label, 0.06)));
       return {

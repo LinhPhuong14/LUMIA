@@ -51,23 +51,36 @@ function buildTrend(orders: OrderRow[], range: DateRange): BusinessTrendPoint[] 
 }
 
 /**
- * Ngày tạo profile sớm nhất — mốc "mở bán" để dữ liệu mẫu bám theo tuổi thật
- * của site. Tách riêng để tab chỉ xem traffic không phải kéo cả báo cáo doanh thu.
+ * Hai mẩu dữ liệu thật mà bộ sinh số liệu mẫu cần để bám sát thực tế: mốc
+ * "mở bán" và số tài khoản đăng ký trong kỳ. Tách riêng để tab chỉ xem traffic
+ * không phải kéo cả báo cáo doanh thu.
  */
-export async function fetchFirstProfileAt(): Promise<string | null> {
+export async function fetchDemoAnchors(
+  range: DateRange,
+): Promise<{ firstProfileAt: string | null; signups: number }> {
   const admin = createAdminClient();
   if (!admin) {
-    return null;
+    return { firstProfileAt: null, signups: 0 };
   }
 
-  const { data } = await admin
-    .from("profiles")
-    .select("created_at")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const [first, signups] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("created_at")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfDay(range.startDate))
+      .lte("created_at", endOfDay(range.endDate)),
+  ]);
 
-  return (data?.created_at as string | undefined) ?? null;
+  return {
+    firstProfileAt: (first.data?.created_at as string | undefined) ?? null,
+    signups: signups.count ?? 0,
+  };
 }
 
 export async function fetchBusinessReport(

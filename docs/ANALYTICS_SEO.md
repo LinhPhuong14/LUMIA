@@ -228,19 +228,41 @@ Các biến tinh chỉnh:
 - **Search Console** — **0 impression trong 14 ngày đầu** vì Google chưa index
   xong site mới, sau đó impression bò lên, CTR nhích từ ~1,4% lên ~3,2%, vị trí
   trung bình từ ~38 về ~18.
-- **Kênh vào** — Organic Social dẫn đầu, Organic Search còn thấp: đúng hình dạng
-  của một thương hiệu DTC mới ở VN chưa có tuổi domain. Thiết bị nghiêng hẳn về
-  mobile (74%), thị trường chủ yếu là Việt Nam (94,5%).
+- **Kênh vào** — Direct dẫn đầu (38%): marketing chưa chạy hiệu quả nên phần lớn
+  khách là người đã biết thương hiệu hoặc được giới thiệu tay đôi. Organic Search
+  thấp vì domain chưa có tuổi. Thiết bị nghiêng hẳn về mobile (74%), thị trường
+  chủ yếu là Việt Nam (94,5%).
 - **Trang xem nhiều nhất** — có cả trang marketing lẫn khu vực đã đăng nhập, và
   hai nhóm này phân biệt nhau bằng tỉ lệ **lượt xem/người**: trang marketing xem
   một lần rồi thôi (~1,3-2,3), còn `/dashboard`, `/journal`, `/ai`, `/audio`
-  được người dùng thật quay lại hằng ngày nên cao hơn nhiều (~3,6-6,5). Ở kỳ
-  28 ngày, số này ra khoảng 120-160 người dùng cho mỗi trang trong app —
-  đúng cỡ tệp người dùng thật hiện có. Search Console thì chỉ liệt kê trang
-  công khai, vì khu vực đăng nhập đã bị chặn trong `robots.txt`.
+  được người dùng thật quay lại hằng ngày nên cao hơn nhiều (~3,6-6,5).
+  Search Console chỉ liệt kê trang công khai, vì khu vực đăng nhập đã bị chặn
+  trong `robots.txt`.
+- **Trang bị ẩn** — `HIDDEN_PATH_PREFIXES` loại hẳn `/blog` khỏi cả GA4 lẫn
+  Search Console: blog đang bị gỡ khỏi `marketingNavLinks`, `footerColumns` và
+  tab admin, không có đường nào dẫn tới thì không thể có lưu lượng. Bật blog
+  trở lại thì xoá prefix đó. Vì không có trang nội dung để hứng truy vấn kiểu
+  "cách/mẹo", cơ cấu từ khoá cũng nghiêng về truy vấn thương hiệu và sản phẩm.
 
-Với mặc định `110`, 60 ngày đầu ra khoảng **4.400 người dùng / 5.600 phiên /
-16.500 lượt xem**, tương ứng ~100 tài khoản đăng ký ở mức chuyển đổi ~2,3%.
+Với mặc định `45`, mỗi ngày dao động **30-49 người dùng**; kỳ 28 ngày ra khoảng
+**1.057 người dùng (729 mới) / 1.344 phiên / 3.962 lượt xem**, kèm **206 click /
+7.407 lượt hiển thị** từ tìm kiếm. Tăng `ANALYTICS_DEMO_PEAK_DAILY_USERS` thì
+mọi chỉ số co giãn cùng nhau — kể cả impression của Search Console — nên tỉ lệ
+giữa các con số vẫn hợp lý.
+
+#### Sàn theo số tài khoản thật
+
+`calibrateForSignups` tự nâng quy mô dữ liệu mẫu cho đủ phủ số tài khoản **thật**
+đã đăng ký trong kỳ, trần chuyển đổi 25%.
+
+Không có bước này, hai khối trên cùng một màn hình sẽ mâu thuẫn: khối Kinh doanh
+đọc từ DB có thể hiện 500 tài khoản mới trong khi khối Truy cập chỉ có 1.057
+khách ghé — hoặc tệ hơn, nhiều người đăng ký hơn người vào site, điều bất khả.
+Hệ thống đang có ~1.700 tài khoản, phần lớn là tài khoản seed không đến từ web,
+nên tình huống này rất dễ xảy ra nếu chúng rơi vào kỳ báo cáo.
+
+Đây là **sàn**, không phải mục tiêu: dưới ~264 tài khoản/kỳ thì quy mô giữ
+nguyên như đã cấu hình.
 
 Hai tính chất được test khoá lại (`demo-data.test.ts`):
 
