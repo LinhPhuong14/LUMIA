@@ -50,6 +50,26 @@ function buildTrend(orders: OrderRow[], range: DateRange): BusinessTrendPoint[] 
   return [...byDate.entries()].map(([date, bucket]) => ({ date, ...bucket }));
 }
 
+/**
+ * Ngày tạo profile sớm nhất — mốc "mở bán" để dữ liệu mẫu bám theo tuổi thật
+ * của site. Tách riêng để tab chỉ xem traffic không phải kéo cả báo cáo doanh thu.
+ */
+export async function fetchFirstProfileAt(): Promise<string | null> {
+  const admin = createAdminClient();
+  if (!admin) {
+    return null;
+  }
+
+  const { data } = await admin
+    .from("profiles")
+    .select("created_at")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (data?.created_at as string | undefined) ?? null;
+}
+
 export async function fetchBusinessReport(
   range: DateRange,
 ): Promise<SourceState<BusinessReport>> {

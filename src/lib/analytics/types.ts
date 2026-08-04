@@ -122,8 +122,13 @@ export type AnalyticsReport = {
    * luôn tra được nguồn nào là số mẫu qua API hoặc tab Network.
    */
   showDemoLabel: boolean;
-  business: SourceState<BusinessReport>;
-  google: SourceState<GaReport>;
-  searchConsole: SourceState<GscReport>;
-  vercel: VercelState;
+  /**
+   * Các khối dưới đây chỉ có mặt khi client xin đúng section tương ứng
+   * (`?sections=business|traffic`) — vắng nghĩa là không được yêu cầu,
+   * không phải là chưa cấu hình.
+   */
+  business?: SourceState<BusinessReport>;
+  google?: SourceState<GaReport>;
+  searchConsole?: SourceState<GscReport>;
+  vercel?: VercelState;
 };

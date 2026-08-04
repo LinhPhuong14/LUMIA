@@ -202,18 +202,33 @@ const COUNTRY_SHARES: [string, number][] = [
   ["Singapore", 0.007],
 ];
 
-const PAGE_SHARES: [string, number][] = [
-  ["/", 0.28],
-  ["/store", 0.14],
-  ["/quiz", 0.11],
-  ["/boxes", 0.084],
-  ["/blog", 0.07],
-  ["/blog/giac-ngu-va-cam-xuc", 0.062],
-  ["/boxes/standard", 0.055],
-  ["/about", 0.048],
-  ["/boxes/first-time-user", 0.042],
-  ["/login", 0.036],
+/**
+ * `[đường dẫn, tỉ trọng lượt xem, lượt xem trung bình mỗi người]`.
+ *
+ * Tỉ lệ lượt-xem/người mới là chỗ phân biệt hai loại trang: trang marketing
+ * xem một lần rồi thôi (~1,3-2,3), còn khu vực đã đăng nhập được người dùng
+ * thật quay lại hằng ngày nên cao hơn nhiều (~3-6,5). Thiếu khu vực đăng nhập
+ * trong bảng này thì báo cáo trông như site chưa có ai dùng thật.
+ */
+const PAGE_SHARES: [string, number, number][] = [
+  ["/", 0.2, 1.6],
+  ["/store", 0.115, 2.1],
+  ["/dashboard", 0.105, 6.5],
+  ["/quiz", 0.085, 1.9],
+  ["/journal", 0.075, 5.8],
+  ["/boxes", 0.065, 2.3],
+  ["/ai", 0.06, 4.2],
+  ["/blog", 0.055, 1.7],
+  ["/audio", 0.05, 3.6],
+  ["/blog/giac-ngu-va-cam-xuc", 0.045, 1.4],
+  ["/boxes/standard", 0.04, 2],
+  ["/about", 0.035, 1.3],
+  ["/journey", 0.03, 3.1],
+  ["/login", 0.025, 2.4],
 ];
+
+/** GA4 chỉ trả về top 10 đường dẫn, giữ đúng con số đó cho khớp API thật. */
+const TOP_PAGES_LIMIT = 10;
 
 /** Từ khoá tiếng Việt quanh chủ đề giấc ngủ; `lumia` là truy vấn thương hiệu. */
 const QUERY_SHARES: [string, number, { ctr: number; position: number }][] = [
@@ -312,11 +327,19 @@ export function buildDemoGaReport(range: DateRange, calibration: DemoCalibration
       users: point.users,
       sessions: point.sessions,
     })),
-    topPages: PAGE_SHARES.map(([path, share]) => ({
-      path,
-      views: Math.max(1, Math.round(summary.pageViews * share * jitter(seed, path, 0.05))),
-      users: Math.max(1, Math.round(summary.users * share * 0.82 * jitter(seed, `${path}:u`, 0.05))),
-    })).sort((a, b) => b.views - a.views),
+    topPages: PAGE_SHARES.map(([path, share, viewsPerUser]) => {
+      const views = Math.max(1, Math.round(summary.pageViews * share * jitter(seed, path, 0.05)));
+      return {
+        path,
+        views,
+        // Suy người dùng ra từ lượt xem theo tỉ lệ riêng của từng trang, thay vì
+        // dùng chung một hệ số — nếu không, trang dashboard sẽ có số người dùng
+        // ngang trang chủ, điều không xảy ra ở site thật.
+        users: Math.max(1, Math.round(views / viewsPerUser)),
+      };
+    })
+      .sort((a, b) => b.views - a.views)
+      .slice(0, TOP_PAGES_LIMIT),
     channels: toBreakdown(summary.sessions, CHANNEL_SHARES, `${seed}:channel`),
     devices: toBreakdown(summary.users, DEVICE_SHARES, `${seed}:device`),
     countries: toBreakdown(summary.users, COUNTRY_SHARES, `${seed}:country`),

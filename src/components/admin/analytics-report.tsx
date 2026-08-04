@@ -387,7 +387,16 @@ function SearchRowsTable({
 
 // ─── Màn hình chính ──────────────────────────────────────────────────────────
 
-export function AnalyticsReportPanel() {
+
+/** `business` = số thật từ DB; `traffic` = GA4 + Search Console + Vercel. */
+type ReportSection = "business" | "traffic";
+
+/**
+ * Tải báo cáo cho đúng những section mà tab đang cần. Tab Báo cáo chỉ xin
+ * `business` nên không phải chờ hai vòng gọi API Google mà nó không hiển thị.
+ */
+function useAnalyticsReport(sections: ReportSection[]) {
+  const sectionsParam = sections.join(",");
   const [range, setRange] = useState<RangeKey>("28d");
   const [reloadToken, setReloadToken] = useState(0);
   const [report, setReport] = useState<AnalyticsReport | null>(null);
@@ -413,10 +422,10 @@ export function AnalyticsReportPanel() {
 
     async function run() {
       try {
-        const response = await fetch(`/api/admin/analytics?range=${range}`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/admin/analytics?range=${range}&sections=${sectionsParam}`,
+          { cache: "no-store", signal: controller.signal },
+        );
         if (!response.ok) {
           const body = (await response.json().catch(() => null)) as { error?: string } | null;
           throw new Error(body?.error ?? `Máy chủ trả về HTTP ${response.status}`);
@@ -439,83 +448,74 @@ export function AnalyticsReportPanel() {
 
     void run();
     return () => controller.abort();
-  }, [range, reloadToken]);
+  }, [range, reloadToken, sectionsParam]);
 
-  const business = report?.business;
-  const ga = report?.google;
-  const gsc = report?.searchConsole;
-  const showDemoLabel = Boolean(report?.showDemoLabel);
-  const hasDemoSection = showDemoLabel && Boolean(ga?.demo || gsc?.demo);
+  return { range, requestRange, refresh, report, loading, error };
+}
 
-  const businessTrend = useMemo<TrendPoint[]>(
-    () =>
-      (business?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.revenue,
-        secondary: point.orders,
-      })),
-    [business],
-  );
-
-  const gaTrend = useMemo<TrendPoint[]>(
-    () =>
-      (ga?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.users,
-        secondary: point.sessions,
-      })),
-    [ga],
-  );
-
-  const gscTrend = useMemo<TrendPoint[]>(
-    () =>
-      (gsc?.data?.trend ?? []).map((point) => ({
-        label: formatChartDate(point.date),
-        primary: point.clicks,
-        secondary: point.impressions,
-      })),
-    [gsc],
-  );
-
+function ReportToolbar({
+  range,
+  onSelect,
+  onRefresh,
+  loading,
+  report,
+}: {
+  range: RangeKey;
+  onSelect: (key: RangeKey) => void;
+  onRefresh: () => void;
+  loading: boolean;
+  report: AnalyticsReport | null;
+}) {
   return (
-    <div className="space-y-6">
-      {/* Thanh điều khiển */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-full bg-[var(--surface-warm)] p-1">
-          {RANGE_KEYS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => requestRange(key)}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition ${
-                range === key
-                  ? "bg-[var(--surface-card)] text-[var(--green-deep)] shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
-              {RANGE_LABELS[key]}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3 text-[12px] text-[var(--muted)]">
-          {report ? (
-            <span className="hidden sm:inline">
-              {report.range.startDate} → {report.range.endDate}
-            </span>
-          ) : null}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex gap-1 rounded-full bg-[var(--surface-warm)] p-1">
+        {RANGE_KEYS.map((key) => (
           <button
+            key={key}
             type="button"
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 font-medium transition hover:bg-[var(--surface-warm)] disabled:opacity-60"
+            onClick={() => onSelect(key)}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition ${
+              range === key
+                ? "bg-[var(--surface-card)] text-[var(--green-deep)] shadow-sm"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            }`}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Làm mới
+            {RANGE_LABELS[key]}
           </button>
-        </div>
+        ))}
       </div>
 
+      <div className="flex items-center gap-3 text-[12px] text-[var(--muted)]">
+        {report ? (
+          <span className="hidden sm:inline">
+            {report.range.startDate} → {report.range.endDate}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 font-medium transition hover:bg-[var(--surface-warm)] disabled:opacity-60"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          Làm mới
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReportStatus({
+  loading,
+  error,
+  report,
+}: {
+  loading: boolean;
+  error: string | null;
+  report: AnalyticsReport | null;
+}) {
+  return (
+    <>
       {error ? (
         <div className="flex items-start gap-3 rounded-[14px] bg-red-50 px-4 py-3 text-[13px] text-red-700">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -529,23 +529,51 @@ export function AnalyticsReportPanel() {
           Đang tải dữ liệu báo cáo…
         </div>
       ) : null}
+    </>
+  );
+}
+
+function ReportFooter({ report, note }: { report: AnalyticsReport; note?: string }) {
+  return (
+    <p className="text-center text-[11px] text-[var(--muted)]">
+      Dữ liệu tính tới hết ngày {report.range.endDate}
+      {note ? ` — ${note}` : ""}. Cập nhật lúc{" "}
+      {new Date(report.generatedAt).toLocaleString("vi-VN")}.
+    </p>
+  );
+}
+
+// ─── Tab "Báo cáo" — số thật từ database ─────────────────────────────────────
+
+export function AnalyticsReportPanel() {
+  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport([
+    "business",
+  ]);
+  const business = report?.business;
+
+  const businessTrend = useMemo<TrendPoint[]>(
+    () =>
+      (business?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.revenue,
+        secondary: point.orders,
+      })),
+    [business],
+  );
+
+  return (
+    <div className="space-y-6">
+      <ReportToolbar
+        range={range}
+        onSelect={requestRange}
+        onRefresh={refresh}
+        loading={loading}
+        report={report}
+      />
+      <ReportStatus loading={loading} error={error} report={report} />
 
       {report ? (
         <>
-          {hasDemoSection ? (
-            <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-              <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                Đang bật <strong>ANALYTICS_DEMO_MODE</strong>. Các khối có nhãn{" "}
-                <em>Dữ liệu mẫu</em> là số do app tự sinh để xem trước giao diện —{" "}
-                <strong>không phải số thật</strong>, đừng dùng để ra quyết định hay báo cáo ra
-                ngoài. Khối <em>Kinh doanh</em> luôn là số thật từ database. Nối GA4 và Search
-                Console theo <code>docs/ANALYTICS_SEO.md</code> thì dữ liệu thật sẽ tự thay thế.
-              </span>
-            </div>
-          ) : null}
-
-          {/* ── Kinh doanh (dữ liệu thật từ DB) ──────────────────────────── */}
           <div className="space-y-4">
             <SectionHeading icon={ShoppingBag} title="Kinh doanh" />
 
@@ -595,6 +623,69 @@ export function AnalyticsReportPanel() {
               </>
             )}
           </div>
+
+          <ReportFooter report={report} note="đơn hàng tính theo trạng thái đã thu tiền" />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Tab "Vận hành" — GA4, Search Console, Vercel ────────────────────────────
+
+export function OperationsReportPanel() {
+  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport(["traffic"]);
+
+  const ga = report?.google;
+  const gsc = report?.searchConsole;
+  const vercel = report?.vercel;
+  const showDemoLabel = Boolean(report?.showDemoLabel);
+  const hasDemoSection = showDemoLabel && Boolean(ga?.demo || gsc?.demo);
+
+  const gaTrend = useMemo<TrendPoint[]>(
+    () =>
+      (ga?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.users,
+        secondary: point.sessions,
+      })),
+    [ga],
+  );
+
+  const gscTrend = useMemo<TrendPoint[]>(
+    () =>
+      (gsc?.data?.trend ?? []).map((point) => ({
+        label: formatChartDate(point.date),
+        primary: point.clicks,
+        secondary: point.impressions,
+      })),
+    [gsc],
+  );
+
+  return (
+    <div className="space-y-6">
+      <ReportToolbar
+        range={range}
+        onSelect={requestRange}
+        onRefresh={refresh}
+        loading={loading}
+        report={report}
+      />
+      <ReportStatus loading={loading} error={error} report={report} />
+
+      {report ? (
+        <>
+          {hasDemoSection ? (
+            <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+              <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Đang bật <strong>ANALYTICS_DEMO_MODE</strong>. Các khối có nhãn{" "}
+                <em>Dữ liệu mẫu</em> là số do app tự sinh để xem trước giao diện —{" "}
+                <strong>không phải số thật</strong>. Nối GA4 và Search Console theo{" "}
+                <code>docs/ANALYTICS_SEO.md</code> thì dữ liệu thật sẽ tự thay thế.
+              </span>
+            </div>
+          ) : null}
 
           {/* ── Google Analytics ─────────────────────────────────────────── */}
           <div className="space-y-4">
@@ -780,56 +871,59 @@ export function AnalyticsReportPanel() {
           </div>
 
           {/* ── Vercel ───────────────────────────────────────────────────── */}
-          <SectionCard
-            title="Vercel Analytics"
-            icon={Gauge}
-            action={
-              <a
-                href="https://vercel.com/dashboard"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--green-deep)] hover:underline"
-              >
-                Mở Vercel Dashboard
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            }
-          >
-            <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-              Vercel Web Analytics và Speed Insights không mở API đọc số liệu, nên báo cáo chi tiết
-              chỉ xem được trên Vercel Dashboard. Phần dưới cho biết script đã được nhúng đúng chưa.
-            </p>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-              {[
-                {
-                  label: "Môi trường",
-                  value: report.vercel.onVercel
-                    ? (report.vercel.environment ?? "vercel")
-                    : "Ngoài Vercel",
-                },
-                {
-                  label: "Script analytics",
-                  value: report.vercel.analyticsDisabled ? "Đang tắt" : "Đang bật",
-                },
-                { label: "Domain", value: report.vercel.projectUrl ?? "—" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-[12px] bg-[var(--surface-warm)] px-4 py-3">
-                  <dt className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
-                    {item.label}
-                  </dt>
-                  <dd className="mt-1 break-all text-[13px] font-medium text-[var(--foreground)]">
-                    {item.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </SectionCard>
+          {vercel ? (
+            <SectionCard
+              title="Vercel Analytics"
+              icon={Gauge}
+              action={
+                <a
+                  href="https://vercel.com/dashboard"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--green-deep)] hover:underline"
+                >
+                  Mở Vercel Dashboard
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              }
+            >
+              <p className="text-[13px] leading-relaxed text-[var(--muted)]">
+                Vercel Web Analytics và Speed Insights không mở API đọc số liệu, nên báo cáo chi
+                tiết chỉ xem được trên Vercel Dashboard. Phần dưới cho biết script đã được nhúng
+                đúng chưa.
+              </p>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    label: "Môi trường",
+                    value: vercel.onVercel ? (vercel.environment ?? "vercel") : "Ngoài Vercel",
+                  },
+                  {
+                    label: "Script analytics",
+                    value: vercel.analyticsDisabled ? "Đang tắt" : "Đang bật",
+                  },
+                  { label: "Domain", value: vercel.projectUrl ?? "—" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[12px] bg-[var(--surface-warm)] px-4 py-3"
+                  >
+                    <dt className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                      {item.label}
+                    </dt>
+                    <dd className="mt-1 break-all text-[13px] font-medium text-[var(--foreground)]">
+                      {item.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </SectionCard>
+          ) : null}
 
-          <p className="text-center text-[11px] text-[var(--muted)]">
-            Dữ liệu tính tới hết ngày {report.range.endDate} — GA4 chốt số theo ngày, Search Console
-            trễ khoảng 2-3 ngày. Cập nhật lúc{" "}
-            {new Date(report.generatedAt).toLocaleString("vi-VN")}.
-          </p>
+          <ReportFooter
+            report={report}
+            note="GA4 chốt số theo ngày, Search Console trễ khoảng 2-3 ngày"
+          />
         </>
       ) : null}
     </div>

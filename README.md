@@ -36,7 +36,7 @@ git push origin main
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Tùy chọn | Service account đọc GA4 + Search Console |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Tùy chọn | Private key của service account (giữ nguyên `\n`) |
 | `GSC_SITE_URL` | Tùy chọn | Property Search Console, mặc định theo `NEXT_PUBLIC_APP_URL` |
-| `ANALYTICS_DEMO_MODE` | Tùy chọn | `true` = sinh số liệu **mẫu** cho tab Báo cáo khi chưa nối GA4/GSC. Nên tắt ở production |
+| `ANALYTICS_DEMO_MODE` | Tùy chọn | Bật sẵn. `false` = tắt số liệu **mẫu** cho GA4/GSC khi chưa nối API |
 
 ### 4. Supabase Auth redirect
 

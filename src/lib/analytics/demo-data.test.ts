@@ -87,6 +87,36 @@ describe("buildDemoGaReport", () => {
   it("thị trường chính là Việt Nam", () => {
     expect(report.countries[0]?.label).toBe("Vietnam");
   });
+
+  it("top trang trả về đúng 10 dòng như GA4 thật", () => {
+    expect(report.topPages).toHaveLength(10);
+  });
+
+  it("có cả khu vực đã đăng nhập, không chỉ trang marketing", () => {
+    const paths = report.topPages.map((page) => page.path);
+    expect(paths).toContain("/dashboard");
+    expect(paths).toContain("/journal");
+  });
+
+  it("mỗi trang có lượt xem ≥ số người dùng", () => {
+    for (const page of report.topPages) {
+      expect(page.views).toBeGreaterThanOrEqual(page.users);
+    }
+  });
+
+  it("trang đã đăng nhập có lượt xem/người cao hơn hẳn trang chủ, vì user quay lại", () => {
+    const home = report.topPages.find((page) => page.path === "/");
+    const dashboard = report.topPages.find((page) => page.path === "/dashboard");
+    const homeRatio = home!.views / home!.users;
+    const dashboardRatio = dashboard!.views / dashboard!.users;
+    expect(dashboardRatio).toBeGreaterThan(homeRatio * 2);
+  });
+
+  it("số người dùng của một trang không vượt tổng người dùng của kỳ", () => {
+    for (const page of report.topPages) {
+      expect(page.users).toBeLessThanOrEqual(report.summary.users);
+    }
+  });
 });
 
 describe("buildDemoGscReport", () => {

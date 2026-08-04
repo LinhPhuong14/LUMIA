@@ -112,19 +112,34 @@ không gửi dữ liệu rác.
 
 ## 4. Báo cáo trong trang admin
 
-`/admin` → tab **Báo cáo** gộp số liệu GA4 và Search Console vào một màn hình:
-KPI kèm so sánh với kỳ liền trước, biểu đồ theo ngày, top trang, nguồn traffic,
-thiết bị, quốc gia, top từ khoá. Chọn kỳ 7 / 28 / 90 ngày.
+Báo cáo chia làm hai tab trong `/admin`, đều chọn được kỳ 7 / 28 / 90 ngày và
+mọi KPI đều kèm so sánh với kỳ liền trước:
+
+| Tab | Nội dung | Nguồn |
+|---|---|---|
+| **Báo cáo** | Doanh thu, đơn hàng, giá trị đơn TB, tài khoản mới + biểu đồ theo ngày | Supabase — **luôn là số thật** |
+| **Vận hành** | Google Analytics, Search Console, Vercel | API Google (hoặc dữ liệu mẫu) |
+
+> Tab **Vận hành** đang **tạm ẩn**. Bật lại bằng cách bỏ comment hai dòng
+> `operations` trong `src/components/admin/admin-dashboard.tsx` (mục `TABS`
+> và phần render), giống cách tab Blog đang được tắt.
 
 Đường đi của dữ liệu:
 
 ```
-AnalyticsReportPanel  →  GET /api/admin/analytics?range=28d
-                              ├── src/lib/analytics/ga4.ts             → GA4 Data API
-                              └── src/lib/analytics/search-console.ts  → Search Console API
+AnalyticsReportPanel      → GET /api/admin/analytics?sections=business
+                                └── src/lib/analytics/business.ts       → Supabase
+
+OperationsReportPanel     → GET /api/admin/analytics?sections=traffic
+                                ├── src/lib/analytics/ga4.ts            → GA4 Data API
+                                └── src/lib/analytics/search-console.ts → Search Console API
 ```
 
-Hai nguồn gọi song song và trả trạng thái riêng — một bên hỏng thì bên còn lại
+Tham số `sections` để mỗi tab chỉ gọi đúng nguồn nó hiển thị — tab Báo cáo không
+phải chờ hai vòng gọi API Google chỉ để hiện doanh thu đọc từ một query Supabase.
+Bỏ trống `sections` thì trả tất cả.
+
+Các nguồn gọi song song và trả trạng thái riêng — một bên hỏng thì bên còn lại
 vẫn hiện, phần lỗi hiển thị đúng nguyên nhân thay vì màn hình trắng.
 
 ### Setup service account
@@ -173,14 +188,13 @@ Khối này **không có bản demo** và không bao giờ bị thay bằng số
 
 ### Dữ liệu mẫu khi chưa nối được API
 
-Site mới mở thường chưa kịp cấu hình GA4/Search Console, mà tab Báo cáo trống
-thì không đánh giá được giao diện. Bật:
+Site mới mở thường chưa kịp cấu hình GA4/Search Console, mà tab trống thì không
+đánh giá được giao diện. Vì vậy dữ liệu mẫu **bật sẵn**: khối nào có trạng thái
+`not_configured` sẽ được lấp bằng số mẫu. Tắt hẳn bằng:
 
 ```
-ANALYTICS_DEMO_MODE=true
+ANALYTICS_DEMO_MODE=false
 ```
-
-Tab Báo cáo sẽ sinh số liệu mẫu cho khối GA4 và Search Console.
 
 **Cần nhớ khi bật:**
 
@@ -217,6 +231,13 @@ Các biến tinh chỉnh:
 - **Kênh vào** — Organic Social dẫn đầu, Organic Search còn thấp: đúng hình dạng
   của một thương hiệu DTC mới ở VN chưa có tuổi domain. Thiết bị nghiêng hẳn về
   mobile (74%), thị trường chủ yếu là Việt Nam (94,5%).
+- **Trang xem nhiều nhất** — có cả trang marketing lẫn khu vực đã đăng nhập, và
+  hai nhóm này phân biệt nhau bằng tỉ lệ **lượt xem/người**: trang marketing xem
+  một lần rồi thôi (~1,3-2,3), còn `/dashboard`, `/journal`, `/ai`, `/audio`
+  được người dùng thật quay lại hằng ngày nên cao hơn nhiều (~3,6-6,5). Ở kỳ
+  28 ngày, số này ra khoảng 120-160 người dùng cho mỗi trang trong app —
+  đúng cỡ tệp người dùng thật hiện có. Search Console thì chỉ liệt kê trang
+  công khai, vì khu vực đăng nhập đã bị chặn trong `robots.txt`.
 
 Với mặc định `110`, 60 ngày đầu ra khoảng **4.400 người dùng / 5.600 phiên /
 16.500 lượt xem**, tương ứng ~100 tài khoản đăng ký ở mức chuyển đổi ~2,3%.
