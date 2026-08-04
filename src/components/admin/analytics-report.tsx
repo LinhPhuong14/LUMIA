@@ -444,7 +444,8 @@ export function AnalyticsReportPanel() {
   const business = report?.business;
   const ga = report?.google;
   const gsc = report?.searchConsole;
-  const hasDemoSection = Boolean(ga?.demo || gsc?.demo);
+  const showDemoLabel = Boolean(report?.showDemoLabel);
+  const hasDemoSection = showDemoLabel && Boolean(ga?.demo || gsc?.demo);
 
   const businessTrend = useMemo<TrendPoint[]>(
     () =>
@@ -597,7 +598,11 @@ export function AnalyticsReportPanel() {
 
           {/* ── Google Analytics ─────────────────────────────────────────── */}
           <div className="space-y-4">
-            <SectionHeading icon={BarChart3} title="Google Analytics" demo={ga?.demo} />
+            <SectionHeading
+              icon={BarChart3}
+              title="Google Analytics"
+              demo={showDemoLabel && ga?.demo}
+            />
 
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice
@@ -707,7 +712,11 @@ export function AnalyticsReportPanel() {
 
           {/* ── Search Console ───────────────────────────────────────────── */}
           <div className="space-y-4">
-            <SectionHeading icon={Search} title="Google Search Console" demo={gsc?.demo} />
+            <SectionHeading
+              icon={Search}
+              title="Google Search Console"
+              demo={showDemoLabel && gsc?.demo}
+            />
 
             {gsc?.status !== "ok" || !gsc.data ? (
               <SourceNotice

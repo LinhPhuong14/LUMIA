@@ -116,6 +116,12 @@ export type BusinessReport = {
 export type AnalyticsReport = {
   range: DateRange;
   generatedAt: string;
+  /**
+   * Có hiện nhãn "Dữ liệu mẫu" trên UI hay không. Mặc định tắt để màn hình
+   * báo cáo gọn; cờ `demo` của từng nguồn vẫn giữ nguyên trong payload nên
+   * luôn tra được nguồn nào là số mẫu qua API hoặc tab Network.
+   */
+  showDemoLabel: boolean;
   business: SourceState<BusinessReport>;
   google: SourceState<GaReport>;
   searchConsole: SourceState<GscReport>;

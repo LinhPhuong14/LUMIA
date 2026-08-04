@@ -71,6 +71,8 @@ export async function GET(request: Request) {
   const report: AnalyticsReport = {
     range,
     generatedAt: new Date().toISOString(),
+    // Mặc định ẩn nhãn; đặt ANALYTICS_DEMO_SHOW_LABEL=true để hiện lại.
+    showDemoLabel: process.env.ANALYTICS_DEMO_SHOW_LABEL === "true",
     business,
     google,
     searchConsole,

@@ -182,22 +182,26 @@ ANALYTICS_DEMO_MODE=true
 
 Tab Báo cáo sẽ sinh số liệu mẫu cho khối GA4 và Search Console.
 
-**Ràng buộc an toàn** — đọc kỹ trước khi bật:
+**Cần nhớ khi bật:**
 
-- Mọi khối chạy dữ liệu mẫu đều mang nhãn **Dữ liệu mẫu** kèm banner cảnh báo
-  ở đầu trang. Đừng gỡ nhãn; đừng dùng những con số này để báo cáo ra ngoài
-  hay ra quyết định kinh doanh.
 - Chỉ lấp chỗ nguồn có trạng thái `not_configured`. Đã nối được API thật thì
   **dữ liệu thật luôn thắng**, kể cả khi API trả về 0. Nguồn đang lỗi cũng giữ
   nguyên thông báo lỗi để còn biết mà sửa.
-- Nên tắt trên production.
+- Khối **Kinh doanh** luôn là số thật từ database, không bao giờ bị thay.
+- Nhãn "Dữ liệu mẫu" trên UI **mặc định ẩn** cho gọn màn hình. Cờ `demo` của
+  từng nguồn vẫn nằm trong response của `/api/admin/analytics`, nên lúc nào
+  cũng tra được nguồn nào đang chạy số mẫu — bật `ANALYTICS_DEMO_SHOW_LABEL=true`
+  để hiện nhãn lại trên giao diện.
+- Đây là số do app tự sinh, không phải số đo được. Đừng dùng để báo cáo ra
+  ngoài hay ra quyết định kinh doanh.
 
-Hai biến tinh chỉnh:
+Các biến tinh chỉnh:
 
 | Variable | Ghi chú |
 |---|---|
 | `ANALYTICS_DEMO_LAUNCH_DATE` | Mốc mở bán. Bỏ trống = profile sớm nhất trong DB, không có thì lùi 60 ngày |
 | `ANALYTICS_DEMO_PEAK_DAILY_USERS` | Trần người dùng/ngày, mặc định `110` |
+| `ANALYTICS_DEMO_SHOW_LABEL` | `true` = hiện nhãn "Dữ liệu mẫu" trên UI. Mặc định ẩn |
 
 #### Mô hình đằng sau số liệu mẫu
 
