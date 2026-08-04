@@ -62,7 +62,7 @@ export async function POST() {
       );
     }
 
-    return NextResponse.json({ ok: true, cutoverDate, ...outcome });
+    return NextResponse.json({ ok: true, ...outcome });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Không ghi được lịch sử." },

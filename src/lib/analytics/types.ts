@@ -125,6 +125,14 @@ export type BusinessReport = {
   trend: BusinessTrendPoint[];
 };
 
+/** Trạng thái nối lịch sử, để báo cáo nói ra vì sao chưa nối thay vì im lặng. */
+export type BackfillState = {
+  ran: boolean;
+  reason?: string;
+  note?: string;
+  cutoverDate?: string | null;
+};
+
 export type AnalyticsReport = {
   range: DateRange;
   generatedAt: string;
@@ -143,4 +151,6 @@ export type AnalyticsReport = {
   google?: SourceState<GaReport>;
   searchConsole?: SourceState<GscReport>;
   vercel?: VercelState;
+  /** Chỉ có ở section `traffic`, khi GA4 đã trả số thật. */
+  backfill?: BackfillState;
 };

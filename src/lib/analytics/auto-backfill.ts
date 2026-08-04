@@ -76,8 +76,22 @@ async function resolveCalibration(): Promise<DemoCalibration> {
 }
 
 export type BackfillOutcome =
-  | { ran: false; reason: "no_cutover" | "not_ready" | "already_done" | "nothing_to_fill" }
-  | { ran: true; written: number; scaleFactor: number; from: string; to: string };
+  | {
+      ran: false;
+      reason: "no_cutover" | "not_ready" | "already_done" | "nothing_to_fill" | "failed";
+      /** Câu giải thích hiện thẳng lên báo cáo, để không phải đi đoán. */
+      note?: string;
+      realDays?: number;
+      cutoverDate?: string | null;
+    }
+  | {
+      ran: true;
+      written: number;
+      scaleFactor: number;
+      from: string;
+      to: string;
+      cutoverDate: string;
+    };
 
 export async function computeAnchorStatus(cutover: string | null): Promise<{
   anchor: AnchorStatus;
@@ -120,17 +134,33 @@ export async function computeAnchorStatus(cutover: string | null): Promise<{
 
 export async function runBackfill(cutover: string | null): Promise<BackfillOutcome> {
   if (!cutover) {
-    return { ran: false, reason: "no_cutover" };
+    return {
+      ran: false,
+      reason: "no_cutover",
+      note: "Chưa đo được ngày nào có người dùng trong GA4 nên chưa biết mốc gắn đo ở đâu.",
+      cutoverDate: null,
+    };
   }
 
   const { anchor, calibration, backfillEnd } = await computeAnchorStatus(cutover);
   if (!anchor.ready || !backfillEnd) {
-    return { ran: false, reason: "not_ready" };
+    return {
+      ran: false,
+      reason: "not_ready",
+      realDays: anchor.realDays,
+      cutoverDate: cutover,
+      note: `Cần ${ANCHOR_MIN_REAL_DAYS} ngày dữ liệu GA4 thật để neo, hiện có ${anchor.realDays}. Lịch sử sẽ tự dựng khi đủ.`,
+    };
   }
 
   const launchIso = toIsoDate(calibration.launchDate);
   if (launchIso > backfillEnd) {
-    return { ran: false, reason: "nothing_to_fill" };
+    return {
+      ran: false,
+      reason: "nothing_to_fill",
+      cutoverDate: cutover,
+      note: `Không có ngày nào trước mốc gắn đo ${cutover} để dựng lại.`,
+    };
   }
 
   const scaled: DemoCalibration = {
@@ -162,6 +192,7 @@ export async function runBackfill(cutover: string | null): Promise<BackfillOutco
     scaleFactor: anchor.scaleFactor,
     from: launchIso,
     to: backfillEnd,
+    cutoverDate: cutover,
   };
 }
 
@@ -177,13 +208,29 @@ let inFlight: Promise<BackfillOutcome> | null = null;
  * chạy kèm lúc mở báo cáo, hỏng thì báo cáo vẫn phải hiện được phần còn lại.
  */
 export async function ensureBackfilled(cutover: string | null): Promise<BackfillOutcome> {
-  if (!cutover) {
-    return { ran: false, reason: "no_cutover" };
+  const stats = await getSnapshotStats();
+
+  // Bảng chưa tồn tại thì có chạy cũng không ghi được — nói thẳng thay vì nuốt.
+  if (stats.error) {
+    return { ran: false, reason: "failed", note: stats.error, cutoverDate: cutover };
   }
 
-  const stats = await getSnapshotStats();
   if (stats.demoDays > 0) {
-    return { ran: false, reason: "already_done" };
+    return {
+      ran: false,
+      reason: "already_done",
+      cutoverDate: cutover,
+      note: `Đã dựng ${stats.demoDays} ngày lịch sử (${stats.firstDate} → ${stats.lastDate}).`,
+    };
+  }
+
+  if (!cutover) {
+    return {
+      ran: false,
+      reason: "no_cutover",
+      cutoverDate: null,
+      note: "Chưa đo được ngày nào có người dùng trong GA4 nên chưa biết mốc gắn đo ở đâu.",
+    };
   }
 
   if (inFlight) {
@@ -191,7 +238,14 @@ export async function ensureBackfilled(cutover: string | null): Promise<Backfill
   }
 
   inFlight = runBackfill(cutover)
-    .catch((): BackfillOutcome => ({ ran: false, reason: "not_ready" }))
+    .catch(
+      (error): BackfillOutcome => ({
+        ran: false,
+        reason: "failed",
+        cutoverDate: cutover,
+        note: error instanceof Error ? error.message : "Không ghi được lịch sử.",
+      }),
+    )
     .finally(() => {
       inFlight = null;
     });

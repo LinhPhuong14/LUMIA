@@ -68,14 +68,26 @@ export async function readSnapshot(startDate: string, endDate: string): Promise<
 }
 
 /** Số ngày đã đóng băng theo từng nguồn — dùng cho màn hình trạng thái. */
-export async function getSnapshotStats(): Promise<{
+export type SnapshotStats = {
   demoDays: number;
   firstDate: string | null;
   lastDate: string | null;
-}> {
+  /**
+   * Lý do không đọc được bảng. Tách khỏi "bảng rỗng": chưa chạy migration và đã
+   * chạy nhưng chưa có gì cho ra cùng một con số 0, mà cách xử lý thì khác hẳn.
+   */
+  error: string | null;
+};
+
+export async function getSnapshotStats(): Promise<SnapshotStats> {
   const admin = createAdminClient();
   if (!admin) {
-    return { demoDays: 0, firstDate: null, lastDate: null };
+    return {
+      demoDays: 0,
+      firstDate: null,
+      lastDate: null,
+      error: "Thiếu SUPABASE_SECRET_KEY nên không đọc/ghi được bảng lịch sử.",
+    };
   }
 
   const { data, error } = await admin
@@ -84,16 +96,28 @@ export async function getSnapshotStats(): Promise<{
     .eq("source", "demo")
     .order("date", { ascending: true });
 
-  if (error || !data || data.length === 0) {
-    return { demoDays: 0, firstDate: null, lastDate: null };
+  if (error) {
+    return { demoDays: 0, firstDate: null, lastDate: null, error: describeTableError(error) };
   }
 
-  const dates = (data as { date: string }[]).map((row) => row.date);
+  const dates = ((data ?? []) as { date: string }[]).map((row) => row.date);
   return {
     demoDays: dates.length,
-    firstDate: dates[0],
-    lastDate: dates[dates.length - 1],
+    firstDate: dates[0] ?? null,
+    lastDate: dates[dates.length - 1] ?? null,
+    error: null,
   };
+}
+
+/** Bảng chưa tồn tại là lỗi hay gặp nhất, và cách sửa rất cụ thể. */
+function describeTableError(error: { message: string; code?: string }): string {
+  const missingTable =
+    error.code === "42P01" ||
+    /does not exist|schema cache|could not find the table/i.test(error.message);
+
+  return missingTable
+    ? "Chưa chạy migration 026_analytics_daily_snapshot.sql trong Supabase SQL Editor."
+    : error.message;
 }
 
 /**

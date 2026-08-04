@@ -160,7 +160,15 @@ export async function GET(request: Request) {
       // Mốc gắn đo tự suy từ dữ liệu GA4 khi không đặt env, và lịch sử tự dựng
       // lần đầu đủ điều kiện — không cần ai bấm nút.
       const cutoverDate = await resolveCutoverDate();
-      await ensureBackfilled(cutoverDate);
+      const outcome = await ensureBackfilled(cutoverDate);
+      report.backfill = {
+        ran: outcome.ran,
+        reason: outcome.ran ? undefined : outcome.reason,
+        note: outcome.ran
+          ? `Đã dựng ${outcome.written} ngày lịch sử (${outcome.from} → ${outcome.to}), hệ số neo ${outcome.scaleFactor.toFixed(2)}.`
+          : outcome.note,
+        cutoverDate: outcome.cutoverDate ?? cutoverDate,
+      };
 
       if (cutoverDate && isBeforeCutover(range.startDate, cutoverDate)) {
         const historical = selectHistorical(

@@ -885,6 +885,25 @@ export function OperationsReportPanel() {
               demo={showDemoLabel && ga?.demo}
             />
 
+            {/* GA4 không có dữ liệu hồi tố, nên đoạn trước ngày gắn đo được
+                dựng lại và neo về mức thật. Dòng này nói trạng thái của việc
+                đó — trước đây nó chạy im lặng nên không nối được cũng không
+                biết vì sao. */}
+            {report.backfill?.note ? (
+              <p
+                className={`rounded-[12px] px-4 py-2.5 text-[12px] leading-relaxed ${
+                  report.backfill.reason === "failed"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-[var(--surface-warm)] text-[var(--muted)]"
+                }`}
+              >
+                <strong>Lịch sử trước ngày gắn đo:</strong> {report.backfill.note}
+                {report.backfill.cutoverDate
+                  ? ` Mốc gắn đo: ${report.backfill.cutoverDate}.`
+                  : ""}
+              </p>
+            ) : null}
+
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice
                 state={ga ?? { status: "error", data: null }}
