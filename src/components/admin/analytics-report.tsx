@@ -885,22 +885,14 @@ export function OperationsReportPanel() {
               demo={showDemoLabel && ga?.demo}
             />
 
-            {/* GA4 không có dữ liệu hồi tố, nên đoạn trước ngày gắn đo được
-                dựng lại và neo về mức thật. Dòng này nói trạng thái của việc
-                đó — trước đây nó chạy im lặng nên không nối được cũng không
-                biết vì sao. */}
-            {report.backfill?.note ? (
-              <p
-                className={`rounded-[12px] px-4 py-2.5 text-[12px] leading-relaxed ${
-                  report.backfill.reason === "failed"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-[var(--surface-warm)] text-[var(--muted)]"
-                }`}
-              >
-                <strong>Lịch sử trước ngày gắn đo:</strong> {report.backfill.note}
-                {report.backfill.cutoverDate
-                  ? ` Mốc gắn đo: ${report.backfill.cutoverDate}.`
-                  : ""}
+            {/* Trạng thái nối lịch sử chỉ hiện khi HỎNG. Lúc chạy đúng thì
+                biểu đồ đã tự nói hết, thêm một dòng giải thích vào giữa màn
+                hình báo cáo chỉ tổ chiếm chỗ. Trường hợp hỏng thì ngược lại:
+                thiếu bảng trong DB mà im lặng là ngồi đoán mãi không ra.
+                Chi tiết đầy đủ vẫn nằm ở `backfill` trong /api/admin/analytics. */}
+            {report.backfill?.reason === "failed" && report.backfill.note ? (
+              <p className="rounded-[12px] bg-red-50 px-4 py-2.5 text-[12px] leading-relaxed text-red-700">
+                <strong>Không dựng được lịch sử:</strong> {report.backfill.note}
               </p>
             ) : null}
 

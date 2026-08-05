@@ -24,6 +24,12 @@ export type SourceState<T> = {
   spliced?: boolean;
   /** Ngày đầu tiên có số đo thật — mọi ngày trước đó là dựng lại. */
   realDataSince?: string;
+  /**
+   * Tên những khối mà API thật trả rỗng và đã được lấp bằng số mẫu (ví dụ
+   * `["devices","countries"]`). Không hiện lên giao diện — giữ trong payload để
+   * lúc nào cũng tra được khối nào là số đo được, khối nào là số dựng.
+   */
+  filled?: string[];
   data: T | null;
 };
 

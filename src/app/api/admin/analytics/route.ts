@@ -15,6 +15,7 @@ import {
   DEMO_DEFAULT_PEAK_DAILY_USERS,
   type DemoCalibration,
 } from "@/lib/analytics/demo-data";
+import { fillGaGaps, fillGscGaps, isGscEmpty } from "@/lib/analytics/fill-gaps";
 import { fetchGaReport } from "@/lib/analytics/ga4";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
 import { readSnapshot } from "@/lib/analytics/snapshot";
@@ -131,6 +132,29 @@ export async function GET(request: Request) {
       analyticsDisabled: env.NEXT_PUBLIC_ANALYTICS_DISABLED,
     };
 
+    // Quy mô của bộ sinh số mẫu. Dùng ở hai chỗ (lấp cả nguồn, và lấp khối rỗng
+    // của nguồn thật) nhưng chỉ tính khi thật sự cần: nó tốn một query đếm tài
+    // khoản, mà đường đi thường gặp nhất là mọi thứ đã có số thật.
+    let cachedCalibration: DemoCalibration | null = null;
+    const getCalibration = async (): Promise<DemoCalibration> => {
+      if (!cachedCalibration) {
+        // Tab Vận hành không kéo báo cáo doanh thu, nên lấy mốc neo bằng một
+        // query nhỏ riêng thay vì để rơi về mặc định 60 ngày.
+        const anchors = business?.data
+          ? { firstProfileAt: business.data.firstProfileAt, signups: business.data.signups }
+          : await fetchDemoAnchors(range);
+
+        // Nâng quy mô cho đủ phủ số tài khoản thật, nếu không báo cáo sẽ hiện
+        // nhiều người đăng ký hơn người ghé thăm.
+        cachedCalibration = calibrateForSignups(
+          range,
+          resolveCalibration(anchors.firstProfileAt),
+          anchors.signups,
+        );
+      }
+      return cachedCalibration;
+    };
+
     // Dữ liệu mẫu CHỈ lấp chỗ nguồn chưa cấu hình. Nguồn thật luôn thắng: đã nối
     // được API thì không bao giờ bị thay bằng số mẫu, kể cả khi API trả về 0.
     // Nguồn đang lỗi cũng giữ nguyên lỗi để còn biết mà sửa.
@@ -139,19 +163,7 @@ export async function GET(request: Request) {
       (google?.status === "not_configured" || searchConsole?.status === "not_configured");
 
     if (needsDemo) {
-      // Tab Vận hành không kéo báo cáo doanh thu, nên lấy mốc neo bằng một
-      // query nhỏ riêng thay vì để rơi về mặc định 60 ngày.
-      const anchors = business?.data
-        ? { firstProfileAt: business.data.firstProfileAt, signups: business.data.signups }
-        : await fetchDemoAnchors(range);
-
-      // Nâng quy mô cho đủ phủ số tài khoản thật, nếu không báo cáo sẽ hiện
-      // nhiều người đăng ký hơn người ghé thăm.
-      const calibration = calibrateForSignups(
-        range,
-        resolveCalibration(anchors.firstProfileAt),
-        anchors.signups,
-      );
+      const calibration = await getCalibration();
 
       if (google?.status === "not_configured") {
         report.google = { status: "ok", demo: true, data: buildDemoGaReport(range, calibration) };
@@ -213,6 +225,37 @@ export async function GET(request: Request) {
             },
           };
         }
+      }
+    }
+
+    // Lấp những khối cơ cấu mà API thật trả rỗng.
+    //
+    // Chạy SAU khi nối lịch sử, vì phần lấp co theo tổng đang hiển thị — làm
+    // trước thì nó co theo tổng chưa nối và cộng các dòng lại sẽ không khớp ô
+    // tổng ngay bên trên. Chỉ đụng vào nguồn thật: nguồn đã là số mẫu thì đủ
+    // sẵn, còn nguồn lỗi/chưa cấu hình phải giữ nguyên trạng thái để còn sửa.
+    if (isDemoEnabled()) {
+      const gaState = report.google;
+      if (gaState?.status === "ok" && gaState.data && !gaState.demo) {
+        const { report: patched, filled } = fillGaGaps(
+          gaState.data,
+          buildDemoGaReport(range, await getCalibration()),
+        );
+        if (filled.length > 0) {
+          report.google = { ...gaState, data: patched, filled };
+        }
+      }
+
+      const gscState = report.searchConsole;
+      const gsc = gscState?.status === "ok" && !gscState.demo ? gscState.data : null;
+
+      if (gscState && gsc && isGscEmpty(gsc)) {
+        const demo = buildDemoGscReport(range, await getCalibration(), gsc.siteUrl);
+        report.searchConsole = {
+          ...gscState,
+          data: fillGscGaps(gsc, demo),
+          filled: ["summary", "trend", "topQueries", "topPages"],
+        };
       }
     }
   }
