@@ -1,16 +1,42 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowLeft, BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
   Loader2, MessageSquare, Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
-import { AnalyticsReportPanel } from "@/components/admin/analytics-report";
-import { OperationsReportPanel } from "@/components/admin/analytics-report";
-import { FeedbackTable } from "@/components/admin/feedback-table";
+// Ba khối nặng nhất của trang quản trị, tách khỏi gói JS đầu tiên.
+//
+// Trang admin mở ở tab "Tổng quan", nhưng import tĩnh khiến trình duyệt phải
+// tải cả recharts (hai panel báo cáo) lẫn TipTap/ProseMirror (RichEditor) trước
+// khi tab đó dùng được — hai thư viện nặng nhất trong repo, gộp chung một chunk
+// hơn 500KB, cho những tab đa số lần mở không hề đụng tới.
+//
+// `ssr: false`: cả ba đều là màn hình sau đăng nhập, chỉ dựng từ dữ liệu tải
+// bằng fetch phía client, nên dựng sẵn trên máy chủ không tiết kiệm được gì.
+const AnalyticsReportPanel = dynamic(
+  () => import("@/components/admin/analytics-report").then((m) => m.AnalyticsReportPanel),
+  { ssr: false, loading: () => <TabLoading label="báo cáo" /> },
+);
+const OperationsReportPanel = dynamic(
+  () => import("@/components/admin/analytics-report").then((m) => m.OperationsReportPanel),
+  { ssr: false, loading: () => <TabLoading label="vận hành" /> },
+);
+const FeedbackTable = dynamic(
+  () => import("@/components/admin/feedback-table").then((m) => m.FeedbackTable),
+  { ssr: false, loading: () => <TabLoading label="góp ý" /> },
+);
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
-import { RichEditor } from "@/components/admin/rich-editor";
+const RichEditor = dynamic(
+  () => import("@/components/admin/rich-editor").then((m) => m.RichEditor),
+  { ssr: false, loading: () => <TabLoading label="trình soạn thảo" /> },
+);
+
+function TabLoading({ label }: { label: string }) {
+  return <p className="py-10 text-center text-sm text-muted">Đang tải {label}…</p>;
+}
 import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
 import { formatCurrency } from "@/lib/utils";
 

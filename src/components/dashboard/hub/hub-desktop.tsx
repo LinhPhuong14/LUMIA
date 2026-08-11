@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { ClipboardList, Play, SmilePlus } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
-import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
+import { MoodTrendChartLazy } from "@/components/dashboard/mood-trend-chart-lazy";
 import { HubInsightsRow } from "@/components/dashboard/hub/hub-insights";
 import { Panel } from "@/components/dashboard/shell/panel";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
@@ -110,7 +110,7 @@ export function HubDesktop({
         </div>
 
         <Panel className="hub-bento-mood h-auto" pad="p-6 sm:p-7">
-          <MoodTrendChart data={chartDays} average={chartAverage} className="mb-5" />
+          <MoodTrendChartLazy data={chartDays} average={chartAverage} className="mb-5" />
           <MoodCheckInPanel
             selectedScore={selectedScore}
             savedScore={savedScore}

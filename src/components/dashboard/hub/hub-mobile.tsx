@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { ClipboardList, Feather, MessageCircle, Music, SmilePlus, Wind } from "lucide-react";
 
 import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
-import { MoodTrendChart } from "@/components/dashboard/mood-trend-chart";
+import { MoodTrendChartLazy } from "@/components/dashboard/mood-trend-chart-lazy";
 import { HubInsightsStatRow } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
 import { StoreWidget } from "@/components/dashboard/store-widget";
@@ -195,7 +195,7 @@ export function HubMobile({
 
       {/* Mood check-in */}
       <div className="mobile-app-card">
-        <MoodTrendChart data={chartDays} average={chartAverage} className="mb-4" />
+        <MoodTrendChartLazy data={chartDays} average={chartAverage} className="mb-4" />
         <MoodCheckInPanel
           selectedScore={selectedScore}
           savedScore={savedScore}

@@ -120,7 +120,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
                   <div key={`${item.id}__${item.variant}`} className="flex gap-4 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] p-4">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[12px] bg-[var(--green-wash)] text-2xl">
                       {item.image_url
-                        ? <img src={item.image_url} alt={item.name} className="h-full w-full rounded-[12px] object-cover" />
+                        ? <img src={item.image_url} alt={item.name} loading="lazy" decoding="async" className="h-full w-full rounded-[12px] object-cover" />
                         : "🌿"}
                     </div>
                     <div className="flex flex-1 flex-col justify-between">

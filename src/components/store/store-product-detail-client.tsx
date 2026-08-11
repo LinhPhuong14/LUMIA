@@ -59,6 +59,10 @@ function ImageCarousel({
         <img
           src={images[idx]}
           alt={`Ảnh ${idx + 1}`}
+          // Ảnh chính là phần tử lớn nhất trên màn hình đầu — KHÔNG lazy, và ưu
+          // tiên cao để nó không xếp hàng sau ảnh nhỏ hay script.
+          fetchPriority="high"
+          decoding="async"
           className="h-full w-full object-cover transition-opacity duration-200"
           key={images[idx]}
         />
@@ -104,7 +108,7 @@ function ImageCarousel({
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`Ảnh ${i + 1}`} className="h-full w-full object-cover" />
+              <img src={src} alt={`Ảnh ${i + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -308,7 +312,7 @@ export function StoreProductDetailClient({
                         >
                           {v.image_url && (
                             /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={v.image_url} alt={v.name} className="h-5 w-5 rounded-full object-cover" />
+                            <img src={v.image_url} alt={v.name} loading="lazy" decoding="async" className="h-5 w-5 rounded-full object-cover" />
                           )}
                           {v.name}
                         </button>

@@ -222,7 +222,7 @@ function PlanCard({ box, index, boxImageUrl }: { box: BoxProduct; index: number;
       {/* Box image — hybrid plans only */}
       {isHybrid && boxImageUrl && (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={boxImageUrl} alt="Ảnh hộp quà" className="h-44 w-full object-cover" />
+        <img src={boxImageUrl} alt="Ảnh hộp quà" loading="lazy" decoding="async" className="h-44 w-full object-cover" />
       )}
 
       {/* Body */}
@@ -307,7 +307,7 @@ function VariantPickerModal({
             >
               {v.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={v.image_url} alt={v.name} className="h-16 w-16 rounded-[10px] object-cover" />
+                <img src={v.image_url} alt={v.name} loading="lazy" decoding="async" className="h-16 w-16 rounded-[10px] object-cover" />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-[10px] bg-[var(--green-wash)] text-2xl">🌿</div>
               )}
@@ -376,6 +376,11 @@ function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }:
             <img
               src={product.image_url}
               alt={product.name}
+              // Lưới sản phẩm dựng hàng chục ảnh cùng lúc. Không có `lazy` thì
+              // trình duyệt tải hết ngay từ đầu, tranh băng thông với chính JS
+              // của trang — trên 4G đó là vài giây đứng hình.
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
