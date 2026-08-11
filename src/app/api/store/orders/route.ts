@@ -2,14 +2,11 @@ import { NextResponse } from "next/server";
 
 import { initialStatusFor } from "@/lib/store-orders";
 import { getStoreOrdersForUser } from "@/lib/store-orders-db";
+import { priceCart, productIdsToLookUp, type PricingProduct } from "@/lib/store-pricing";
 import { createClient } from "@/lib/supabase/server";
 import { describeStoreOrderError, storeOrderSchema } from "@/lib/validators/store-order";
 
 export const runtime = "nodejs";
-
-/** Ship miễn phí từ 300.000 ₫ — cùng ngưỡng với phần hiển thị trong giỏ hàng. */
-const FREE_SHIPPING_FROM = 300_000;
-const SHIPPING_FEE = 30_000;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -32,16 +29,34 @@ export async function POST(request: Request) {
     items, shipping_name, shipping_phone, shipping_address, guest_email, note, payment_method,
   } = parsed.data;
 
-  const subtotal = items.reduce((sum, item) => sum + item.price_vnd * item.qty, 0);
-  const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
-  const total = subtotal + shipping;
+  // Giá KHÔNG lấy từ payload. Trình duyệt chỉ được nói mua cái gì, mấy cái —
+  // tiền thì đọc từ `store_products`.
+  const ids = productIdsToLookUp(items);
+  const { data: products, error: productError } = ids.length
+    ? await supabase
+        .from("store_products")
+        .select("id,slug,name,price_vnd,in_stock,variants")
+        .in("id", ids)
+    : { data: [], error: null };
+
+  if (productError) {
+    console.error("[store/orders] price lookup failed:", productError.message);
+    return NextResponse.json({ error: "Không kiểm tra được giá sản phẩm." }, { status: 503 });
+  }
+
+  const pricing = priceCart(items, (products ?? []) as PricingProduct[]);
+  if (!pricing.ok) {
+    return NextResponse.json({ error: pricing.error }, { status: 409 });
+  }
+
+  const { items: pricedItems, subtotal, shipping, total } = pricing;
 
   const { data, error } = await supabase
     .from("store_orders")
     .insert({
       user_id: user?.id ?? null,
       guest_email: user ? null : (guest_email || null),
-      items,
+      items: pricedItems,
       subtotal_vnd: subtotal,
       shipping_vnd: shipping,
       total_vnd: total,
