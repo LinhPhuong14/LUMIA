@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
+import { StoreOrdersTable } from "@/components/admin/store-orders-table";
 import { getProductTier, isValidTierCode } from "@/lib/product-tiers";
 import { formatCurrency } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ function getTierLabel(tier: string | null | undefined) {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [source, setSource] = useState<"plans" | "store">("plans");
   const [filter, setFilter] = useState<string>("all");
   const [toast, setToast] = useState<string | null>(null);
 
@@ -69,6 +71,29 @@ export default function AdminOrdersPage() {
 
   return (
     <AdminPageShell title="Quản lý đơn hàng">
+        {/* Hai bảng khác nhau chứ không phải một bộ lọc: đơn gói có tier và cấp
+            quyền dùng app, đơn cửa hàng có giỏ hàng và địa chỉ giao. Gộp lại thì
+            quá nửa số cột trống ở mỗi dòng. */}
+        <div className="mb-6 flex gap-1 rounded-[14px] border border-matcha-soft bg-surface-glass p-1">
+          {([
+            { id: "plans", label: "Gói thành viên" },
+            { id: "store", label: "Cửa hàng" },
+          ] as const).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSource(t.id)}
+              className={`flex-1 rounded-[10px] py-2 text-center text-[13px] font-medium transition ${
+                source === t.id ? "bg-matcha text-white" : "text-muted hover:text-matcha-deep"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {source === "store" ? <StoreOrdersTable /> : (
+        <>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -134,6 +159,8 @@ export default function AdminOrdersPage() {
         {toast ? (
           <p className="mt-4 text-sm text-matcha-deep">{toast}</p>
         ) : null}
+        </>
+        )}
     </AdminPageShell>
   );
 }

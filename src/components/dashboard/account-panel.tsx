@@ -163,7 +163,18 @@ export function AccountPanel({
 
       {tab === "orders" ? (
         <section className="dash-panel p-6">
-          <span className="eyebrow">Lịch sử đơn hàng</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="eyebrow">Lịch sử đơn hàng</span>
+            {/* Đơn cửa hàng nằm ở bảng khác và có luồng riêng (địa chỉ giao, huỷ
+                đơn), nên trỏ sang trang của nó thay vì trộn hai loại vào một danh
+                sách mà quá nửa số cột trống. */}
+            <Link
+              href="/store/orders"
+              className="text-[13px] font-medium text-matcha-deep underline-offset-2 hover:underline"
+            >
+              Đơn cửa hàng của tôi →
+            </Link>
+          </div>
           {orders.length ? (
             <div className="mt-5 space-y-3">
               {orders.map((order) => (

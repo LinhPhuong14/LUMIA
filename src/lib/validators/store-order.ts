@@ -34,6 +34,10 @@ export const storeOrderSchema = z.object({
   // Ô email để trống gửi lên chuỗi rỗng cũng phải qua: nó không bắt buộc.
   guest_email: z.union([z.string().trim().email(), z.literal("")]).nullish(),
   note: z.string().max(500).nullish(),
+  // Chỉ mở COD. Cột trong DB nhận cả 'payos' để sau này mở chuyển khoản không
+  // phải đổi schema, nhưng API thì đóng: nhận 'payos' ở đây sẽ tạo ra đơn
+  // `pending_payment` mà không có link nào để trả tiền.
+  payment_method: z.enum(["cod"]).default("cod"),
 });
 
 export type StoreOrderInput = z.infer<typeof storeOrderSchema>;
@@ -44,6 +48,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   shipping_address: "Địa chỉ quá ngắn, vui lòng ghi rõ số nhà, đường, phường, quận.",
   guest_email: "Email chưa hợp lệ.",
   note: "Ghi chú tối đa 500 ký tự.",
+  payment_method: "Phương thức thanh toán không hợp lệ.",
   items: "Giỏ hàng có sản phẩm không hợp lệ. Vui lòng xoá giỏ hàng rồi thêm lại.",
 };
 

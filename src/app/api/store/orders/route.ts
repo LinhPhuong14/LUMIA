@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
-import { describeStoreOrderError, storeOrderSchema } from "@/lib/validators/store-order";
+
+import { initialStatusFor } from "@/lib/store-orders";
+import { getStoreOrdersForUser } from "@/lib/store-orders-db";
 import { createClient } from "@/lib/supabase/server";
+import { describeStoreOrderError, storeOrderSchema } from "@/lib/validators/store-order";
+
+export const runtime = "nodejs";
+
+/** Ship miễn phí từ 300.000 ₫ — cùng ngưỡng với phần hiển thị trong giỏ hàng. */
+const FREE_SHIPPING_FROM = 300_000;
+const SHIPPING_FEE = 30_000;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -19,10 +28,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: describeStoreOrderError(parsed.error) }, { status: 400 });
   }
 
-  const { items, shipping_name, shipping_phone, shipping_address, guest_email, note } = parsed.data;
+  const {
+    items, shipping_name, shipping_phone, shipping_address, guest_email, note, payment_method,
+  } = parsed.data;
 
   const subtotal = items.reduce((sum, item) => sum + item.price_vnd * item.qty, 0);
-  const shipping = subtotal >= 300000 ? 0 : 30000; // free shipping over 300k
+  const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
   const total = subtotal + shipping;
 
   const { data, error } = await supabase
@@ -37,18 +48,35 @@ export async function POST(request: Request) {
       shipping_name,
       shipping_phone,
       shipping_address,
-      note: note ?? null,
-      status: "pending_payment",
+      note: note || null,
+      payment_method,
+      status: initialStatusFor(payment_method),
     })
     .select("id")
     .single();
 
   if (error) {
     console.error("[store/orders] insert error:", error.message, error.code);
-    return NextResponse.json({ error: "Không thể tạo đơn hàng" }, { status: 500 });
+    // Cột chưa có = chưa chạy migration 027. Nói thẳng, vì mọi đơn đều hỏng cho
+    // tới khi chạy nó — im lặng ở đây là cả cửa hàng ngừng bán mà không ai biết.
+    const missingColumn = /payment_method|cancelled_at/.test(error.message);
+    return NextResponse.json(
+      {
+        error: missingColumn
+          ? "Cửa hàng chưa sẵn sàng nhận đơn (thiếu cấu hình cơ sở dữ liệu)."
+          : "Không thể tạo đơn hàng",
+      },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ ok: true, orderId: data.id, total_vnd: total, shipping_vnd: shipping });
+  return NextResponse.json({
+    ok: true,
+    orderId: data.id,
+    paymentMethod: payment_method,
+    total_vnd: total,
+    shipping_vnd: shipping,
+  });
 }
 
 export async function GET() {
@@ -56,14 +84,8 @@ export async function GET() {
   if (!supabase) return NextResponse.json({ orders: [] });
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ orders: [] });
+  if (!user) return NextResponse.json({ orders: [], error: "Bạn cần đăng nhập." }, { status: 401 });
 
-  const { data } = await supabase
-    .from("store_orders")
-    .select("id, status, items, total_vnd, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  return NextResponse.json({ orders: data ?? [] });
+  const { orders, error } = await getStoreOrdersForUser(user.id);
+  return NextResponse.json({ orders, error });
 }

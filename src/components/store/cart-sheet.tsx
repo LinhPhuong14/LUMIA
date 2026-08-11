@@ -1,8 +1,9 @@
 "use client";
 
-import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight } from "lucide-react";
+import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Banknote } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 
 function formatVnd(n: number) {
@@ -13,7 +14,8 @@ type CheckoutForm = { name: string; phone: string; address: string; email: strin
 
 export function CartSheet({ onClose }: { onClose: () => void }) {
   const { items, removeItem, setQty, clear } = useCart();
-  const [step, setStep] = useState<"cart" | "checkout" | "success">("cart");
+  const router = useRouter();
+  const [step, setStep] = useState<"cart" | "checkout">("cart");
   const [form, setForm] = useState<CheckoutForm>({ name: "", phone: "", address: "", email: "", note: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
           shipping_address: form.address,
           guest_email: form.email || undefined,
           note: form.note || undefined,
+          payment_method: "cod",
         }),
       });
       if (!res.ok) {
@@ -63,7 +66,10 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
         return;
       }
       clear();
-      setStep("success");
+      // Sang thẳng trang đơn hàng: khách vừa đưa địa chỉ và số điện thoại, thứ
+      // họ muốn thấy tiếp theo là đơn đã vào hệ thống thật và huỷ được nếu lỡ tay.
+      onClose();
+      router.push("/store/orders");
     } catch {
       // Mất mạng giữa chừng: trước đây `fetch` ném ra ngoài nên `submitting`
       // kẹt ở true, nút Xác nhận mờ vĩnh viễn và không có câu báo nào.
@@ -87,7 +93,7 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
           <span className="font-serif text-xl text-[var(--foreground)]">
-            {step === "cart" ? "Giỏ hàng" : step === "checkout" ? "Thông tin giao hàng" : "Đặt hàng thành công"}
+            {step === "cart" ? "Giỏ hàng" : "Thông tin giao hàng"}
           </span>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--foreground)]">
             <X className="h-5 w-5" />
@@ -102,6 +108,9 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
               <p className="text-[14px]">Giỏ hàng trống</p>
               <Link href="/store" onClick={onClose} className="mt-2 text-[13px] text-[var(--green)] underline-offset-2 hover:underline">
                 Khám phá cửa hàng
+              </Link>
+              <Link href="/store/orders" onClick={onClose} className="text-[13px] text-[var(--muted)] underline-offset-2 hover:underline">
+                Đơn hàng của tôi
               </Link>
             </div>
           ) : (
@@ -151,6 +160,13 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
                 >
                   Đặt hàng <ChevronRight className="h-4 w-4" />
                 </button>
+                <Link
+                  href="/store/orders"
+                  onClick={onClose}
+                  className="block pt-1 text-center text-[12px] text-[var(--muted)] underline-offset-2 hover:underline"
+                >
+                  Đơn hàng của tôi
+                </Link>
               </div>
             </>
           )
@@ -182,6 +198,21 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--green)]">Ghi chú</label>
                 <textarea {...field("note")} rows={2} className={inputCls + " resize-none"} />
               </div>
+              {/* Chỉ có một phương thức nên không dựng ô chọn — một danh sách
+                  một lựa chọn chỉ bắt khách bấm thêm một lần mà không quyết định
+                  điều gì. Vẫn phải nói rõ trả kiểu gì trước khi khách xác nhận. */}
+              <div className="flex items-start gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--green-wash)] p-4">
+                <Banknote className="mt-0.5 h-5 w-5 shrink-0 text-[var(--green-deep)]" />
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--green-deep)]">
+                    Thanh toán khi nhận hàng (COD)
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--muted)]">
+                    Bạn trả tiền mặt cho shipper lúc nhận hàng. LUMIA sẽ gọi xác nhận trước khi giao.
+                  </p>
+                </div>
+              </div>
+
               <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] p-4 text-[13px]">
                 {items.map((i) => (
                   <div key={`${i.id}__${i.variant}`} className="flex justify-between py-1 text-[var(--muted)]">
@@ -199,22 +230,10 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
             <div className="border-t border-[var(--border)] px-6 pt-4 pb-[calc(var(--mobile-tab-bar-offset,6.5rem)+var(--safe-bottom,0px))] lg:pb-4 flex gap-3">
               <button type="button" onClick={() => setStep("cart")} className="flex-1 rounded-full border border-[var(--border)] py-3 text-[14px] font-semibold text-[var(--foreground)]">← Quay lại</button>
               <button type="submit" disabled={submitting} className="flex-1 rounded-full bg-[var(--green)] py-3 text-[14px] font-semibold text-white disabled:opacity-50">
-                {submitting ? "Đang xử lý…" : "Xác nhận"}
+                {submitting ? "Đang xử lý…" : "Đặt hàng"}
               </button>
             </div>
           </form>
-        )}
-
-        {/* Success */}
-        {step === "success" && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--green-wash)]">
-              <span className="text-4xl">🌿</span>
-            </div>
-            <h3 className="font-serif text-2xl text-[var(--foreground)]">Đặt hàng thành công!</h3>
-            <p className="text-[14px] leading-6 text-[var(--muted)]">LUMIA sẽ liên hệ xác nhận đơn hàng qua điện thoại trong thời gian sớm nhất.</p>
-            <button type="button" onClick={onClose} className="mt-2 rounded-full bg-[var(--green)] px-6 py-3 text-[14px] font-semibold text-white">Đóng</button>
-          </div>
         )}
       </div>
     </>
