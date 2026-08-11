@@ -34,26 +34,43 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const res = await fetch("/api/store/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((i) => ({ product_id: i.id, slug: i.slug, name: i.name, price_vnd: i.price_vnd, qty: i.qty, variant: i.variant })),
-        shipping_name: form.name,
-        shipping_phone: form.phone,
-        shipping_address: form.address,
-        guest_email: form.email || undefined,
-        note: form.note || undefined,
-      }),
-    });
-    setSubmitting(false);
-    if (!res.ok) {
-      const j = await res.json() as { error?: string };
-      setError(j.error ?? "Có lỗi xảy ra, vui lòng thử lại.");
-      return;
+    try {
+      const res = await fetch("/api/store/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            product_id: i.id,
+            slug: i.slug,
+            name: i.name,
+            price_vnd: i.price_vnd,
+            qty: i.qty,
+            // Sản phẩm không phân loại được lưu `variant: null` trong giỏ. Bỏ hẳn
+            // khoá thay vì gửi null — trường này là tuỳ chọn, và "không có" thì
+            // đừng gửi lên còn hơn gửi một giá trị rỗng.
+            ...(i.variant ? { variant: i.variant } : {}),
+          })),
+          shipping_name: form.name,
+          shipping_phone: form.phone,
+          shipping_address: form.address,
+          guest_email: form.email || undefined,
+          note: form.note || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(j.error ?? "Có lỗi xảy ra, vui lòng thử lại.");
+        return;
+      }
+      clear();
+      setStep("success");
+    } catch {
+      // Mất mạng giữa chừng: trước đây `fetch` ném ra ngoài nên `submitting`
+      // kẹt ở true, nút Xác nhận mờ vĩnh viễn và không có câu báo nào.
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+    } finally {
+      setSubmitting(false);
     }
-    clear();
-    setStep("success");
   }
 
   const inputCls = "w-full rounded-[14px] border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[14px] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";

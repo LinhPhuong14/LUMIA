@@ -1,24 +1,6 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { describeStoreOrderError, storeOrderSchema } from "@/lib/validators/store-order";
 import { createClient } from "@/lib/supabase/server";
-
-const itemSchema = z.object({
-  product_id: z.string().min(1),
-  slug: z.string(),
-  name: z.string(),
-  price_vnd: z.number().int().positive(),
-  qty: z.number().int().min(1).max(20),
-  variant: z.string().optional(),
-});
-
-const schema = z.object({
-  items: z.array(itemSchema).min(1),
-  shipping_name: z.string().min(1),
-  shipping_phone: z.string().min(8),
-  shipping_address: z.string().min(5),
-  guest_email: z.string().email().optional(),
-  note: z.string().max(500).optional(),
-});
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -31,10 +13,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dữ liệu không hợp lệ" }, { status: 400 });
   }
 
-  const parsed = schema.safeParse(body);
+  const parsed = storeOrderSchema.safeParse(body);
   if (!parsed.success) {
     console.error("[store/orders] validation error:", JSON.stringify(parsed.error.flatten()));
-    return NextResponse.json({ error: "Vui lòng điền đầy đủ thông tin" }, { status: 400 });
+    return NextResponse.json({ error: describeStoreOrderError(parsed.error) }, { status: 400 });
   }
 
   const { items, shipping_name, shipping_phone, shipping_address, guest_email, note } = parsed.data;
@@ -47,7 +29,7 @@ export async function POST(request: Request) {
     .from("store_orders")
     .insert({
       user_id: user?.id ?? null,
-      guest_email: user ? null : (guest_email ?? null),
+      guest_email: user ? null : (guest_email || null),
       items,
       subtotal_vnd: subtotal,
       shipping_vnd: shipping,
