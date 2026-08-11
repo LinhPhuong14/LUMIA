@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowLeft, BarChart3, BookOpen, Box, ChevronRight, Film, ImagePlus, LayoutDashboard,
-  Loader2, Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
+  Loader2, MessageSquare, Package, ShoppingBag, Upload, Users, Video, X, Edit2, Plus,
 } from "lucide-react";
 
 import { AnalyticsReportPanel } from "@/components/admin/analytics-report";
 import { OperationsReportPanel } from "@/components/admin/analytics-report";
+import { FeedbackTable } from "@/components/admin/feedback-table";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { RichEditor } from "@/components/admin/rich-editor";
 import { getSubscriptionStatusLabel } from "@/lib/subscription-labels";
@@ -2982,6 +2983,7 @@ const TABS = [
   // { id: "blog", label: "Blog", icon: BookOpen }, // disabled temporarily
   { id: "media", label: "Media", icon: Film },
   { id: "plans", label: "Gói dịch vụ", icon: Box },
+  { id: "feedback", label: "Góp ý", icon: MessageSquare },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -3020,6 +3022,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         {/* {tab === "blog" && <BlogTab />} */}
         {tab === "media" && <MediaTab />}
         {tab === "plans" && <PlansTab />}
+        {tab === "feedback" && <FeedbackTable />}
       </div>
     </div>
   );

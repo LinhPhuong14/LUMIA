@@ -2,7 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { PRIVACY_FALLBACK, type PrivacySettings } from "@/lib/privacy";
+import { PRIVACY_DEFAULTS, type PrivacySettings } from "@/lib/privacy";
 import type { OnboardingData, OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -60,12 +60,19 @@ export async function getSession(): Promise<SessionUser | null> {
     console.error("[getSession] profile read failed", { userId: user.id, error: profileError.message });
   }
 
-  const row = profile as
-    | (Pick<
-        Profile,
-        "full_name" | "nickname" | "role" | "onboarding_goal" | "onboarding_data" | "email"
-      > & { save_chats?: boolean | null; allow_journal_ai?: boolean | null })
-    | null;
+  const row = profile as Partial<
+    Pick<
+      Profile,
+      | "full_name"
+      | "nickname"
+      | "role"
+      | "onboarding_goal"
+      | "onboarding_data"
+      | "email"
+      | "save_chats"
+      | "allow_journal_ai"
+    >
+  > | null;
 
   const fullName =
     row?.full_name ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Bạn";
@@ -81,11 +88,12 @@ export async function getSession(): Promise<SessionUser | null> {
     role: row?.role ?? "user",
     onboardingGoal: row?.onboarding_goal ?? null,
     onboardingData: row?.onboarding_data ?? null,
-    // Cùng một bộ mặc định với src/lib/privacy.ts: đọc hụt không được biến
-    // thành "đã đồng ý" cho thứ người dùng chưa đồng ý.
+    // Chỉ dùng để HIỂN THỊ vị trí công tắc trong trang Cài đặt, nên rơi về mặc
+    // định của người dùng mới. Chỗ thi hành thật đọc qua getPrivacySettings và
+    // dùng PRIVACY_FALLBACK — thận trọng hơn, vì ở đó đoán sai là gửi dữ liệu.
     privacy: {
-      saveChats: row?.save_chats ?? PRIVACY_FALLBACK.saveChats,
-      allowJournalAi: row?.allow_journal_ai ?? PRIVACY_FALLBACK.allowJournalAi,
+      saveChats: row?.save_chats ?? PRIVACY_DEFAULTS.saveChats,
+      allowJournalAi: row?.allow_journal_ai ?? PRIVACY_DEFAULTS.allowJournalAi,
     },
   };
 }

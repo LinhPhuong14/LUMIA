@@ -81,7 +81,12 @@ function DashboardShellInner({
           <div
             className={cn(
               "dashboard-scroll-area lumia-scroll dashboard-page-root lg:pr-1",
-              "max-lg:mobile-app-content max-lg:px-4 max-lg:pt-2",
+              // `mobile-app-content` là class CSS tự viết, KHÔNG phải utility của
+              // Tailwind — viết `max-lg:mobile-app-content` thì Tailwind không
+              // sinh ra rule nào cả, class rơi vào hư không và khoảng trống chừa
+              // cho thanh tab dưới cùng chưa bao giờ được áp. Giới hạn theo màn
+              // hình nằm trong chính file CSS (@media max-width: 1023px).
+              "mobile-app-content max-lg:px-4 max-lg:pt-2",
               isChat && "dashboard-scroll-area--locked max-lg:overflow-hidden",
             )}
           >

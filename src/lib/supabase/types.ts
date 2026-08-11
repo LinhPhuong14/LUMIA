@@ -43,6 +43,9 @@ export type Profile = {
   role: UserRole;
   onboarding_goal: OnboardingGoal | null;
   onboarding_data: OnboardingData | null;
+  /** Công tắc quyền riêng tư (migration 029/030) — thi hành ở src/lib/privacy.ts. */
+  save_chats: boolean;
+  allow_journal_ai: boolean;
   created_at: string;
 };
 

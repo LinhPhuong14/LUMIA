@@ -18,16 +18,29 @@ export type PrivacySettings = {
 };
 
 /**
- * Mặc định khi chưa đọc được.
+ * Mặc định cho NGƯỜI DÙNG MỚI — khớp với DEFAULT của cột trong migration 030.
+ * Cả hai công tắc đều bật: đây là mặc định của sản phẩm, người dùng tự tắt.
+ */
+export const PRIVACY_DEFAULTS: PrivacySettings = {
+  saveChats: true,
+  allowJournalAi: true,
+};
+
+/**
+ * Mặc định khi KHÔNG ĐỌC ĐƯỢC hồ sơ. Khác với mặc định người dùng mới ở trên,
+ * và khác có chủ đích.
  *
- * Hai cờ nghiêng về hai phía khác nhau, có chủ đích:
+ * Ở đây ta không biết người dùng đã chọn gì, nên hai cờ nghiêng về hai phía
+ * theo cùng một nguyên tắc: chọn phía mà đoán sai còn sửa được.
  *
- * - `saveChats: true` giữ đúng hành vi cũ. Đọc hụt mà mặc định false sẽ âm thầm
- *   vứt lịch sử trò chuyện của người không hề tắt nó — mất dữ liệu không lấy lại
- *   được.
- * - `allowJournalAi: false` vì đây là chiều nguy hiểm hơn: đọc hụt mà mặc định
- *   true sẽ gửi nhật ký của người đã tắt cho bên thứ ba. Không gửi thì chỉ mất
- *   một chút ngữ cảnh, gửi nhầm thì không thu lại được.
+ * - `saveChats: true` — đoán sai thì lưu thừa một cuộc trò chuyện, xoá được.
+ *   Đoán false sẽ âm thầm vứt lịch sử của người không hề tắt nó, không lấy lại.
+ * - `allowJournalAi: false` — đoán sai thì AI mất một chút ngữ cảnh trong vài
+ *   phút DB trục trặc. Đoán true sẽ gửi nhật ký của người ĐÃ TỰ TẮT cho bên thứ
+ *   ba, và không thu lại được.
+ *
+ * Vậy nên bật mặc định cho người mới (030) KHÔNG kéo theo việc bật ở nhánh lỗi:
+ * "mặc định bật" nói về người chưa chọn, còn nhánh này nói về lúc ta mù.
  */
 export const PRIVACY_FALLBACK: PrivacySettings = {
   saveChats: true,

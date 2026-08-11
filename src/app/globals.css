@@ -340,11 +340,8 @@
     border-radius: 9px;
   }
 
-  @media (max-width: 1023px) {
-    .dashboard-scroll-area.mobile-app-content {
-      padding-bottom: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
-    }
-  }
+  /* Khoảng trống đáy giờ do `.mobile-app-content::after` lo (xem chú thích ở
+     định nghĩa của nó) — giữ thêm padding ở đây sẽ thành hai lần khoảng trống. */
 
   /* Only the mobile full-width player needs bottom clearance; the desktop player
      is a small bottom-right card, so padding there would shrink content (e.g. the
@@ -663,13 +660,32 @@
     padding-top: var(--safe-top);
   }
 
-  .mobile-app-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
+  /* Chỉ áp trên mobile: bản dựng cũ dựa vào biến thể `max-lg:` ở phía JSX, mà
+     biến thể Tailwind không dùng được cho class tự viết nên rule chưa bao giờ
+     tồn tại. Giới hạn màn hình chuyển vào đây để nó có thật. */
+  @media (max-width: 1023px) {
+    .mobile-app-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Khoảng trống chừa cho thanh tab nổi ở đáy, đặt bằng phần tử giả chứ không
+       phải `padding-bottom`.
+       Vùng cuộn này là flex container theo cột: padding dưới của một flex
+       container có overflow bị bỏ qua ở cuối vùng cuộn trên WebKit và Chrome
+       cũ, nên phần tử cuối cùng vẫn nằm dưới thanh tab. Một block thật thì
+       trình duyệt nào cũng phải tính vào chiều cao cuộn.
+       `flex-shrink: 0` là bắt buộc — mặc định flex item co lại được, và nó sẽ
+       bị bóp về 0 đúng lúc trang dài ra, tức đúng lúc cần nó nhất. */
+    .mobile-app-content::after {
+      content: "";
+      display: block;
+      flex: 0 0 auto;
+      height: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
+    }
   }
 
   .dash-sidebar {
