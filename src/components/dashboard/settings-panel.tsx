@@ -90,41 +90,50 @@ function PillGroup<T extends string | number>({
   );
 }
 
-type ToggleKey =
-  | "saveChats"
-  | "saveJournal"
-  | "allowSummary"
-  | "eveningReminder"
-  | "journalReminder"
-  | "returnReminder";
-
-const initialState: Record<ToggleKey, boolean> = {
-  saveChats: true,
-  saveJournal: true,
-  allowSummary: false,
-  eveningReminder: true,
-  journalReminder: true,
-  returnReminder: false,
-};
+/**
+ * Công tắc quyền riêng tư — mỗi cái nối vào một cột thật trong `profiles` và
+ * được thi hành ở phía máy chủ (xem src/lib/privacy.ts).
+ *
+ * Ba công tắc "Thông báo" cũ đã bỏ: chúng chỉ đổi state cục bộ rồi in "Đã lưu
+ * thay đổi.", và nằm ngay dưới `NotificationSettingsSection` — thứ điều khiển
+ * cùng những nhắc nhở đó nhưng lưu thật vào `notification_settings`. Hai nhóm
+ * chồng nhau, một nhóm nói dối.
+ *
+ * Công tắc "Lưu nhật ký" cũng bỏ: nhật ký là tính năng lưu trên máy chủ, tắt
+ * lưu nghĩa là tắt luôn tính năng. Đó là nút xoá tính năng đội lốt cài đặt
+ * riêng tư, không phải một lựa chọn có nghĩa.
+ */
+type ToggleKey = "saveChats" | "allowJournalAi";
 
 const responseOptions = ["Rất nhẹ nhàng", "Gợi mở bằng câu hỏi", "Trực tiếp hơn một chút"] as const;
 
 function Toggle({
   label,
+  hint,
   checked,
+  disabled,
   onChange,
 }: {
   label: string;
+  hint?: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onChange}
-      className="flex w-full items-center justify-between rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-left transition hover:border-[var(--green)]/40"
+      disabled={disabled}
+      aria-pressed={checked}
+      className="flex w-full items-center justify-between gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-left transition hover:border-[var(--green)]/40 disabled:opacity-60"
     >
-      <span className="text-[13px] text-[var(--foreground)]">{label}</span>
+      <span className="min-w-0">
+        <span className="block text-[13px] text-[var(--foreground)]">{label}</span>
+        {hint ? (
+          <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--muted)]">{hint}</span>
+        ) : null}
+      </span>
       <span
         className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-[var(--green)]" : "bg-gray-300 dark:bg-white/20"}`}
       >
@@ -142,16 +151,20 @@ export function SettingsPanel({
   initialNickname,
   userEmail,
   initialOnboardingData,
+  initialPrivacy,
 }: {
   initialGoal: OnboardingGoal | null;
   userName: string;
   initialNickname: string | null;
   userEmail: string;
   initialOnboardingData: OnboardingData | null;
+  /** Giá trị thật đọc từ `profiles` — không còn mặc định cứng trong client. */
+  initialPrivacy: Record<ToggleKey, boolean>;
 }) {
   const router = useRouter();
   const { theme, setTheme } = useLumiaTheme();
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState(initialPrivacy);
+  const [togglePending, setTogglePending] = useState<ToggleKey | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
@@ -185,28 +198,39 @@ export function SettingsPanel({
         title: "Quyền riêng tư",
         desc: "Kiểm soát dữ liệu LUMIA lưu về bạn.",
         items: [
-          { key: "saveChats" as const, label: "Lưu lịch sử LUMIA lắng nghe" },
-          { key: "saveJournal" as const, label: "Lưu nhật ký" },
-          { key: "allowSummary" as const, label: "Cho phép LUMIA tóm tắt nhật ký" },
-        ],
-      },
-      {
-        title: "Thông báo",
-        desc: "Nhắc nhở theo thói quen hàng ngày.",
-        items: [
-          { key: "eveningReminder" as const, label: "Nhắc ghi nhận buổi tối" },
-          { key: "journalReminder" as const, label: "Nhắc viết nhật ký" },
-          { key: "returnReminder" as const, label: "Nhắc quay lại sau vài ngày không hoạt động" },
+          {
+            key: "saveChats" as const,
+            label: "Lưu lịch sử LUMIA lắng nghe",
+            hint: "Tắt thì cuộc trò chuyện không được ghi lại — bạn sẽ không xem lại được.",
+          },
+          {
+            key: "allowJournalAi" as const,
+            label: "Cho phép LUMIA đọc nhật ký",
+            hint: "Bật thì AI dùng nhật ký gần nhất làm ngữ cảnh để trả lời sát với bạn hơn.",
+          },
         ],
       },
     ],
     [],
   );
 
-  function toggle(key: ToggleKey) {
-    setState((current) => ({ ...current, [key]: !current[key] }));
-    setSaved("Đã lưu thay đổi.");
-    window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 1800);
+  /**
+   * Trước đây hàm này chỉ đổi state trong React rồi in "Đã lưu thay đổi." —
+   * không gọi API nào, tải lại trang là về mặc định cứng. Giờ nó ghi thật, và
+   * hoàn nguyên khi ghi trượt: để công tắc ở vị trí mới trong khi máy chủ vẫn
+   * giữ giá trị cũ là đúng cái nói dối vừa gỡ bỏ.
+   */
+  async function toggle(key: ToggleKey) {
+    const next = !state[key];
+    setState((current) => ({ ...current, [key]: next }));
+    setTogglePending(key);
+
+    const ok = await persistProfile({ [key]: next }, "Đã lưu thay đổi.");
+    setTogglePending(null);
+
+    if (!ok) {
+      setState((current) => ({ ...current, [key]: !next }));
+    }
   }
 
   /**
@@ -427,7 +451,14 @@ export function SettingsPanel({
           <p className="mt-1.5 text-[12px] text-[var(--muted)]">{section.desc}</p>
           <div className="mt-4 space-y-2">
             {section.items.map((item) => (
-              <Toggle key={item.key} label={item.label} checked={state[item.key]} onChange={() => toggle(item.key)} />
+              <Toggle
+                key={item.key}
+                label={item.label}
+                hint={item.hint}
+                checked={state[item.key]}
+                disabled={togglePending !== null}
+                onChange={() => toggle(item.key)}
+              />
             ))}
           </div>
         </section>

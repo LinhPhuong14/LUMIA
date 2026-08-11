@@ -6,6 +6,7 @@ import type { ChatHistoryMessage } from "@/lib/ai/chat-pipeline";
 import { getUserContext } from "@/lib/ai/user-context";
 import { env, hasLlmConfig } from "@/lib/env";
 import { localDateString } from "@/lib/local-date";
+import { getPrivacySettings } from "@/lib/privacy";
 import { logActivity } from "@/lib/streak";
 import { getSubscriptionSnapshot } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
@@ -152,8 +153,10 @@ export async function POST(request: Request) {
         );
       }
 
-      // Save to DB BEFORE closing stream so serverless doesn't cut off
-      if (supabase && fullContent && !hasError) {
+      // Save to DB BEFORE closing stream so serverless doesn't cut off.
+      // `saveChats` là công tắc trong trang Cài đặt — tắt thì không ghi gì cả,
+      // kể cả câu người dùng vừa gõ.
+      if (supabase && fullContent && !hasError && (await getPrivacySettings(session.id)).saveChats) {
         try {
           const today = localDateString();
           // Best-effort session lookup — session_id is now nullable so save proceeds regardless

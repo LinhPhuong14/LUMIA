@@ -1,4 +1,5 @@
 import { localDateString } from "@/lib/local-date";
+import { getPrivacySettings } from "@/lib/privacy";
 import { createClient } from "@/lib/supabase/server";
 
 export type UserContext = {
@@ -35,6 +36,11 @@ export async function getUserContext(
 
   const today = localDateString();
 
+  // Nhật ký chỉ được đưa vào ngữ cảnh AI khi người dùng đồng ý. Hỏi TRƯỚC khi
+  // truy vấn, không phải lọc sau khi đã đọc: nội dung nhật ký không nên rời khỏi
+  // DB nếu nó không được phép đi đâu cả.
+  const { allowJournalAi } = await getPrivacySettings(userId);
+
   // Run queries in parallel
   const [moodRes, moodHistRes, streakRes, journalRes] = await Promise.allSettled([
     // Today's mood check-in
@@ -60,14 +66,16 @@ export async function getUserContext(
       .eq("user_id", userId)
       .maybeSingle(),
 
-    // Latest journal entry (short snippet)
-    supabase
-      .from("journal_entries")
-      .select("content, date")
-      .eq("user_id", userId)
-      .order("date", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    // Latest journal entry (short snippet) — chỉ khi được cho phép
+    allowJournalAi
+      ? supabase
+          .from("journal_entries")
+          .select("content, date")
+          .eq("user_id", userId)
+          .order("date", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   if (moodRes.status === "fulfilled" && moodRes.value.data) {

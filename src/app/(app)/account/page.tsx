@@ -50,6 +50,10 @@ export default async function AccountPage({
           initialNickname={session.nickname}
           userEmail={session.email}
           initialOnboardingData={session.onboardingData}
+          initialPrivacy={{
+            saveChats: session.privacy.saveChats,
+            allowJournalAi: session.privacy.allowJournalAi,
+          }}
         />
       )}
       {activeTab === "feedback" && <FeedbackPanel />}

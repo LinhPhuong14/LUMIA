@@ -2,6 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
+import { PRIVACY_FALLBACK, type PrivacySettings } from "@/lib/privacy";
 import type { OnboardingData, OnboardingGoal, Profile, UserRole } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,6 +20,8 @@ export type SessionUser = {
   onboardingGoal: OnboardingGoal | null;
   /** Full onboarding answers, editable from the settings panel. */
   onboardingData: OnboardingData | null;
+  /** Công tắc quyền riêng tư — thi hành ở src/lib/privacy.ts. */
+  privacy: PrivacySettings;
 };
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -46,7 +49,7 @@ export async function getSession(): Promise<SessionUser | null> {
   const db = admin ?? supabase;
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .select("full_name, nickname, role, onboarding_goal, onboarding_data, email")
+    .select("full_name, nickname, role, onboarding_goal, onboarding_data, email, save_chats, allow_journal_ai")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -57,10 +60,12 @@ export async function getSession(): Promise<SessionUser | null> {
     console.error("[getSession] profile read failed", { userId: user.id, error: profileError.message });
   }
 
-  const row = profile as Pick<
-    Profile,
-    "full_name" | "nickname" | "role" | "onboarding_goal" | "onboarding_data" | "email"
-  > | null;
+  const row = profile as
+    | (Pick<
+        Profile,
+        "full_name" | "nickname" | "role" | "onboarding_goal" | "onboarding_data" | "email"
+      > & { save_chats?: boolean | null; allow_journal_ai?: boolean | null })
+    | null;
 
   const fullName =
     row?.full_name ?? user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Bạn";
@@ -76,6 +81,12 @@ export async function getSession(): Promise<SessionUser | null> {
     role: row?.role ?? "user",
     onboardingGoal: row?.onboarding_goal ?? null,
     onboardingData: row?.onboarding_data ?? null,
+    // Cùng một bộ mặc định với src/lib/privacy.ts: đọc hụt không được biến
+    // thành "đã đồng ý" cho thứ người dùng chưa đồng ý.
+    privacy: {
+      saveChats: row?.save_chats ?? PRIVACY_FALLBACK.saveChats,
+      allowJournalAi: row?.allow_journal_ai ?? PRIVACY_FALLBACK.allowJournalAi,
+    },
   };
 }
 

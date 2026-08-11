@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { describeSchemaError } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/supabase/auth";
 import { ensureUserProfile } from "@/lib/supabase/ensure-profile";
@@ -12,6 +13,9 @@ const profileSchema = z.object({
   nickname: z.string().min(1).optional(),
   // Full onboarding answers stored as arbitrary JSON
   onboardingData: z.record(z.string(), z.unknown()).optional(),
+  // Công tắc quyền riêng tư — xem src/lib/privacy.ts cho chỗ thi hành.
+  saveChats: z.boolean().optional(),
+  allowJournalAi: z.boolean().optional(),
 });
 
 export const runtime = "nodejs";
@@ -50,6 +54,12 @@ export async function POST(request: Request) {
   if (parsed.data.nickname !== undefined) {
     updates.nickname = parsed.data.nickname;
   }
+  if (parsed.data.saveChats !== undefined) {
+    updates.save_chats = parsed.data.saveChats;
+  }
+  if (parsed.data.allowJournalAi !== undefined) {
+    updates.allow_journal_ai = parsed.data.allowJournalAi;
+  }
   if (parsed.data.onboardingData !== undefined) {
     // Merge, don't replace: the settings panel patches one field at a time and
     // a plain assignment would drop every other onboarding answer.
@@ -84,7 +94,11 @@ export async function POST(request: Request) {
     .select("id");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[api/me/profile] update failed:", error.code, error.message);
+    return NextResponse.json(
+      { error: describeSchemaError(error, "029_privacy_settings.sql") },
+      { status: 500 },
+    );
   }
 
   if (!updated || updated.length === 0) {

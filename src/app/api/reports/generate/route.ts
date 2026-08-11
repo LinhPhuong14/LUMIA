@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { runReport } from "@/lib/ai/report-pipeline";
 import { hasLlmConfig, isVercelCronAuthorized } from "@/lib/env";
+import { getPrivacySettings } from "@/lib/privacy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/supabase/auth";
 
@@ -72,10 +73,15 @@ export async function POST(request: Request) {
     journalDays: journals?.length ?? 0,
   };
 
-  const journalSnippets = (journals ?? [])
-    .filter((j) => j.content?.trim())
-    .map((j) => j.content.replace(/<[^>]+>/g, "").trim().slice(0, 150))
-    .slice(0, 5);
+  // Chỉ ĐẾM số ngày viết nhật ký là luôn được — đó là thống kê, không phải nội
+  // dung. Còn trích đoạn thì chỉ gửi cho mô hình khi người dùng đã đồng ý.
+  const { allowJournalAi } = await getPrivacySettings(targetUserId);
+  const journalSnippets = allowJournalAi
+    ? (journals ?? [])
+        .filter((j) => j.content?.trim())
+        .map((j) => j.content.replace(/<[^>]+>/g, "").trim().slice(0, 150))
+        .slice(0, 5)
+    : [];
 
   // Fallback insight without LLM
   let insight = `Tuần này ${userName} đã check-in ${summary.moodCheckIns}/${days} ngày.`;
