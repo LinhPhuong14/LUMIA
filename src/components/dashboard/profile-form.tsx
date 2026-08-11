@@ -46,13 +46,21 @@ export function ProfileForm({ name, bio = "", sleepGoal = "", wakeGoal = "" }: P
     setTouched({ name: true, sleep: true, wake: true, bio: true });
     if (validateName(nameVal) || validateTimeGoal(sleepVal) || validateTimeGoal(wakeVal) || bioChars > 500) return;
 
-    const response = await fetch("/api/me/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: nameVal, bio: bioVal, sleepGoal: sleepVal, wakeGoal: wakeVal }),
-    });
-
-    const result = (await response.json()) as { message?: string; error?: string };
+    // Không có try/catch thì mất mạng giữa chừng ném ra ngoài: không câu báo,
+    // không gì thay đổi trên màn hình — người dùng chỉ thấy nút không phản ứng.
+    let response: Response;
+    let result: { message?: string; error?: string };
+    try {
+      response = await fetch("/api/me/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nameVal, bio: bioVal, sleepGoal: sleepVal, wakeGoal: wakeVal }),
+      });
+      result = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+    } catch {
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+      return;
+    }
 
     if (!response.ok) {
       setError(result.error ?? "Không thể cập nhật hồ sơ lúc này.");

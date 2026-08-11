@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { describeSchemaError } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
+
+const MIGRATION = "012_notifications.sql";
 
 const schema = z.object({
   bedtime_enabled:  z.boolean().optional(),
@@ -22,11 +25,21 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ settings: null }, { status: 401 });
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("notification_settings")
     .select("*")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
+
+  // `.single()` coi "chưa có dòng nào" là lỗi, nên người dùng mới luôn rơi vào
+  // nhánh lỗi — dùng `.maybeSingle()` để tách bạch chưa-có với hỏng-thật.
+  if (error) {
+    console.error("[notifications/settings] read failed:", error.code, error.message);
+    return NextResponse.json(
+      { settings: null, error: describeSchemaError(error, MIGRATION) },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({ settings: data });
 }
@@ -61,6 +74,12 @@ export async function POST(request: Request) {
     .from("notification_settings")
     .upsert({ user_id: user.id, ...update }, { onConflict: "user_id" });
 
-  if (error) return NextResponse.json({ error: "Không thể lưu cài đặt" }, { status: 500 });
+  if (error) {
+    console.error("[notifications/settings] save failed:", error.code, error.message);
+    return NextResponse.json(
+      { error: "Không thể lưu cài đặt", detail: describeSchemaError(error, MIGRATION) },
+      { status: 500 },
+    );
+  }
   return NextResponse.json({ ok: true });
 }

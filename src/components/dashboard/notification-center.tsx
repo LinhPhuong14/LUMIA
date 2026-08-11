@@ -122,13 +122,22 @@ export function NotificationCenter() {
 
   async function markAllRead() {
     const ids = notifications.filter((n) => !n.is_read && !n.id.startsWith("smart-")).map((n) => n.id);
+    const previous = notifications;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    if (ids.length > 0) {
-      await fetch("/api/notifications/read", {
+    if (ids.length === 0) return;
+
+    try {
+      const res = await fetch("/api/notifications/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       });
+      if (!res.ok) throw new Error("failed");
+    } catch {
+      // Kết quả trước đây bị bỏ qua hoàn toàn: giao diện tắt huy hiệu, DB vẫn
+      // chưa đọc, và huy hiệu quay lại ở lần tải sau — trông như lỗi ngẫu nhiên.
+      // Trả lại trạng thái cũ để màn hình khớp với thứ đã thật sự lưu.
+      setNotifications(previous);
     }
   }
 

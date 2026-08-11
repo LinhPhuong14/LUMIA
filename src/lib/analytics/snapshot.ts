@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { describeSchemaError } from "@/lib/supabase/errors";
 
 /** Nguồn của một ngày trong lịch sử: số đo được, hay số dựng lại. */
 export type SnapshotSource = "demo" | "ga4";
@@ -125,13 +126,7 @@ export async function getSnapshotStats(): Promise<SnapshotStats> {
 
 /** Bảng chưa tồn tại là lỗi hay gặp nhất, và cách sửa rất cụ thể. */
 function describeTableError(error: { message: string; code?: string }): string {
-  const missingTable =
-    error.code === "42P01" ||
-    /does not exist|schema cache|could not find the table/i.test(error.message);
-
-  return missingTable
-    ? "Chưa chạy migration 026_analytics_daily_snapshot.sql trong Supabase SQL Editor."
-    : error.message;
+  return describeSchemaError(error, "026_analytics_daily_snapshot.sql");
 }
 
 /**

@@ -100,10 +100,22 @@ export function FeedbackPanel() {
   async function loadPast() {
     if (past !== null) return;
     setLoadingPast(true);
+    setError(null);
     try {
       const res = await fetch("/api/feedback");
-      const json = (await res.json()) as { feedback: PastItem[] };
+      const json = (await res.json().catch(() => ({}))) as {
+        feedback?: PastItem[];
+        error?: string;
+      };
+      // Danh sách rỗng vì lỗi và rỗng vì chưa gửi gì trông giống hệt nhau trên
+      // màn hình — nói ra để không ai tưởng phản hồi của mình bị mất.
+      if (!res.ok) {
+        setError(json.error ?? "Không tải được danh sách phản hồi đã gửi.");
+        return;
+      }
       setPast(json.feedback ?? []);
+    } catch {
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
     } finally {
       setLoadingPast(false);
     }
@@ -115,27 +127,33 @@ export function FeedbackPanel() {
     setError(null);
     setSubmitting(true);
 
-    const res = await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        category,
-        rating: rating ?? undefined,
-        message: message.trim(),
-        wishes: wishes.trim() || undefined,
-      }),
-    });
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          rating: rating ?? undefined,
+          message: message.trim(),
+          wishes: wishes.trim() || undefined,
+        }),
+      });
 
-    setSubmitting(false);
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(json.error ?? "Có lỗi xảy ra, vui lòng thử lại.");
+        return;
+      }
 
-    if (!res.ok) {
-      const json = (await res.json()) as { error?: string };
-      setError(json.error ?? "Có lỗi xảy ra, vui lòng thử lại.");
-      return;
+      setDone(true);
+      setPast(null);
+    } catch {
+      // Mất mạng giữa chừng: `fetch` ném ra ngoài nên `submitting` kẹt ở true và
+      // nút Gửi mờ vĩnh viễn — đúng triệu chứng "bấm mà không có gì xảy ra".
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setDone(true);
-    setPast(null);
   }
 
   if (done) {

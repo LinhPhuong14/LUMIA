@@ -209,70 +209,90 @@ export function SettingsPanel({
     window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 1800);
   }
 
+  /**
+   * Lưu một mẩu hồ sơ.
+   *
+   * Trước đây `saveName` và `saveNickname` gọi `await fetch(...)` rồi báo
+   * "Đã cập nhật" mà không hề xem phản hồi — lưu hỏng vẫn hiện thành công, và
+   * người dùng chỉ phát hiện ở lần mở lại sau. `saveGoal`/`saveHabits` thì im
+   * lặng: nút hết mờ, không câu nào, không biết là xong hay trượt.
+   *
+   * Không có try/catch nên mất mạng giữa chừng còn làm cờ *Saving kẹt ở true,
+   * nút mờ vĩnh viễn — đúng triệu chứng "bấm mà không có gì xảy ra".
+   */
+  async function persistProfile(payload: object, successMessage: string): Promise<boolean> {
+    try {
+      const response = await fetch("/api/me/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const json = (await response.json().catch(() => ({}))) as { error?: string };
+        setSaved(json.error ?? "Không lưu được thay đổi. Vui lòng thử lại.");
+        return false;
+      }
+      setSaved(successMessage);
+      window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2200);
+      return true;
+    } catch {
+      setSaved("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+      return false;
+    }
+  }
+
   async function saveName() {
     setNameSaving(true);
-    await fetch("/api/me/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName: nameVal }),
-    });
+    const ok = await persistProfile({ fullName: nameVal }, "Đã cập nhật tên.");
     setNameSaving(false);
-    setSaved("Đã cập nhật tên.");
-    router.refresh();
-    setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2000);
+    if (ok) router.refresh();
   }
 
   async function saveNickname() {
     const trimmed = nickVal.trim();
     if (!trimmed) return;
     setNickSaving(true);
-    await fetch("/api/me/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname: trimmed }),
-    });
+    const ok = await persistProfile({ nickname: trimmed }, "Đã cập nhật biệt danh.");
     setNickSaving(false);
-    setSaved("Đã cập nhật biệt danh.");
     // Refresh so greetings / chatbot pick up the new nickname immediately.
-    router.refresh();
-    setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2000);
+    if (ok) router.refresh();
   }
 
   async function sendPasswordReset() {
     setPwResetSent(true);
-    await fetch("/api/auth/reset-password", { method: "POST" });
+    try {
+      const res = await fetch("/api/auth/reset-password", { method: "POST" });
+      if (!res.ok) {
+        setPwResetSent(false);
+        setSaved("Không gửi được email đặt lại mật khẩu. Vui lòng thử lại.");
+      }
+    } catch {
+      setPwResetSent(false);
+      setSaved("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+    }
   }
 
   async function saveGoal() {
     if (!goal) return;
     setGoalSaving(true);
-    const response = await fetch("/api/me/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ onboardingGoal: goal }),
-    });
+    const ok = await persistProfile({ onboardingGoal: goal }, "Đã cập nhật mục tiêu.");
     setGoalSaving(false);
-    if (response.ok) {
-      setEditingGoal(false);
-      setSaved("Đã cập nhật mục tiêu.");
-      window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2200);
-    }
+    if (ok) setEditingGoal(false);
   }
 
   async function saveHabits(patch: Partial<OnboardingData>) {
+    const previous = habits;
     const next = { ...habits, ...patch, autofilled: false };
     setHabits(next);
     setHabitsSaving(true);
-    const response = await fetch("/api/me/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ onboardingData: { ...patch, autofilled: false } }),
-    });
+    const ok = await persistProfile(
+      { onboardingData: { ...patch, autofilled: false } },
+      "Đã cập nhật thói quen.",
+    );
     setHabitsSaving(false);
-    if (response.ok) {
-      setSaved("Đã cập nhật thói quen.");
-      window.setTimeout(() => setSaved("Đã đồng bộ thiết lập gần nhất."), 2200);
-    }
+    // Trả lại giá trị cũ khi lưu trượt: giữ giá trị mới trên màn hình là nói dối
+    // về thứ đang thật sự nằm trong hồ sơ.
+    if (!ok) setHabits(previous);
   }
 
   const goalLabel =

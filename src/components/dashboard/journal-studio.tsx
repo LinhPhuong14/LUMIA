@@ -105,6 +105,12 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  /**
+   * Trước đây mọi đường hỏng đều là `return` trống: tự lưu trượt vẫn hiện "Đã
+   * lưu" lần trước, bấm Xoá thì không có gì nhúc nhích. Nhật ký là thứ người
+   * dùng viết rồi đóng máy — im lặng ở đây là mất bài viết mà không ai biết.
+   */
+  const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState<"gallery" | "editor">("gallery");
@@ -165,13 +171,17 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
   async function createNewEntry() {
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: " ", date: today, meta: { title: "" } }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setError("Không tạo được trang nhật ký mới. Vui lòng thử lại.");
+        return;
+      }
       const newEntry: JournalEntry = await res.json();
       setEntries((prev) => [newEntry, ...prev]);
       setActiveId(newEntry.id);
@@ -180,6 +190,8 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
       setStickers([]);
       setSidebarOpen(false);
       setView("editor");
+    } catch {
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
     } finally {
       setSaving(false);
     }
@@ -205,9 +217,16 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
         if (res.ok) {
           const updated: JournalEntry = await res.json();
           setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+          setError(null);
           setShowSaved(true);
           setTimeout(() => setShowSaved(false), 2000);
+        } else {
+          // Tự lưu trượt mà im lặng là kiểu mất bài tệ nhất: người viết thấy chữ
+          // vẫn trên màn hình nên yên tâm đóng máy.
+          setError("Chưa lưu được. Đừng đóng trang — nội dung vẫn còn ở đây, thử lại sau giây lát.");
         }
+      } catch {
+        setError("Mất kết nối nên chưa lưu được. Đừng đóng trang, nội dung vẫn còn ở đây.");
       } finally {
         setSaving(false);
       }
@@ -218,8 +237,20 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
   async function deleteEntry() {
     if (!activeId) return;
-    const res = await fetch(`/api/journal?id=${activeId}`, { method: "DELETE" });
-    if (!res.ok) return;
+    setError(null);
+    let res: Response;
+    try {
+      res = await fetch(`/api/journal?id=${activeId}`, { method: "DELETE" });
+    } catch {
+      setError("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+      return;
+    }
+    if (!res.ok) {
+      // Trước đây chỉ `return` — bấm Xoá xong hộp xác nhận vẫn nằm đó, không
+      // câu nào, trông y như nút chết.
+      setError("Không xoá được trang nhật ký. Vui lòng thử lại.");
+      return;
+    }
     const remaining = entries.filter((e) => e.id !== activeId);
     setEntries(remaining);
     setActiveId(null);
@@ -560,7 +591,16 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
           <div className="flex-1" />
 
           <AnimatePresence>
-            {(saving || showSaved) && (
+            {error ? (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="max-w-[300px] text-right text-[12px] text-red-600"
+              >
+                {error}
+              </motion.span>
+            ) : (saving || showSaved) && (
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

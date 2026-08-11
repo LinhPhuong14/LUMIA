@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { describeSchemaError, isMissingTableError } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+
+const MIGRATION = "028_create_feedback.sql";
 
 const schema = z.object({
   category: z.enum(["bug", "feature", "content", "ux", "other"]),
@@ -28,6 +33,7 @@ export async function POST(request: Request) {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
+    console.error("[feedback] validation error:", JSON.stringify(parsed.error.flatten()));
     return NextResponse.json({ error: "Vui lòng điền đầy đủ thông tin" }, { status: 400 });
   }
 
@@ -43,7 +49,19 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: "Không thể lưu phản hồi" }, { status: 500 });
+    // Trước đây lỗi bị nuốt hoàn toàn — không log, không phân loại. Nút "Gửi
+    // phản hồi" chỉ hiện một câu chung, còn log server thì trống, nên không có
+    // đường nào lần ra nguyên nhân.
+    console.error("[feedback] insert failed:", error.code, error.message);
+    return NextResponse.json(
+      {
+        error: isMissingTableError(error)
+          ? "Tính năng góp ý chưa sẵn sàng (thiếu cấu hình cơ sở dữ liệu). Vui lòng báo quản trị viên."
+          : "Không thể lưu phản hồi",
+        detail: describeSchemaError(error, MIGRATION),
+      },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true });
@@ -69,7 +87,13 @@ export async function GET() {
     .limit(20);
 
   if (error) {
-    return NextResponse.json({ feedback: [] });
+    // Danh sách rỗng lặng lẽ là câu trả lời sai nguy hiểm: nó đọc thành "bạn
+    // chưa gửi phản hồi nào" kể cả khi bảng không tồn tại.
+    console.error("[feedback] list failed:", error.code, error.message);
+    return NextResponse.json(
+      { feedback: [], error: describeSchemaError(error, MIGRATION) },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ feedback: data ?? [] });
