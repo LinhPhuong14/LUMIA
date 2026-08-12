@@ -13,6 +13,20 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover" as const,
+  /**
+   * Bàn phím ảo làm CO LẠI layout viewport, không chỉ visual viewport.
+   *
+   * Mặc định của Android Chrome là `resizes-visual`: bàn phím mở ra nhưng
+   * layout viewport giữ nguyên chiều cao, nên `position: fixed; bottom: 0` vẫn
+   * neo vào đáy trang — tức là nằm KHUẤT SAU bàn phím. Đó là lý do ô nhập chat
+   * phải tự tính bù bằng JS, và vì phép bù đó chạy sau khi trình duyệt đã tự
+   * cuộn để lộ ô nhập nên hai bên đá nhau, kết quả là thanh nhập nhảy ra giữa
+   * màn hình.
+   *
+   * Với `resizes-content`, chiều cao layout co lại đúng bằng phần bàn phím
+   * chiếm chỗ, nên bố cục flex và `dvh` tự đúng — không cần một dòng JS nào.
+   */
+  interactiveWidget: "resizes-content" as const,
   themeColor: "#5f7a45",
 };
 

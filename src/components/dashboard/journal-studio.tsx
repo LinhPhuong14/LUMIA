@@ -392,7 +392,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+        <div className="mobile-inner-scroll-gap min-h-0 flex-1 overflow-y-auto px-4 py-5">
           {loading ? (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -473,7 +473,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
           Thêm ghi chú mới
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+      <div className="mobile-inner-scroll-gap min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         {loading ? (
           <div className="space-y-2 px-2">
             {[1, 2, 3].map((i) => (
@@ -783,7 +783,7 @@ export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
 
         {/* Main editor area */}
         {activeId ? (
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mobile-inner-scroll-gap min-h-0 flex-1 overflow-y-auto">
             <div ref={editorWrapperRef} className="relative mx-auto max-w-2xl px-6 py-8 lg:px-8 lg:py-12">
               {/* Selection tooltip */}
               {selTooltip && (

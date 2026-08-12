@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
-import { useVisualViewportOffset } from "@/lib/use-visual-viewport-offset";
 
 type Message = { role: "user" | "assistant"; content: string; id: string };
 
@@ -115,7 +114,6 @@ export function AiStudio() {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const keyboardOffset = useVisualViewportOffset();
   const today = localToday();
   const isToday = activeDate === today;
 
@@ -164,6 +162,12 @@ export function AiStudio() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Rời trang khi con trỏ còn trong ô nhập thì `onBlur` không kịp chạy, và class
+  // `chat-typing` sẽ ở lại — thanh tab biến mất trên mọi trang sau đó.
+  useEffect(() => {
+    return () => document.body.classList.remove("chat-typing");
+  }, []);
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
@@ -410,7 +414,11 @@ export function AiStudio() {
 
         {/* Messages */}
         <div
-          className={`chat-messages lumia-scroll flex min-h-0 flex-1 flex-col px-4 py-4 pb-[calc(var(--mobile-tab-bar-offset)+5rem)] lg:px-7 lg:py-5 lg:pb-5 ${
+          // Bỏ `pb-[calc(var(--mobile-tab-bar-offset)+5rem)]` = 208px khoảng
+          // trống chết ở đáy: nó có để né ô nhập đang `fixed`. Ô nhập giờ là
+          // flex item thật, tự chiếm chỗ của nó, nên phần đệm này chỉ còn là một
+          // mảng trắng lớn giữa tin nhắn cuối và ô nhập.
+          className={`chat-messages lumia-scroll flex min-h-0 flex-1 flex-col px-4 py-4 lg:px-7 lg:py-5 ${
             isEmpty ? "justify-center" : "space-y-3"
           }`}
         >
@@ -528,13 +536,23 @@ export function AiStudio() {
           </p>
         ) : null}
 
-        {/* Input bar - only shown for today */}
+        {/*
+          Input bar - only shown for today.
+
+          Ô nhập là flex item bình thường, KHÔNG `position: fixed`.
+
+          Bản cũ neo cứng vào đáy màn hình rồi cộng thêm chiều cao bàn phím do JS
+          đo được. Cách đó hỏng vì `fixed` neo theo layout viewport — thứ không co
+          lại khi bàn phím mở — nên phép bù luôn chạy đuổi theo trình duyệt, và
+          còn cộng thêm cả khoảng chừa cho thanh tab vốn đã bị bàn phím che.
+
+          `.chat-container` đã là flex cột với `.chat-messages` co giãn, nên ô
+          nhập chỉ cần đứng cuối là tự nằm đúng đáy vùng nhìn thấy — với
+          `interactiveWidget: resizes-content` ở layout, vùng đó đã trừ sẵn bàn phím.
+        */}
         {isToday ? (
           <form
-            className="chat-input-bar listen-input-bar fixed inset-x-0 z-30 flex shrink-0 gap-2 px-4 py-3 lg:static lg:z-auto lg:px-7 lg:py-5"
-            style={{
-              bottom: `calc(var(--mobile-tab-bar-offset) + var(--safe-bottom) + ${keyboardOffset}px)`,
-            }}
+            className="chat-input-bar listen-input-bar flex shrink-0 gap-2 px-4 py-3 lg:px-7 lg:py-5"
             onSubmit={(e) => {
               e.preventDefault();
               sendMessage(input);
@@ -544,6 +562,11 @@ export function AiStudio() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              // Bật/tắt chế độ gõ ở cấp <body>: thanh tab và hai bong bóng nổi
+              // đều là con của layout chứ không phải của khung chat, nên không
+              // truyền state xuống được. Một class trên body là đường ngắn nhất.
+              onFocus={() => document.body.classList.add("chat-typing")}
+              onBlur={() => document.body.classList.remove("chat-typing")}
               maxLength={2000}
               disabled={disabled || loading}
               className="min-h-[44px] flex-1 rounded-full border border-[var(--border)] bg-[var(--surface-card)] px-4 py-3 text-[15px] text-[var(--foreground)] outline-none ring-[var(--green)]/20 focus:ring-4 disabled:opacity-50"

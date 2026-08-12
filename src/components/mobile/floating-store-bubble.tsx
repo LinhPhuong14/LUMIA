@@ -9,7 +9,7 @@ export function FloatingStoreBubble() {
   if (pathname.startsWith("/dashboard/store") || pathname.startsWith("/store")) return null;
 
   return (
-    <div className="fixed bottom-[calc(164px+env(safe-area-inset-bottom,0px))] right-4 z-40 lg:hidden">
+    <div className="mobile-float-bubble fixed bottom-[calc(164px+env(safe-area-inset-bottom,0px))] right-4 z-40 lg:hidden">
       <Link
         href="/dashboard/store"
         aria-label="Cửa hàng"

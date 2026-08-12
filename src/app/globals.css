@@ -686,6 +686,36 @@
       flex: 0 0 auto;
       height: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
     }
+
+    /* Trang tự quản chiều cao và cuộn bên trong (chat) thì KHÔNG chèn khoảng
+       trống ở đây — vùng ngoài không cuộn, nên 8rem này sẽ ăn mất chỗ của chính
+       khung chat thay vì đẩy nội dung lên. Những trang đó tự chừa lấy. */
+    .mobile-app-content.dashboard-scroll-area--locked::after {
+      display: none;
+    }
+
+    /* Khoảng chừa cho thanh tab, dùng cho vùng cuộn NẰM TRONG một trang tự quản
+       chiều cao (chat, nhật ký). `::after` của vùng ngoài không với tới được
+       những chỗ này vì vùng ngoài không cuộn. */
+    .mobile-inner-scroll-gap {
+      padding-bottom: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
+    }
+
+    /* Chat: ô nhập là flex item cuối khung, nên khoảng chừa đặt ở khung. */
+    .chat-container {
+      padding-bottom: calc(var(--mobile-tab-bar-offset) + var(--safe-bottom));
+    }
+
+    /* Đang gõ: bàn phím đã che mất thanh tab rồi, giữ chỗ cho nó chỉ đẩy ô nhập
+       lên giữa màn hình. Trả lại toàn bộ chiều cao cho cuộc trò chuyện. */
+    body.chat-typing .chat-container {
+      padding-bottom: var(--safe-bottom);
+    }
+
+    body.chat-typing .mobile-tab-bar-floating,
+    body.chat-typing .mobile-float-bubble {
+      display: none;
+    }
   }
 
   .dash-sidebar {
