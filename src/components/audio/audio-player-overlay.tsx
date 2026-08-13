@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Pause, Play, Repeat, X } from "lucide-react";
 
 import { BotanicalArtwork, CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
-import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
+import { AudioArtwork } from "@/components/audio/audio-artwork";
 import { GenerativeVisual } from "@/components/ui/generative-visual";
 
 type Track = {
@@ -61,7 +61,6 @@ export function AudioPlayerOverlay({
 
   const category = track?.category ?? "guided_meditation";
   const accentColor = track?.accent_color ?? CATEGORY_ACCENT[category] ?? "#8d9d76";
-  const stockQuery = AUDIO_STOCK_QUERIES[category] ?? "forest morning light meditation";
 
   useEffect(() => {
     onAccentChange?.(track ? accentColor : null);
@@ -178,12 +177,13 @@ export function AudioPlayerOverlay({
       >
         {/* Artwork */}
         <div className="relative h-[150px] w-full overflow-hidden max-lg:h-[200px]">
-          {track.thumbnail_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={track.thumbnail_url} alt={track.title} className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <PhotoImage stockQuery={stockQuery} alt={track.title} overlay="dark" fill className="h-full w-full" />
-          )}
+          <AudioArtwork
+            thumbnailUrl={track.thumbnail_url}
+            category={category}
+            title={track.title}
+            overlay="dark"
+            priority
+          />
           <div
             className="absolute inset-0"
             style={{ background: `linear-gradient(to bottom, transparent 0%, ${accentColor}f0 100%)` }}

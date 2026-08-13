@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const OVERLAY_PRESETS = {
@@ -54,6 +55,11 @@ export interface PhotoImageProps {
   fill?: boolean;
   height?: number;
   width?: number;
+  /**
+   * Hiện thay cho ảnh khi tải hỏng. Bỏ trống thì dùng nền chuyển màu trung tính.
+   * Đừng bao giờ để rơi về alt text — đó là dòng chữ trần giữa giao diện.
+   */
+  fallback?: ReactNode;
 }
 
 export function PhotoImage({
@@ -69,9 +75,21 @@ export function PhotoImage({
   fill = false,
   height,
   width,
+  fallback,
 }: PhotoImageProps) {
   const isPlaceholder = !src;
   const imageSrc = src ?? buildStockUrl(stockQuery ?? "calm wellness");
+
+  /**
+   * Ảnh nền lấy từ Unsplash bằng ID gắn cứng. ID có thể chết bất cứ lúc nào —
+   * tác giả gỡ ảnh là URL trả 404, và `next/image` khi đó để lộ alt text trần
+   * giữa giao diện. Bắt lỗi để một ID mục không biến thành lỗi nhìn thấy được.
+   */
+  // Nhớ ĐƯỜNG DẪN đã hỏng, không phải một cờ đúng/sai. Nhờ vậy khi `src` đổi là
+  // ảnh mới tự được thử lại, không cần effect nào để đặt lại cờ — và một ảnh
+  // hỏng không khoá luôn ô đó ở trạng thái dự phòng cho mọi ảnh sau.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = failedSrc === imageSrc;
   const overlayColor =
     overlayOpacity !== undefined && overlay !== "none"
       ? OVERLAY_PRESETS[overlay].replace(/[\d.]+\)$/, `${overlayOpacity})`)
@@ -89,17 +107,28 @@ export function PhotoImage({
       )}
       style={!useFill && height ? { height, width: width ?? "100%" } : undefined}
     >
-      <Image
-        src={imageSrc}
-        alt={alt}
-        fill={useFill}
-        width={!useFill && width ? width : undefined}
-        height={!useFill && height ? height : undefined}
-        priority={priority}
-        data-placeholder={isPlaceholder ? "true" : undefined}
-        className="object-cover"
-        sizes="(max-width: 768px) 100vw, 50vw"
-      />
+      {failed ? (
+        fallback ?? (
+          <div
+            className="absolute inset-0 bg-[linear-gradient(135deg,var(--green-wash)_0%,var(--surface-warm)_100%)]"
+            // Ảnh trang trí — không có gì để đọc, và alt đã nằm ở ảnh gốc.
+            aria-hidden
+          />
+        )
+      ) : (
+        <Image
+          src={imageSrc}
+          alt={alt}
+          fill={useFill}
+          width={!useFill && width ? width : undefined}
+          height={!useFill && height ? height : undefined}
+          priority={priority}
+          data-placeholder={isPlaceholder ? "true" : undefined}
+          onError={() => setFailedSrc(imageSrc)}
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
+      )}
       {overlay !== "none" ? (
         <div
           className="pointer-events-none absolute inset-0 z-[1]"

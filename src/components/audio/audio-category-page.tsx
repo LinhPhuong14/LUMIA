@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Lock, Pause, Play } from "lucide-react";
 
 import { useAudioPlayer } from "@/components/audio/audio-player-provider";
-import { AUDIO_STOCK_QUERIES, PhotoImage } from "@/components/ui/photo-image";
+import { AudioArtwork } from "@/components/audio/audio-artwork";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PremiumSectionTeaser } from "@/components/ui/upsell-overlay";
 import { UpgradeModal } from "@/components/ui/upgrade-modal";
@@ -49,7 +49,6 @@ export function AudioCategoryPage({
   function renderTrackCard(track: Track) {
     const locked = track.locked ?? (!isActive && !track.is_free);
     const isPlaying = current?.id === track.id;
-    const stockQuery = AUDIO_STOCK_QUERIES[track.category] ?? "calm wellness";
     const minutes = track.duration_seconds ? Math.round(track.duration_seconds / 60) : null;
     // Clean, Spotify-style subtitle — no raw category/description clutter.
     const subtitle = locked ? "Premium" : minutes ? `${minutes} phút` : "Liên tục";
@@ -63,21 +62,12 @@ export function AudioCategoryPage({
         className="group relative flex w-full flex-col rounded-2xl p-2.5 text-left transition hover:bg-[var(--surface-warm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)]/60"
       >
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--surface-warm)] shadow-sm">
-          {track.thumbnail_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={track.thumbnail_url}
-              alt={track.title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <PhotoImage
-              stockQuery={stockQuery}
-              alt={track.title}
-              fill
-              className="h-full w-full transition-transform duration-500 group-hover:scale-105"
-            />
-          )}
+          <AudioArtwork
+            thumbnailUrl={track.thumbnail_url}
+            category={track.category}
+            title={track.title}
+            className="transition-transform duration-500 group-hover:scale-105"
+          />
 
           {/* Now-playing equalizer */}
           {isPlaying ? (
