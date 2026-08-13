@@ -8,8 +8,12 @@ import { getDashboardGreeting } from "@/lib/time-greeting";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const subscription = await getSubscriptionSnapshot(session.id);
-  const latestOrder = await getLatestOrderForUser(session.id);
+  // Hai truy vấn này chỉ cần `session.id`, không cần nhau — chạy nối tiếp là
+  // chờ thừa trọn một vòng gọi DB trước khi có chữ nào hiện ra.
+  const [subscription, latestOrder] = await Promise.all([
+    getSubscriptionSnapshot(session.id),
+    getLatestOrderForUser(session.id),
+  ]);
   const planLabel = getPlanDisplayLabel(subscription);
 
   return (

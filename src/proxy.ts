@@ -21,7 +21,16 @@ const authRoutes = [
 ];
 const adminRoutes = ["/admin", "/api/admin"];
 
-async function getSessionFromRequest(request: NextRequest) {
+/**
+ * `needsRole`: chỉ tra vai trò khi đường dẫn thật sự cần.
+ *
+ * Trước đây mọi request khớp matcher đều tốn thêm một truy vấn `profiles` để
+ * lấy `role`, nhưng `role` chỉ được dùng cho nhánh chặn route admin. Nghĩa là
+ * mỗi lần mở /dashboard, /journal, /ai… đều phải chờ trọn một vòng gọi DB cho
+ * một giá trị không ai đọc — và nó nằm trong middleware nên chặn trước cả khi
+ * trang bắt đầu render.
+ */
+async function getSessionFromRequest(request: NextRequest, needsRole: boolean) {
   const { supabase, getResponse } = createClientFromRequest(request);
   if (!supabase) {
     return { user: null, role: null, usingServiceRole: false, response: getResponse(), supabase: null };
@@ -33,6 +42,10 @@ async function getSessionFromRequest(request: NextRequest) {
 
   if (!user) {
     return { user: null, role: null, usingServiceRole: false, response: getResponse(), supabase };
+  }
+
+  if (!needsRole) {
+    return { user, role: null, usingServiceRole: false, response: getResponse(), supabase };
   }
 
   // Read the app role with the SERVICE ROLE client (bypasses RLS). The identity
@@ -72,18 +85,10 @@ function redirectTo(url: URL, carryFrom?: NextResponse) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = await getSessionFromRequest(request);
+  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
+  const session = await getSessionFromRequest(request, isAdminRoute);
 
   const sbCookies = request.cookies.getAll().map((c) => c.name).filter((n) => n.startsWith("sb-"));
-  console.log("[proxy]", {
-    pathname,
-    host: request.headers.get("host"),
-    hasUser: Boolean(session?.user),
-    userId: session?.user?.id ?? null,
-    role: session?.role ?? null,
-    usingServiceRole: session?.usingServiceRole ?? false,
-    sbCookies,
-  });
 
   if (authRoutes.some((route) => pathname.startsWith(route)) && !session?.user) {
     console.warn("[proxy] no user on protected route → redirect /login", { pathname, sbCookies });
@@ -92,7 +97,12 @@ export async function proxy(request: NextRequest) {
     return redirectTo(loginUrl, session.response);
   }
 
-  if (adminRoutes.some((route) => pathname.startsWith(route)) && session?.role !== "admin") {
+  if (isAdminRoute && session?.role !== "admin") {
+    console.warn("[proxy] non-admin on admin route → redirect /dashboard", {
+      pathname,
+      role: session?.role ?? null,
+      usingServiceRole: session?.usingServiceRole ?? false,
+    });
     return redirectTo(new URL("/dashboard", request.url), session.response);
   }
 

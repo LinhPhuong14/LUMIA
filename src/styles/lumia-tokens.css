@@ -115,9 +115,12 @@
   --scene-float: rgba(255, 255, 255, 0.5);
   --scene-stars: none;
 
-  /* Typography — display + body only; aliases map to the same two families */
-  --font-display: "Noto Serif Display", serif;
-  --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Typography — display + body only; aliases map to the same two families.
+     Tên họ font do `next/font/google` sinh ra lúc build (băm theo nội dung) nên
+     phải đi qua biến `--font-*-loaded` chứ không viết tên cứng được. Vẫn giữ
+     font hệ thống phía sau để có chữ đọc được ngay trong lúc font tải. */
+  --font-display: var(--font-display-loaded), "Noto Serif Display", Georgia, serif;
+  --font-body: var(--font-body-loaded), "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-body);

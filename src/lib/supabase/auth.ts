@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { PRIVACY_DEFAULTS, type PrivacySettings } from "@/lib/privacy";
@@ -24,7 +25,15 @@ export type SessionUser = {
   privacy: PrivacySettings;
 };
 
-export async function getSession(): Promise<SessionUser | null> {
+/**
+ * Bọc `cache()`: mỗi lượt render chỉ chạy MỘT lần dù được gọi ở bao nhiêu chỗ.
+ *
+ * Hàm này tốn hai vòng gọi mạng nối tiếp — `auth.getUser()` ra Supabase Auth,
+ * rồi một truy vấn `profiles`. Trước đây trang, layout và từng route handler
+ * chạy trong cùng một request đều trả giá đó riêng. `cache()` của React gom
+ * theo phạm vi một request, nên lần gọi thứ hai trở đi là miễn phí.
+ */
+export const getSession = cache(async function getSession(): Promise<SessionUser | null> {
   const supabase = await createClient();
   if (!supabase) {
     return null;
@@ -96,7 +105,7 @@ export async function getSession(): Promise<SessionUser | null> {
       allowJournalAi: row?.allow_journal_ai ?? PRIVACY_DEFAULTS.allowJournalAi,
     },
   };
-}
+});
 
 export async function requireSession(): Promise<SessionUser> {
   const session = await getSession();

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Manrope, Noto_Serif_Display } from "next/font/google";
 
 import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { LumiaThemeProvider } from "@/components/theme/lumia-theme-provider";
@@ -7,6 +8,34 @@ import { CartProvider } from "@/lib/cart-context";
 import { env } from "@/lib/env";
 import { isIndexableDeployment } from "@/lib/seo";
 import "./globals.css";
+
+/**
+ * Font tự phục vụ từ chính domain của app, thay cho `@import` tới Google Fonts.
+ *
+ * Bản cũ đặt `@import url("https://fonts.googleapis.com/...")` trong CSS. Đó là
+ * đường nạp chậm nhất có thể: trình duyệt phải tải CSS của app, phân tích tới
+ * dòng `@import`, MỚI mở kết nối tới fonts.googleapis.com, rồi file trả về lại
+ * trỏ tiếp sang fonts.gstatic.com — ba vòng nối tiếp qua hai domain lạ, mỗi vòng
+ * kèm một lần bắt tay TLS, tất cả đều chặn việc hiện chữ. Trên 4G đó là gần một
+ * giây nhìn màn hình trắng.
+ *
+ * `next/font/google` tải font lúc build, phục vụ cùng domain, và nhúng thẳng
+ * `@font-face` vào CSS — không còn vòng gọi nào ra ngoài.
+ */
+const fontDisplay = Noto_Serif_Display({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-display-loaded",
+});
+
+const fontBody = Manrope({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-body-loaded",
+});
 
 export const viewport = {
   width: "device-width",
@@ -57,7 +86,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="h-full antialiased" suppressHydrationWarning>
+    <html
+      lang="vi"
+      className={`h-full antialiased ${fontDisplay.variable} ${fontBody.variable}`}
+      suppressHydrationWarning
+    >
       <body className="h-full overflow-hidden font-sans text-foreground">
         <ThemeInitScript />
         <LumiaThemeProvider>

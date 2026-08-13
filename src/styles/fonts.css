@@ -1,2 +1,14 @@
-/* LUMIA webfonts — single load point. Tokens: lumia-tokens.css */
-@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Manrope:wght@400;500;600;700;800&display=swap");
+/* LUMIA webfonts.
+ *
+ * Không còn `@import` tới fonts.googleapis.com ở đây. Font được nạp bằng
+ * `next/font/google` trong src/app/layout.tsx: tải lúc build, phục vụ từ chính
+ * domain của app, `@font-face` nhúng thẳng vào CSS.
+ *
+ * Vì sao bỏ `@import`: nó là đường nạp chậm nhất có thể — trình duyệt phải tải
+ * CSS của app, phân tích tới dòng import, mới mở kết nối tới googleapis, rồi
+ * file đó lại trỏ tiếp sang gstatic. Ba vòng nối tiếp qua hai domain lạ, mỗi
+ * vòng một lần bắt tay TLS, và tất cả đều chặn việc hiện chữ.
+ *
+ * `next/font` cấp hai biến `--font-display-loaded` / `--font-body-loaded`;
+ * lumia-tokens.css trỏ `--font-display` / `--font-body` vào chúng.
+ */
