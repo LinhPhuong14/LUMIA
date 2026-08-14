@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -372,16 +374,17 @@ function ProductCard({ product, index, basePath = "/store", isLoggedIn = true }:
         {/* Image */}
         <div className="relative flex h-48 items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--green-wash)] to-[var(--surface)]">
           {product.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            // `next/image` thay cho <img>: ảnh gốc do admin tải lên thường là
+            // ảnh chụp điện thoại vài MB, trước đây phục vụ nguyên cỡ cho một ô
+            // cao 192px. Giờ được resize theo đúng bề rộng thiết bị và đổi sang
+            // AVIF/WebP. `sizes` phải khớp lưới thật, nếu không Next sẽ chọn
+            // bản rộng bằng cả màn hình cho một ô nhỏ.
+            <Image
               src={product.image_url}
               alt={product.name}
-              // Lưới sản phẩm dựng hàng chục ảnh cùng lúc. Không có `lazy` thì
-              // trình duyệt tải hết ngay từ đầu, tranh băng thông với chính JS
-              // của trang — trên 4G đó là vài giây đứng hình.
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex flex-col items-center gap-2">

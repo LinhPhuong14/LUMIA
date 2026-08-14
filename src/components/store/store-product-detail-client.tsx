@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -55,15 +57,15 @@ function ImageCarousel({
           touchX.current = null;
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={images[idx]}
           alt={`Ảnh ${idx + 1}`}
-          // Ảnh chính là phần tử lớn nhất trên màn hình đầu — KHÔNG lazy, và ưu
-          // tiên cao để nó không xếp hàng sau ảnh nhỏ hay script.
-          fetchPriority="high"
-          decoding="async"
-          className="h-full w-full object-cover transition-opacity duration-200"
+          fill
+          // Ảnh chính là phần tử lớn nhất trên màn hình đầu (LCP) — `priority`
+          // để Next preload nó thay vì để nó xếp hàng sau ảnh nhỏ và script.
+          priority
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover transition-opacity duration-200"
           key={images[idx]}
         />
 
@@ -101,14 +103,14 @@ function ImageCarousel({
               key={i}
               type="button"
               onClick={() => onChange(i)}
-              className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-[10px] border-2 transition ${
+              className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-[10px] border-2 transition ${
                 i === idx
                   ? "border-[var(--green)] opacity-100"
                   : "border-transparent opacity-60 hover:opacity-90"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`Ảnh ${i + 1}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              {/* Ô 56px — `sizes` nhỏ để Next không tải bản rộng bằng màn hình. */}
+              <Image src={src} alt={`Ảnh ${i + 1}`} fill sizes="56px" className="object-cover" />
             </button>
           ))}
         </div>

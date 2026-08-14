@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 
 const STATIC_PRODUCTS = [
   {
@@ -112,12 +112,26 @@ const STATIC_PRODUCTS = [
   },
 ];
 
+/**
+ * Danh mục sản phẩm là dữ liệu CÔNG KHAI và hiếm khi đổi, nhưng trước đây mỗi
+ * lần mở /store đều đi trọn một vòng xuống DB. Cho phép CDN giữ bản trả về:
+ * lượt xem thứ hai trở đi được phục vụ ngay ở biên, admin sửa giá thì chậm nhất
+ * một phút là thấy.
+ *
+ * `stale-while-revalidate` để lượt đầu sau khi hết hạn vẫn nhận bản cũ ngay lập
+ * tức trong lúc bản mới được lấy nền — không ai phải chờ.
+ */
+const PRODUCTS_CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
   const search = searchParams.get("search")?.toLowerCase();
 
-  const supabase = await createClient();
+  // Client KHÔNG đụng cookie: `createClient()` đọc cookie phiên đăng nhập, và
+  // một phản hồi có Set-Cookie thì CDN không được phép cache. Danh mục sản phẩm
+  // không cần biết ai đang xem.
+  const supabase = createPublicClient();
 
   if (supabase) {
     let query = supabase
@@ -131,7 +145,9 @@ export async function GET(req: Request) {
 
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
-      return NextResponse.json(data);
+      return NextResponse.json(data, {
+        headers: { "Cache-Control": PRODUCTS_CACHE_CONTROL },
+      });
     }
   }
 
@@ -139,5 +155,7 @@ export async function GET(req: Request) {
   let products = STATIC_PRODUCTS;
   if (category) products = products.filter((p) => p.category === category);
   if (search) products = products.filter((p) => p.name.toLowerCase().includes(search) || (p.subtitle ?? "").toLowerCase().includes(search));
-  return NextResponse.json(products);
+  return NextResponse.json(products, {
+    headers: { "Cache-Control": PRODUCTS_CACHE_CONTROL },
+  });
 }

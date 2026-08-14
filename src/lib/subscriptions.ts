@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import type { GatedFeature } from "@/types/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -125,7 +127,17 @@ export async function getSubscriptionForUser(userId: string): Promise<Subscripti
   return (data as Subscription | null) ?? null;
 }
 
-export async function getSubscriptionSnapshot(userId: string): Promise<SubscriptionSnapshot> {
+/**
+ * Bọc `cache()`: chạy một lần cho mỗi `userId` trong một lượt render.
+ *
+ * Hàm này nằm trên đường tải của MỌI trang trong (app) và tốn tới hai truy vấn
+ * nối tiếp (đọc subscription, rồi đọc trạng thái hộp theo `box_order_id` lấy
+ * được từ bước trước). `getSubscriptionStatus` cũng gọi lại chính nó, nên trước
+ * đây một request có thể trả giá đó hai lần.
+ */
+export const getSubscriptionSnapshot = cache(async function getSubscriptionSnapshot(
+  userId: string,
+): Promise<SubscriptionSnapshot> {
   const sub = await getSubscriptionForUser(userId);
   const admin = createAdminClient();
 
@@ -140,7 +152,7 @@ export async function getSubscriptionSnapshot(userId: string): Promise<Subscript
   const physicalBoxStatus =
     admin && sub?.box_order_id ? await getPhysicalBoxOrderStatus(admin, sub.box_order_id) : null;
   return toSnapshot(sub, physicalBoxStatus);
-}
+});
 
 export async function getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
   const snapshot = await getSubscriptionSnapshot(userId);
