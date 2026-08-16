@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { DashboardShellLayout } from "@/components/dashboard/dashboard-shell-layout";
+import { SubscriptionProvider } from "@/components/dashboard/subscription-context";
 import { getPlanBadgeVariant, getPlanDisplayLabel } from "@/lib/subscription-labels";
 import type { SubscriptionSnapshot } from "@/lib/subscriptions";
 
@@ -9,8 +10,6 @@ export function DashboardShell({
   sessionEmail,
   planLabel,
   subscription,
-  title,
-  subtitle,
   children,
   isAdmin,
 }: {
@@ -18,8 +17,6 @@ export function DashboardShell({
   sessionEmail?: string;
   planLabel?: string;
   subscription?: SubscriptionSnapshot;
-  title: string;
-  subtitle: string;
   children: ReactNode;
   isAdmin?: boolean;
 }) {
@@ -34,12 +31,10 @@ export function DashboardShell({
       sessionEmail={sessionEmail}
       planLabel={resolvedPlanLabel}
       badgeVariant={badgeVariant}
-      title={title}
-      subtitle={subtitle}
       isAdmin={isAdmin}
       isPremium={isPremium}
     >
-      {children}
+      <SubscriptionProvider isActive={isPremium}>{children}</SubscriptionProvider>
     </DashboardShellLayout>
   );
 }

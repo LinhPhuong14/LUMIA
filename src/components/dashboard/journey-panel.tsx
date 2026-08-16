@@ -1,5 +1,7 @@
 "use client";
 
+import { useIsSubscriptionActive } from "@/components/dashboard/subscription-context";
+
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Flame, TrendingUp, CalendarDays, Zap, ChevronRight, FileText, RefreshCw } from "lucide-react";
@@ -433,14 +435,13 @@ function ActivityHabitTracker({
 }
 
 export function JourneyPanel({
-  isActive,
   calendarDays = 30,
   userId = "journey",
 }: {
-  isActive: boolean;
   calendarDays?: number;
   userId?: string;
 }) {
+  const isActive = useIsSubscriptionActive();
   const [tab, setTab] = useState<Tab>("history");
   const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0 });
   const [moods, setMoods] = useState<MoodEntry[]>([]);

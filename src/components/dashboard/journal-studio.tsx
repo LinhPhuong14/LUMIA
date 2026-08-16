@@ -1,5 +1,7 @@
 "use client";
 
+import { useIsSubscriptionActive } from "@/components/dashboard/subscription-context";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -95,7 +97,8 @@ function nanoid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export function JournalStudio({ isActive = false }: { isActive?: boolean }) {
+export function JournalStudio() {
+  const isActive = useIsSubscriptionActive();
   const today = new Date().toISOString().slice(0, 10);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);

@@ -1,9 +1,6 @@
 import Link from "next/link";
 
 import { FeaturedTrackOfDay } from "@/components/audio/featured-track-of-day";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getSubscriptionSnapshot } from "@/lib/subscriptions";
-import { requireSession } from "@/lib/supabase/auth";
 
 const categories = [
   {
@@ -50,60 +47,49 @@ const categories = [
 ] as const;
 
 export default async function AudioPage() {
-  const session = await requireSession();
-  const subscription = await getSubscriptionSnapshot(session.id);
 
   return (
-    <DashboardShell
-      sessionName={session.name}
-      sessionEmail={session.email}
-      subscription={subscription}
-      title="Âm thanh cho buổi tối"
-      subtitle="Giấc ngủ, thiền định, thở và timer - chọn nhịp phù hợp với bạn."
-      isAdmin={session.role === "admin"}
-    >
-      <div className="space-y-4 lg:space-y-5">
-        {/* Featured track — full width */}
-        <FeaturedTrackOfDay />
+  <div className="space-y-4 lg:space-y-5">
+    {/* Featured track — full width */}
+    <FeaturedTrackOfDay />
 
-        {/* Category grid — full width 2×2 */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          {categories.map((cat) => (
-            <Link
-              key={cat.href}
-              href={cat.href}
-              className="group relative flex min-h-[140px] flex-col items-start justify-between overflow-hidden rounded-[24px] border p-5 transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_rgba(0,0,0,0.10)] active:scale-[0.98] lg:min-h-[160px] lg:p-6"
-              style={{
-                borderColor: cat.border,
-                background: "var(--surface-card)",
-              }}
-            >
-              {/* Ambient blob */}
-              <div
-                className="pointer-events-none absolute inset-0 opacity-100 transition-opacity duration-500 group-hover:opacity-0 dark:hidden"
-                style={{ background: cat.blob }}
-              />
-              <div
-                className="pointer-events-none absolute inset-0 hidden opacity-100 transition-opacity duration-500 group-hover:opacity-0 dark:block"
-                style={{ background: cat.darkBlob }}
-              />
-              {/* Hover shimmer */}
-              <div
-                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                style={{ background: `radial-gradient(ellipse at 50% 0%, ${cat.accent}22 0%, transparent 70%)` }}
-              />
+    {/* Category grid — full width 2×2 */}
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      {categories.map((cat) => (
+        <Link
+          key={cat.href}
+          href={cat.href}
+          className="group relative flex min-h-[140px] flex-col items-start justify-between overflow-hidden rounded-[24px] border p-5 transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_rgba(0,0,0,0.10)] active:scale-[0.98] lg:min-h-[160px] lg:p-6"
+          style={{
+            borderColor: cat.border,
+            background: "var(--surface-card)",
+          }}
+        >
+          {/* Ambient blob */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-100 transition-opacity duration-500 group-hover:opacity-0 dark:hidden"
+            style={{ background: cat.blob }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 hidden opacity-100 transition-opacity duration-500 group-hover:opacity-0 dark:block"
+            style={{ background: cat.darkBlob }}
+          />
+          {/* Hover shimmer */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            style={{ background: `radial-gradient(ellipse at 50% 0%, ${cat.accent}22 0%, transparent 70%)` }}
+          />
 
-              <span className="relative text-3xl drop-shadow-sm lg:text-4xl">{cat.emoji}</span>
-              <div className="relative mt-3">
-                <p className="font-semibold text-[var(--foreground)]">{cat.title}</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--muted)] lg:text-[12px]">
-                  {cat.description}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </DashboardShell>
+          <span className="relative text-3xl drop-shadow-sm lg:text-4xl">{cat.emoji}</span>
+          <div className="relative mt-3">
+            <p className="font-semibold text-[var(--foreground)]">{cat.title}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--muted)] lg:text-[12px]">
+              {cat.description}
+            </p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </div>
   );
 }

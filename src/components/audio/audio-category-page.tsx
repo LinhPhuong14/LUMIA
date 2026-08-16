@@ -1,5 +1,7 @@
 "use client";
 
+import { useIsSubscriptionActive } from "@/components/dashboard/subscription-context";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -26,12 +28,11 @@ type Track = {
 export function AudioCategoryPage({
   categories,
   sections,
-  isActive,
 }: {
   categories: string[];
   sections: { title: string; category: string; activeOnly?: boolean }[];
-  isActive: boolean;
 }) {
+  const isActive = useIsSubscriptionActive();
   const [tracks, setTracks] = useState<Track[]>([]);
   const { current, play } = useAudioPlayer();
   const [upsellFor, setUpsellFor] = useState<Track | null>(null);

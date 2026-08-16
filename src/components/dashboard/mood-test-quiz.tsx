@@ -1,5 +1,7 @@
 "use client";
 
+import { useIsSubscriptionActive } from "@/components/dashboard/subscription-context";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -196,7 +198,8 @@ function buildSuggestions(a: WeeklyAnswers): string[] {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function MoodTestQuiz({ isActive }: { isActive: boolean }) {
+export function MoodTestQuiz() {
+  const isActive = useIsSubscriptionActive();
   const router = useRouter();
   const [step, setStep] = useState(0); // 0 = intro, 1-10 = questions, 11 = report
   const [answers, setAnswers] = useState<WeeklyAnswers>(defaultAnswers);

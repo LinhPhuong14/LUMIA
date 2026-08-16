@@ -1,8 +1,9 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+
+import { resolvePageMeta } from "@/lib/dashboard-page-meta";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/shell/top-bar";
@@ -19,8 +20,6 @@ function DashboardShellInner({
   sessionEmail,
   planLabel,
   badgeVariant,
-  title,
-  subtitle,
   children,
   isAdmin,
   isPremium,
@@ -29,14 +28,14 @@ function DashboardShellInner({
   sessionEmail?: string;
   planLabel: string;
   badgeVariant: PlanBadgeVariant;
-  title: string;
-  subtitle: string;
   children: ReactNode;
   isAdmin?: boolean;
   isPremium?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // Khung nằm ở layout nên không nhận được prop từ trang nữa — tra theo đường dẫn.
+  const { title, subtitle } = resolvePageMeta(pathname, sessionName);
   const [moreOpen, setMoreOpen] = useState(false);
   const isHub = pathname === "/dashboard";
   const isChat = pathname === "/ai" || pathname.startsWith("/ai/");
@@ -119,8 +118,6 @@ export function DashboardShellLayout(props: {
   sessionEmail?: string;
   planLabel: string;
   badgeVariant: PlanBadgeVariant;
-  title: string;
-  subtitle: string;
   children: ReactNode;
   isAdmin?: boolean;
   isPremium?: boolean;
