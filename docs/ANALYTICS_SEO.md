@@ -408,10 +408,32 @@ marketing công khai rồi đóng. Context trắng nghĩa là gtag sinh `client_
 và tự bắn `first_visit` — nên GA4 ghi nhận đây là **người dùng mới**.
 
 ```bash
+node scripts/ga-traffic.mjs --url=https://lumia.com.vn --diagnose
 node scripts/ga-traffic.mjs --url=https://lumia.com.vn --users=20 --dry-run
 node scripts/ga-traffic.mjs --url=https://lumia.com.vn --users=20 \
   --i-understand-this-is-irreversible
 ```
+
+`--diagnose` mở đúng một trang rồi báo bốn thứ: HTML có thẻ gtag không,
+`window.gtag` có được định nghĩa không, `dataLayer` chứa gì, và có beacon nào
+rời trình duyệt không. Bốn chỗ đứt đó cần bốn cách sửa khác nhau nên đừng đoán,
+chạy nó trước khi chạy bất cứ thứ gì khác.
+
+### Vì sao page_view từng biến mất hoàn toàn
+
+`send_page_view: false` nghĩa là gtag không tự bắn gì; toàn bộ trông chờ vào
+`GaPageViewTracker` gọi `trackPageView()` trong `useEffect`. Nhưng shim gtag từng
+được nhúng qua `next/script strategy="afterInteractive"`, tức chỉ chèn **sau** khi
+hydrate — mà `useEffect` chạy **lúc** hydrate. Effect chạy trước thì
+`window.gtag` chưa tồn tại, `gtag()` trong `src/lib/analytics.ts` trả `false` và
+nuốt event. Vì đó là event duy nhất của lượt tải trang, GA4 không nhận được gì —
+không page_view, không `session_start`, không `first_visit`, không cả người dùng.
+
+Sửa bằng cách đưa shim thành thẻ `<script>` thường nằm sẵn trong HTML: nó chạy
+xong lúc parse, trước khi React hydrate, nên `window.gtag` luôn sẵn sàng. Lệnh
+gọi sớm xếp hàng trong `dataLayer` và gtag.js phát lại khi nạp xong — đúng cơ chế
+snippet gốc của Google. Nhánh `window.gtag` chưa sẵn sàng giờ còn `console.warn`
+ở môi trường dev thay vì im lặng.
 
 Vì sao không dùng Measurement Protocol: MP chặn các tên sự kiện dành riêng,
 trong đó có `first_visit` và `session_start`. GA4 dẫn xuất `newUsers` từ

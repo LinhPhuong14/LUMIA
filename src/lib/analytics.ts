@@ -50,7 +50,17 @@ export function cleanParams(params: AnalyticsParams): Record<string, string | nu
 }
 
 function gtag(...args: unknown[]): boolean {
-  if (typeof window === "undefined" || typeof window.gtag !== "function") {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  if (typeof window.gtag !== "function") {
+    // Đáng lẽ không bao giờ tới đây: shim gtag nằm inline trong HTML (xem
+    // components/analytics/google-analytics.tsx) nên đã chạy xong trước lúc
+    // hydrate. Rơi vào nhánh này nghĩa là GA đang mất event — im lặng trả false
+    // chính là lý do lỗi đó từng lọt qua mà không ai biết, nên phải nói ra.
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[analytics] window.gtag chưa sẵn sàng, bỏ event:", args[1] ?? args[0]);
+    }
     return false;
   }
   window.gtag(...args);
