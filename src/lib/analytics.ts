@@ -12,7 +12,23 @@ declare global {
   }
 }
 
-export type AnalyticsParams = Record<string, string | number | boolean | null | undefined>;
+/**
+ * `items` là mảng object — GA4 bắt buộc dạng này cho các event thương mại
+ * (`add_to_cart`, `purchase`), nên kiểu tham số phải nhận được cả nó, không chỉ
+ * giá trị nguyên thuỷ.
+ */
+export type AnalyticsItem = {
+  item_id?: string;
+  item_name?: string;
+  item_variant?: string;
+  price?: number;
+  quantity?: number;
+};
+
+export type AnalyticsParams = Record<
+  string,
+  string | number | boolean | null | undefined | AnalyticsItem[]
+>;
 
 /** Measurement ID của GA4 có dạng `G-XXXXXXXXXX`. */
 const GA_ID_PATTERN = /^G-[A-Z0-9]{4,}$/i;
@@ -39,8 +55,8 @@ export function buildPagePath(
 }
 
 /** Bỏ các field `undefined`/`null` để không gửi rác lên GA. */
-export function cleanParams(params: AnalyticsParams): Record<string, string | number | boolean> {
-  const result: Record<string, string | number | boolean> = {};
+export function cleanParams(params: AnalyticsParams): Record<string, string | number | boolean | AnalyticsItem[]> {
+  const result: Record<string, string | number | boolean | AnalyticsItem[]> = {};
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {
       result[key] = value;
@@ -75,6 +91,56 @@ export function trackPageView(pagePath: string): boolean {
 /** Bắn một custom event lên GA4. */
 export function trackEvent(name: string, params: AnalyticsParams = {}): boolean {
   return gtag("event", name, cleanParams(params));
+}
+
+/**
+ * Người dùng tạo tài khoản. GA4 nhận diện `sign_up` là event chuẩn nên nó lên
+ * thẳng báo cáo Conversions mà không phải khai báo gì thêm.
+ */
+export function trackSignUp(method = "email"): boolean {
+  return trackEvent("sign_up", { method });
+}
+
+/** Thêm sản phẩm vào giỏ. */
+export function trackAddToCart(params: {
+  itemId?: string;
+  itemName?: string;
+  value?: number;
+  variant?: string | null;
+}): boolean {
+  return trackEvent("add_to_cart", {
+    currency: "VND",
+    value: params.value,
+    items: [
+      {
+        item_id: params.itemId,
+        item_name: params.itemName,
+        item_variant: params.variant ?? undefined,
+        price: params.value,
+        quantity: 1,
+      },
+    ],
+  });
+}
+
+/**
+ * Một hành động có ý nghĩa trong app (viết nhật ký, nghe audio, check-in…).
+ *
+ * Vì sao đáng gửi: GA4 tính "phiên có tương tác" dựa vào thời lượng HOẶC số
+ * event. Trước đây app chỉ bắn `page_view`, nên một người viết nhật ký 20 phút
+ * vẫn bị đếm ngang một người mở trang rồi thoát — tỉ lệ tương tác và số event
+ * mỗi phiên đều thấp hơn thực tế đang diễn ra.
+ */
+export function trackEngagement(
+  action:
+    | "journal_save"
+    | "chat_message"
+    | "audio_play"
+    | "mood_checkin"
+    | "mood_test_complete",
+  params: AnalyticsParams = {},
+): boolean {
+  return trackEvent(action, params);
 }
 
 /** Event chuẩn GA4 khi người dùng bắt đầu thanh toán. */

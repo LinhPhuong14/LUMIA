@@ -4,6 +4,9 @@ import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Banknote } from "lu
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+import { trackPurchase } from "@/lib/analytics";
 import { useCart } from "@/lib/cart-context";
 
 function formatVnd(n: number) {
@@ -65,6 +68,14 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
         setError(j.error ?? "Có lỗi xảy ra, vui lòng thử lại.");
         return;
       }
+      // Đơn cửa hàng trước đây hoàn toàn vô hình với GA4 — chỉ luồng gói thành
+      // viên có `purchase`. Cả doanh thu bán lẻ không xuất hiện ở đâu cả.
+      const created = (await res.json().catch(() => ({}))) as {
+        orderId?: string;
+        total_vnd?: number;
+      };
+      trackPurchase({ transactionId: created.orderId, value: created.total_vnd });
+
       clear();
       // Sang thẳng trang đơn hàng: khách vừa đưa địa chỉ và số điện thoại, thứ
       // họ muốn thấy tiếp theo là đơn đã vào hệ thống thật và huỷ được nếu lỡ tay.
@@ -118,9 +129,9 @@ export function CartSheet({ onClose }: { onClose: () => void }) {
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                 {items.map((item) => (
                   <div key={`${item.id}__${item.variant}`} className="flex gap-4 rounded-[16px] border border-[var(--border)] bg-[var(--surface-card)] p-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[12px] bg-[var(--green-wash)] text-2xl">
+                    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[var(--green-wash)] text-2xl">
                       {item.image_url
-                        ? <img src={item.image_url} alt={item.name} loading="lazy" decoding="async" className="h-full w-full rounded-[12px] object-cover" />
+                        ? <Image src={item.image_url} alt={item.name} fill sizes="64px" className="rounded-[12px] object-cover" />
                         : "🌿"}
                     </div>
                     <div className="flex flex-1 flex-col justify-between">

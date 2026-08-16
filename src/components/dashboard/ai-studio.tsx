@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
+import { trackEngagement } from "@/lib/analytics";
+
 
 type Message = { role: "user" | "assistant"; content: string; id: string };
 
@@ -176,6 +178,7 @@ export function AiStudio() {
 
     setLoading(true);
     setIsThinking(true);
+    trackEngagement("chat_message");
     setMessages((prev) => [...prev, { role: "user", content: text, id: nextId() }]);
     setInput("");
 

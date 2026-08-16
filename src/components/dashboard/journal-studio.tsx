@@ -9,6 +9,7 @@ import {
   Italic, Palette, Smile, Trash2, Type, X as XIcon,
 } from "lucide-react";
 
+import { trackEngagement } from "@/lib/analytics";
 import { UpsellOverlay } from "@/components/ui/upsell-overlay";
 import { cn } from "@/lib/utils";
 
@@ -221,6 +222,7 @@ export function JournalStudio() {
           const updated: JournalEntry = await res.json();
           setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
           setError(null);
+          trackEngagement("journal_save");
           setShowSaved(true);
           setTimeout(() => setShowSaved(false), 2000);
         } else {

@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { trackAddToCart } from "@/lib/analytics";
+
 export type CartItem = {
   id: string;
   slug: string;
@@ -41,6 +43,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addItem = useCallback((item: Omit<CartItem, "qty"> & { qty?: number }) => {
+    // Đặt ở đây vì cả ba chỗ thêm giỏ (lưới cửa hàng, trang chi tiết, nút thêm
+    // nhanh) đều đi qua hàm này — gắn ở từng nút sẽ sót.
+    trackAddToCart({
+      itemId: item.id,
+      itemName: item.name,
+      value: item.price_vnd,
+      variant: item.variant,
+    });
     setItems((prev) => {
       const key = itemKey(item.id, item.variant);
       const existing = prev.find((i) => itemKey(i.id, i.variant) === key);

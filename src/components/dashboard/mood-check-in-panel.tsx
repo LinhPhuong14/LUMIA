@@ -1,5 +1,7 @@
 "use client";
 
+import { trackEngagement } from "@/lib/analytics";
+
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Sparkles } from "lucide-react";
@@ -74,6 +76,7 @@ export function MoodCheckInPanel({
     const trimmedNote = note.trim() || undefined;
     const scoreBefore = prevScore;
     await onSubmit(activeScore, trimmedNote);
+    trackEngagement("mood_checkin", { score: activeScore });
     setPrevScore(activeScore);
     setFollowUp(null);
     setFollowUpLoading(true);

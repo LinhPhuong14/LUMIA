@@ -1,5 +1,7 @@
 "use client";
 
+import { trackSignUp } from "@/lib/analytics";
+
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -129,6 +131,13 @@ export function AuthForm({ mode, next = "/dashboard", initialError = null }: { m
       setServerError(result.error ?? "Đã có lỗi xảy ra.");
       setLoading(false);
       return;
+    }
+
+    if (mode === "register") {
+      // Bắn TRƯỚC khi rời trang: `window.location.assign` phá huỷ ngữ cảnh hiện
+      // tại, gtag chưa kịp gửi thì mất event. gtag dùng sendBeacon nên lệnh này
+      // vẫn đi được ngay cả khi trang đang đóng.
+      trackSignUp("email");
     }
 
     window.location.assign(result.redirect ?? next);

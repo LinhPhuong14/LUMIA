@@ -5,6 +5,7 @@ import { Pause, Play, Repeat, X } from "lucide-react";
 
 import { BotanicalArtwork, CATEGORY_ACCENT } from "@/components/audio/botanical-artwork";
 import { AudioArtwork } from "@/components/audio/audio-artwork";
+import { trackEngagement } from "@/lib/analytics";
 import { GenerativeVisual } from "@/components/ui/generative-visual";
 
 type Track = {
@@ -120,6 +121,9 @@ export function AudioPlayerOverlay({
       setCurrentTime(el.currentTime);
       if (!logged && el.currentTime >= 30) {
         setLogged(true);
+        // Cùng mốc 30 giây với streak: đủ lâu để coi là nghe thật, không phải
+        // bấm nhầm rồi tắt.
+        trackEngagement("audio_play", { item_name: track?.title });
         fetch("/api/streak/log", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
