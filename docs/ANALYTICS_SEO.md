@@ -400,6 +400,48 @@ kết thúc ở hôm qua, kỳ trước dài đúng bằng kỳ hiện tại và
 
 ---
 
+## 5. `scripts/ga-traffic.mjs` — lưu lượng tổng hợp bơm vào GA4
+
+Script chạy tay, không được import vào app và không chạy trong CI. Nó mở
+Playwright với một browser context trắng cho mỗi "người dùng", duyệt vài trang
+marketing công khai rồi đóng. Context trắng nghĩa là gtag sinh `client_id` mới
+và tự bắn `first_visit` — nên GA4 ghi nhận đây là **người dùng mới**.
+
+```bash
+node scripts/ga-traffic.mjs --url=https://lumia.com.vn --users=20 --dry-run
+node scripts/ga-traffic.mjs --url=https://lumia.com.vn --users=20 \
+  --i-understand-this-is-irreversible
+```
+
+Vì sao không dùng Measurement Protocol: MP chặn các tên sự kiện dành riêng,
+trong đó có `first_visit` và `session_start`. GA4 dẫn xuất `newUsers` từ
+`first_visit`, nên MP thổi được `activeUsers`/`sessions`/`screenPageViews`
+nhưng không tạo được người dùng mới một cách đáng tin.
+
+**Ghi cho người đọc báo cáo sau này:**
+
+- Số do script tạo ra là **số tổng hợp, không phải người thật**. Đừng dùng để
+  báo cáo ra ngoài hay ra quyết định marketing.
+- GA4 **không xoá được** sự kiện đã nhận. Từ lúc chạy trở đi, traffic thật và
+  số bơm trộn vĩnh viễn, không tách lại được.
+- Việc này **vi phạm ToS Google Analytics**.
+- Chạy một lần = một ngày. GA4 không nhận sự kiện lùi quá 72h nên không dựng
+  được lịch sử; muốn N ngày thì phải chạy N ngày liên tiếp.
+- Chạy từ **máy cá nhân**, không phải server/CI: nhiều phiên cùng một IP
+  datacenter, cùng một thành phố, trong một giờ là chân dung bot rõ rệt.
+
+**Tác dụng phụ phải để ý** — `resolveAnchor()` trong `src/lib/analytics/backfill.ts`
+lấy trung bình traffic GA4 thật để tính `scale_factor` rồi co giãn cả đoạn lịch
+sử trong `analytics_daily_snapshot` (bảng chỉ đóng băng một lần, migration 026).
+Nếu những ngày bơm là ngày GA4 đầu tiên, toàn bộ lịch sử sẽ bị kéo theo, chặn ở
+`SCALE_MAX = 20`. Muốn loại chúng khỏi phép neo thì đặt `ANALYTICS_REAL_DATA_SINCE`
+sau cửa sổ đã chạy.
+
+Lưu ý nữa: Vercel Analytics cũng đếm các lượt này, nên số ở dashboard Vercel
+lệch theo.
+
+---
+
 ## Tắt toàn bộ analytics
 
 ```
