@@ -42,6 +42,25 @@ describe("resolveDateRange", () => {
     expect(range.endDate).toBe("2026-01-02");
     expect(range.startDate).toBe("2025-12-27");
   });
+
+  it("key 'today' luôn là đúng ngày hôm nay, kỳ trước là hôm qua", () => {
+    const range = resolveDateRange("today", TODAY);
+    expect(range.days).toBe(1);
+    expect(range.startDate).toBe("2026-08-04");
+    expect(range.endDate).toBe("2026-08-04");
+    expect(range.previousStartDate).toBe("2026-08-03");
+    expect(range.previousEndDate).toBe("2026-08-03");
+  });
+
+  it("includeToday kéo mốc cuối tới hôm nay cho mọi kỳ (tab Vận hành)", () => {
+    const range = resolveDateRange("7d", TODAY, true);
+    expect(range.endDate).toBe("2026-08-04");
+    expect(range.startDate).toBe("2026-07-29");
+  });
+
+  it("mặc định không includeToday thì vẫn kết thúc ở hôm qua (tab Báo cáo)", () => {
+    expect(resolveDateRange("7d", TODAY).endDate).toBe("2026-08-03");
+  });
 });
 
 describe("parseRangeKey", () => {

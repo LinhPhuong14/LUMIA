@@ -43,6 +43,8 @@ export type GaSummary = {
   newUsers: number;
   sessions: number;
   pageViews: number;
+  /** Tổng số sự kiện (mọi event_name), gồm cả page_view. */
+  eventCount: number;
   /** 0..1 */
   engagementRate: number;
   avgSessionSeconds: number;

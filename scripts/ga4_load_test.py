@@ -45,6 +45,12 @@ Mode bổ sung — số user/session CHÍNH XÁC theo từng ngày (trong cửa 
   Mỗi ngày: đúng N user, mỗi user chia đều M/N session, giờ rải theo nhịp
   ngày-đêm tính bằng múi giờ property (--tz-offset, mặc định +7).
 
+Mode bổ sung — mô phỏng tần suất tương tác sản phẩm (phễu ecommerce GA4):
+  python scripts/ga4_load_test.py products --users 100
+  Mỗi user tương tác theo phân bố tần suất lệch phải (số ít power user, phần
+  lớn 1-2 lần); mỗi lần đi qua phễu view_item → add_to_cart → begin_checkout
+  → purchase với xác suất rớt ở từng bước. In phễu + histogram tần suất.
+
 Tuỳ chọn chung:
   --confirm G-XXXXXXX   xác nhận không tương tác (phải khớp GA_MEASUREMENT_ID)
   --offline             (chỉ dry-run) in payload mẫu, KHÔNG gửi gì lên mạng
@@ -665,6 +671,148 @@ async def run_daily(args) -> None:
           "trong cùng ngày (smoke/active/backfill).")
 
 
+# ── Mô phỏng tần suất tương tác sản phẩm (phễu ecommerce GA4) ───────────────
+
+# Phễu chuẩn của GA4 ecommerce. Mỗi bước có xác suất chuyển tiếp riêng — không
+# phải ai xem cũng thêm giỏ, không phải ai thêm giỏ cũng mua.
+FUNNEL_STEP_RATES = [
+    ("view_item", 1.00),
+    ("add_to_cart", 0.42),
+    ("begin_checkout", 0.55),   # điều kiện: đã add_to_cart
+    ("purchase", 0.60),         # điều kiện: đã begin_checkout
+]
+
+
+def _user_frequency() -> int:
+    """Số lần một user tương tác với sản phẩm trong kỳ. Phân bố lệch phải
+    (power-law nhẹ): đa số ghé 1-2 lần, số ít 'power user' quay lại nhiều lần —
+    giống hành vi mua sắm thật, không đều tăm tắp."""
+    # Pareto rời rạc, kẹp trần 15 để không có ngoại lệ phi lý.
+    return max(1, min(15, int(random.paretovariate(1.6))))
+
+
+def _product_session(identity: dict, session_start_micros: int) -> tuple[dict, list[str]]:
+    """Một phiên mua sắm: view_item → (add_to_cart → begin_checkout → purchase),
+    dừng lại ở bước rớt phễu. Trả (payload, danh sách tên event đã tạo)."""
+    session_id = str(random.randint(10**9, 10**10 - 1))
+    device_cat, os_name, os_ver, lang, screen = identity["device"]
+    city, country = identity["geo"]
+    sku, pname, price = _weighted([(p, w) for p, w in zip(PRODUCTS, (5, 2, 3))])
+    qty = random.choices([1, 2, 3], weights=[80, 15, 5])[0]
+    item = {"item_id": sku, "item_name": pname, "price": price, "quantity": qty}
+    value = price * qty
+
+    events: list[dict] = []
+    names: list[str] = []
+    elapsed = 0.0
+    for name, rate in FUNNEL_STEP_RATES:
+        if name != "view_item" and random.random() > rate:
+            break  # rớt phễu ở bước này
+        elapsed += random.uniform(3, 90)
+        ts = session_start_micros + int(elapsed * 1_000_000)
+        params = {
+            "session_id": session_id,
+            "engagement_time_msec": random.randint(2_000, 60_000),
+            "page_location": f"{BASE_URL}/store",
+            "page_title": f"LUMIA {pname}",
+            "traffic_type": "internal",
+            "data_source": "synthetic_load_test",
+            "currency": "VND",
+            "items": [item],
+        }
+        if name in ("begin_checkout", "purchase", "add_to_cart"):
+            params["value"] = value
+        if name == "purchase":
+            params["transaction_id"] = f"synthetic_{uuid.uuid4().hex[:12]}"
+        events.append({"name": name, "params": params, "timestamp_micros": ts})
+        names.append(name)
+
+    payload = {
+        "client_id": identity["client_id"],
+        "user_id": identity["user_id"],
+        "timestamp_micros": events[0]["timestamp_micros"],
+        "device": {
+            "category": device_cat, "operating_system": os_name,
+            "operating_system_version": os_ver, "language": lang,
+            "screen_resolution": screen,
+        },
+        "user_location": {"city": city, "country_id": country},
+        "events": events,
+    }
+    return payload, names
+
+
+async def run_products(args) -> None:
+    """Mô phỏng tần suất người dùng tương tác với sản phẩm: N user, mỗi user
+    tương tác theo phân bố tần suất lệch phải, mỗi lần đi qua phễu ecommerce
+    view_item → add_to_cart → begin_checkout → purchase. Timestamp rải trong
+    cửa sổ 72h (mặc định 3 ngày gần nhất) nên xem ở Reports, không phải Realtime."""
+    import aiohttp
+    mid, secret = read_credentials()
+    confirm_or_die(mid, args.confirm)
+    params = {"measurement_id": mid, "api_secret": secret}
+    n_users = args.users or 100
+    tz = args.tz_offset if args.tz_offset is not None else 7
+    print(f"PRODUCTS: {n_users} user, phễu ecommerce theo tần suất lệch phải → {MP_URL}")
+
+    metrics = StageMetrics(target_rate=0)
+    funnel: Counter = Counter()
+    revenue = 0
+    sessions_total = 0
+    freq_hist: Counter = Counter()
+    tasks: set[asyncio.Task] = set()
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=50)) as session:
+        for _ in range(n_users):
+            identity = make_identity()
+            freq = _user_frequency()
+            freq_hist[min(freq, 5)] += 1  # gộp nhóm ≥5 để in histogram gọn
+            for _ in range(freq):
+                now = time.time_ns() // 1000
+                day = _weighted([(0, 4), (1, 3), (2, 2)])
+                start = backdated_start(now, day, tz)
+                payload, names = _product_session(identity, start)
+                if now - payload["events"][0]["timestamp_micros"] > MAX_BACKDATE_MICROS:
+                    continue  # guard 72h
+                sessions_total += 1
+                for name in names:
+                    funnel[name] += 1
+                    metrics.events_sent += 1
+                if "purchase" in names:
+                    revenue += payload["events"][-1]["params"]["value"]
+                t = asyncio.create_task(
+                    send_payload(session, MP_URL, params, payload, metrics))
+                tasks.add(t)
+                t.add_done_callback(tasks.discard)
+                if metrics.requests >= MIN_REQUESTS_BEFORE_ABORT and \
+                        metrics.error_rate > ERROR_RATE_ABORT:
+                    print("!! ABORT: error rate vượt 5%.")
+                    break
+                await asyncio.sleep(0.06)
+            else:
+                continue
+            break
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+    metrics.ended_at = time.monotonic()
+
+    print_report([("products", metrics)])
+    print(f"\nPhễu ecommerce ({sessions_total} phiên mua sắm từ {n_users} user):")
+    prev = None
+    for name, _ in FUNNEL_STEP_RATES:
+        count = funnel[name]
+        conv = f" ({count / prev * 100:.0f}% so với bước trước)" if prev else ""
+        print(f"  {name:<16} {count:>6}{conv}")
+        prev = count if count else prev
+    print(f"  → doanh thu tổng hợp: {revenue:,} VND")
+    print("\nTần suất tương tác/user (số phiên mua sắm):")
+    for bucket in sorted(freq_hist):
+        label = f"{bucket}+" if bucket >= 5 else str(bucket)
+        bar = "█" * freq_hist[bucket]
+        print(f"  {label:>3} lần: {bar} {freq_hist[bucket]}")
+    print("\nXem tại GA4 → Reports → Monetisation (Ecommerce purchases, "
+          "Add to cart…) hoặc Engagement → Events; số liệu chốt sau vài giờ tới ~24h.")
+
+
 class SyntheticUser:
     """Một 'người dùng đang hoạt động': client_id/session_id cố định, bắn
     event heartbeat với timestamp HIỆN TẠI (không backdate) để Realtime
@@ -772,7 +920,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("mode",
-                        choices=["dry-run", "smoke", "load", "active", "backfill", "daily"])
+                        choices=["dry-run", "smoke", "load", "active",
+                                 "backfill", "daily", "products"])
     parser.add_argument("--confirm", metavar="G-XXXX",
                         help="xác nhận không tương tác; phải khớp GA_MEASUREMENT_ID")
     parser.add_argument("--offline", action="store_true",
@@ -796,7 +945,8 @@ def main() -> None:
     args = parser.parse_args()
 
     runner = {"dry-run": run_dry_run, "smoke": run_smoke, "load": run_load,
-              "active": run_active, "backfill": run_backfill, "daily": run_daily}[args.mode]
+              "active": run_active, "backfill": run_backfill, "daily": run_daily,
+              "products": run_products}[args.mode]
     try:
         asyncio.run(runner(args))
     except KeyboardInterrupt:

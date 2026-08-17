@@ -57,6 +57,7 @@ describe("spliceGaSummary", () => {
     newUsers: 60,
     sessions: 100,
     pageViews: 300,
+    eventCount: 800,
     engagementRate: 0.8,
     avgSessionSeconds: 200,
   };
@@ -68,6 +69,9 @@ describe("spliceGaSummary", () => {
     expect(merged.newUsers).toBe(100);
     expect(merged.sessions).toBe(180);
     expect(merged.pageViews).toBe(540);
+    // Lịch sử (snapshot không có eventCount) ước lượng: 240 lượt xem + 80*2,4 ≈
+    // 432, cộng 800 event thật = 1232.
+    expect(merged.eventCount).toBe(240 + Math.round(80 * 2.4) + 800);
   });
 
   it("tỉ lệ tương tác lấy trọng số theo phiên, không phải trung bình cộng", () => {

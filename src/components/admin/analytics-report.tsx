@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import {
+  OPERATIONS_RANGE_KEYS,
   percentChange,
   RANGE_KEYS,
   RANGE_LABELS,
@@ -420,9 +421,13 @@ type ReportSection = "business" | "traffic";
  * Tải báo cáo cho đúng những section mà tab đang cần. Tab Báo cáo chỉ xin
  * `business` nên không phải chờ hai vòng gọi API Google mà nó không hiển thị.
  */
-function useAnalyticsReport(sections: ReportSection[]) {
+function useAnalyticsReport(
+  sections: ReportSection[],
+  options: { defaultRange?: RangeKey; includeToday?: boolean } = {},
+) {
+  const { defaultRange = "28d", includeToday = false } = options;
   const sectionsParam = sections.join(",");
-  const [range, setRange] = useState<RangeKey>("28d");
+  const [range, setRange] = useState<RangeKey>(defaultRange);
   const [reloadToken, setReloadToken] = useState(0);
   const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -448,7 +453,7 @@ function useAnalyticsReport(sections: ReportSection[]) {
     async function run() {
       try {
         const response = await fetch(
-          `/api/admin/analytics?range=${range}&sections=${sectionsParam}`,
+          `/api/admin/analytics?range=${range}&sections=${sectionsParam}${includeToday ? "&includeToday=1" : ""}`,
           { cache: "no-store", signal: controller.signal },
         );
         if (!response.ok) {
@@ -473,7 +478,7 @@ function useAnalyticsReport(sections: ReportSection[]) {
 
     void run();
     return () => controller.abort();
-  }, [range, reloadToken, sectionsParam]);
+  }, [range, reloadToken, sectionsParam, includeToday]);
 
   return { range, requestRange, refresh, report, loading, error };
 }
@@ -484,17 +489,19 @@ function ReportToolbar({
   onRefresh,
   loading,
   report,
+  rangeKeys = RANGE_KEYS,
 }: {
   range: RangeKey;
   onSelect: (key: RangeKey) => void;
   onRefresh: () => void;
   loading: boolean;
   report: AnalyticsReport | null;
+  rangeKeys?: readonly RangeKey[];
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex gap-1 rounded-full bg-[var(--surface-warm)] p-1">
-        {RANGE_KEYS.map((key) => (
+        {rangeKeys.map((key) => (
           <button
             key={key}
             type="button"
@@ -906,7 +913,12 @@ export function AnalyticsReportPanel() {
 // ─── Tab "Vận hành" — GA4, Search Console, Vercel ────────────────────────────
 
 export function OperationsReportPanel() {
-  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport(["traffic"]);
+  // Vận hành là màn hình theo dõi trực tiếp: mặc định xem hôm nay, và mọi kỳ
+  // đều bao gồm ngày hôm nay thay vì dừng ở hôm qua như tab Báo cáo.
+  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport(
+    ["traffic"],
+    { defaultRange: "today", includeToday: true },
+  );
 
   const ga = report?.google;
   const gsc = report?.searchConsole;
@@ -948,6 +960,7 @@ export function OperationsReportPanel() {
         onRefresh={refresh}
         loading={loading}
         report={report}
+        rangeKeys={OPERATIONS_RANGE_KEYS}
       />
       <ReportStatus loading={loading} error={error} report={report} />
 
@@ -993,7 +1006,7 @@ export function OperationsReportPanel() {
               />
             ) : (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                   <KpiCard
                     label="Người dùng"
                     value={formatNumber(ga.data.summary.users)}
@@ -1016,6 +1029,24 @@ export function OperationsReportPanel() {
                       ga.data.summary.pageViews,
                       ga.data.previousSummary.pageViews,
                     )}
+                    hint={
+                      ga.data.summary.sessions > 0
+                        ? `${(ga.data.summary.pageViews / ga.data.summary.sessions).toFixed(1)}/phiên`
+                        : undefined
+                    }
+                  />
+                  <KpiCard
+                    label="Số sự kiện"
+                    value={formatNumber(ga.data.summary.eventCount)}
+                    change={percentChange(
+                      ga.data.summary.eventCount,
+                      ga.data.previousSummary.eventCount,
+                    )}
+                    hint={
+                      ga.data.summary.users > 0
+                        ? `${(ga.data.summary.eventCount / ga.data.summary.users).toFixed(1)}/người`
+                        : undefined
+                    }
                   />
                   <KpiCard
                     label="Tỉ lệ tương tác"

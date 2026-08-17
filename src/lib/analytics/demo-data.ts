@@ -110,6 +110,7 @@ type DailyPoint = {
   newUsers: number;
   sessions: number;
   pageViews: number;
+  eventCount: number;
   engagementRate: number;
   sessionSeconds: number;
   impressions: number;
@@ -142,6 +143,10 @@ function buildDay(date: Date, calibration: DemoCalibration): DailyPoint {
   const newUserShare = Math.max(0.52, 0.88 - daysSinceLaunch * 0.004);
   const sessions = Math.round(users * 1.28 * jitter(isoDate, "sessions", 0.06));
   const pageViews = Math.round(sessions * 2.95 * jitter(isoDate, "views", 0.08));
+  // GA4 đếm mọi event: mỗi phiên có sẵn session_start + user_engagement (~first_visit
+  // cho khách mới), cộng page_view và các tương tác scroll/click. Xấp xỉ lượt xem
+  // cộng ~2,4 event/phiên cho phần còn lại.
+  const eventCount = Math.round(pageViews + sessions * 2.4 * jitter(isoDate, "events", 0.07));
 
   // Search Console: chưa index thì chưa có impression, sau đó mới bò lên.
   // Trần impression buộc theo quy mô site (`peakDailyUsers`) thay vì hardcode,
@@ -173,6 +178,7 @@ function buildDay(date: Date, calibration: DemoCalibration): DailyPoint {
     newUsers: Math.round(users * newUserShare),
     sessions,
     pageViews,
+    eventCount,
     engagementRate: (0.55 + 0.11 * maturity) * jitter(isoDate, "engagement", 0.05),
     sessionSeconds: (104 + 46 * maturity) * jitter(isoDate, "duration", 0.09),
     impressions,
@@ -329,8 +335,9 @@ function summarize(points: DailyPoint[]): GaSummary {
       newUsers: acc.newUsers + point.newUsers,
       sessions: acc.sessions + point.sessions,
       pageViews: acc.pageViews + point.pageViews,
+      eventCount: acc.eventCount + point.eventCount,
     }),
-    { users: 0, newUsers: 0, sessions: 0, pageViews: 0 },
+    { users: 0, newUsers: 0, sessions: 0, pageViews: 0, eventCount: 0 },
   );
 
   // Trung bình có trọng số theo số phiên — trung bình cộng theo ngày sẽ để một

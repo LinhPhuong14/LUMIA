@@ -68,6 +68,8 @@ describe("buildDemoGaReport", () => {
   it("quan hệ giữa các chỉ số hợp lý: phiên ≥ người dùng, lượt xem ≥ phiên", () => {
     expect(report.summary.sessions).toBeGreaterThan(report.summary.users);
     expect(report.summary.pageViews).toBeGreaterThan(report.summary.sessions);
+    // Số sự kiện gồm cả page_view nên luôn ≥ lượt xem trang.
+    expect(report.summary.eventCount).toBeGreaterThan(report.summary.pageViews);
     expect(report.summary.newUsers).toBeLessThan(report.summary.users);
     expect(report.summary.engagementRate).toBeGreaterThan(0);
     expect(report.summary.engagementRate).toBeLessThan(1);
