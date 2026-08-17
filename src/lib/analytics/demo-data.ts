@@ -221,12 +221,14 @@ export function buildDemoDailySeries(
  * đã biết thương hiệu, bạn bè, khách được giới thiệu tay đôi. Organic Social
  * có nhưng chưa kéo được nhiều, còn Organic Search thấp vì domain chưa có tuổi.
  */
+// Cố tình KHÔNG có "Unassigned": báo cáo chỉ hiện các nguồn xác định được, tổng
+// là tổng của các nguồn đó (toBreakdown nhân thẳng total×share nên bỏ một dòng
+// không co giãn các dòng còn lại).
 const CHANNEL_SHARES: [string, number][] = [
   ["Direct", 0.38],
   ["Organic Social", 0.24],
   ["Organic Search", 0.18],
   ["Referral", 0.12],
-  ["Unassigned", 0.08],
 ];
 
 const DEVICE_SHARES: [string, number][] = [

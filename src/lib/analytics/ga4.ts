@@ -98,6 +98,14 @@ function toBreakdown(report: GaSingleReport | undefined): BreakdownRow[] {
   }));
 }
 
+// Các nhãn kênh không quy được về nguồn xác định — loại khỏi "Nguồn truy cập"
+// để chỉ còn tổng các nguồn thật (Direct, Organic…).
+const UNASSIGNED_CHANNELS = new Set(["Unassigned", "(not set)", "(không xác định)", ""]);
+
+function isAssignedChannel(row: BreakdownRow): boolean {
+  return !UNASSIGNED_CHANNELS.has(row.label.trim());
+}
+
 async function runBatch(
   propertyId: string,
   token: string,
@@ -365,7 +373,7 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
         trend,
         daily,
         topPages,
-        channels: toBreakdown(breakdowns.reports?.[0]),
+        channels: toBreakdown(breakdowns.reports?.[0]).filter(isAssignedChannel),
         devices: toBreakdown(breakdowns.reports?.[1]),
         countries: toBreakdown(breakdowns.reports?.[2]),
       },

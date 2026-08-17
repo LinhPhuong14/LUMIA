@@ -118,6 +118,10 @@ describe("buildDemoGaReport", () => {
     expect(report.channels[0]?.label).toBe("Direct");
   });
 
+  it("không có kênh Unassigned trong nguồn truy cập", () => {
+    expect(report.channels.some((row) => row.label === "Unassigned")).toBe(false);
+  });
+
   it("mỗi trang có lượt xem ≥ số người dùng", () => {
     for (const page of report.topPages) {
       expect(page.views).toBeGreaterThanOrEqual(page.users);
