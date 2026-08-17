@@ -18,7 +18,7 @@ import {
 } from "@/lib/analytics/demo-data";
 import { fillGaGaps, fillGscGaps, isGscEmpty } from "@/lib/analytics/fill-gaps";
 import { fetchGaRealtime, fetchGaReport } from "@/lib/analytics/ga4";
-import { applyMockDates, parseMockGaDates } from "@/lib/analytics/mock-override";
+import { applyMockDates, resolveMockDates } from "@/lib/analytics/mock-override";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
 import { readSnapshot } from "@/lib/analytics/snapshot";
 import {
@@ -187,11 +187,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // Thay riêng những ngày cấu hình trong ANALYTICS_MOCK_GA_DATES bằng số
-    // mockup — dùng khi vài ngày đã lỡ trộn data test load-test. Chỉ đụng
-    // nguồn GA4 THẬT (không phải demo), và làm TRƯỚC bước nối lịch sử để mọi
-    // xử lý sau đó thao tác trên số đã vá. Không cấu hình env → no-op.
-    const mockDates = parseMockGaDates(process.env.ANALYTICS_MOCK_GA_DATES);
+    // Thay riêng các ngày đã lỡ trộn data test load-test bằng số mockup. Danh
+    // sách bake sẵn (14-17/8) trong mock-override, ghi đè được qua env
+    // ANALYTICS_MOCK_GA_DATES. Chỉ đụng nguồn GA4 THẬT (không phải demo), làm
+    // TRƯỚC bước nối lịch sử để mọi xử lý sau đó thao tác trên số đã vá.
+    const mockDates = resolveMockDates(process.env.ANALYTICS_MOCK_GA_DATES);
     const gaReal = report.google;
     if (mockDates.size > 0 && gaReal?.status === "ok" && gaReal.data && !gaReal.demo) {
       report.google = { ...gaReal, data: applyMockDates(gaReal.data, mockDates) };
