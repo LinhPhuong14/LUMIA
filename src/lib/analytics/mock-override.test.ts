@@ -115,4 +115,16 @@ describe("applyMockDates", () => {
       expect(point.sessions).toBe(day.sessions);
     }
   });
+
+  it("tất định — hai tab (Báo cáo & Vận hành) cùng range phải ra số y hệt", () => {
+    // Cả hai tab gọi cùng route với cùng range; override tất định theo ngày,
+    // không phụ thuộc thời điểm gọi hay tab nào, nên kết quả phải trùng khít —
+    // đảm bảo các ô cùng truy xuất một giá trị không lệch nhau giữa hai tab.
+    const mock = new Set(["2026-08-15", "2026-08-16", "2026-08-17"]);
+    const fromReportTab = applyMockDates(report, mock);
+    const fromOperationsTab = applyMockDates(report, mock);
+    expect(fromOperationsTab).toEqual(fromReportTab);
+    expect(fromOperationsTab.summary).toEqual(fromReportTab.summary);
+    expect(fromOperationsTab.daily).toEqual(fromReportTab.daily);
+  });
 });
