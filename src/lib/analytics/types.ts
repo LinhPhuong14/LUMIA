@@ -56,6 +56,19 @@ export type GaTrendPoint = {
   sessions: number;
 };
 
+/** Số liệu đầy đủ theo TỪNG ngày — nền để thay riêng vài ngày bằng mockup. */
+export type GaDailyPoint = {
+  date: string;
+  users: number;
+  newUsers: number;
+  sessions: number;
+  pageViews: number;
+  eventCount: number;
+  /** 0..1 */
+  engagementRate: number;
+  avgSessionSeconds: number;
+};
+
 export type GaPageRow = {
   path: string;
   views: number;
@@ -66,6 +79,8 @@ export type GaReport = {
   summary: GaSummary;
   previousSummary: GaSummary;
   trend: GaTrendPoint[];
+  /** Số liệu đầy đủ theo ngày của kỳ hiện tại — dùng cho override mockup. */
+  daily: GaDailyPoint[];
   topPages: GaPageRow[];
   channels: BreakdownRow[];
   devices: BreakdownRow[];

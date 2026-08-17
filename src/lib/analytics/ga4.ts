@@ -6,6 +6,7 @@ import { GA4_SCOPE, getGoogleAccessToken, getServiceAccountCredentials, hasServi
 import { describeGoogleApiError } from "@/lib/analytics/google-errors";
 import type {
   BreakdownRow,
+  GaDailyPoint,
   GaPageRow,
   GaRealtime,
   GaRealtimePoint,
@@ -324,11 +325,14 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
           metrics: SUMMARY_METRICS.map((name) => ({ name })),
         },
         {
+          // Kéo ĐỦ chỉ số theo ngày (không chỉ users+sessions) để vừa vẽ trend
+          // vừa làm nền cho việc thay riêng vài ngày bằng mockup, và tính lại
+          // tổng cho khớp.
           dateRanges: [currentRange],
           dimensions: [{ name: "date" }],
-          metrics: [{ name: "activeUsers" }, { name: "sessions" }],
+          metrics: SUMMARY_METRICS.map((name) => ({ name })),
           orderBys: [{ dimension: { dimensionName: "date" } }],
-          limit: 100,
+          limit: 400,
         },
         {
           dateRanges: [currentRange],
@@ -364,10 +368,24 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
     ]);
 
     const summaryRows = core.reports?.[0]?.rows ?? [];
-    const trend: GaTrendPoint[] = (core.reports?.[1]?.rows ?? []).map((row) => ({
-      date: normalizeGaDate(dim(row, 0)),
-      users: metric(row, 0),
-      sessions: metric(row, 1),
+    // Per-day: cùng thứ tự metric với SUMMARY_METRICS, lệch 1 vì cột 0 là date.
+    const daily: GaDailyPoint[] = (core.reports?.[1]?.rows ?? [])
+      .map((row) => ({
+        date: normalizeGaDate(dim(row, 0)),
+        users: metric(row, 0),
+        newUsers: metric(row, 1),
+        sessions: metric(row, 2),
+        pageViews: metric(row, 3),
+        eventCount: metric(row, 4),
+        engagementRate: metric(row, 5),
+        avgSessionSeconds: metric(row, 6),
+      }))
+      .filter((point) => point.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const trend: GaTrendPoint[] = daily.map((point) => ({
+      date: point.date,
+      users: point.users,
+      sessions: point.sessions,
     }));
     const topPages: GaPageRow[] = (core.reports?.[2]?.rows ?? []).map((row) => ({
       path: dim(row, 0) || "/",
@@ -381,6 +399,7 @@ export async function fetchGaReport(range: DateRange): Promise<SourceState<GaRep
         summary: toSummary(summaryRows[0]),
         previousSummary: toSummary(summaryRows[1]),
         trend,
+        daily,
         topPages,
         channels: toBreakdown(breakdowns.reports?.[0]),
         devices: toBreakdown(breakdowns.reports?.[1]),

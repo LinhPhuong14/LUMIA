@@ -428,6 +428,16 @@ export function buildDemoGaReport(range: DateRange, calibration: DemoCalibration
       users: point.users,
       sessions: point.sessions,
     })),
+    daily: current.map((point) => ({
+      date: point.date,
+      users: point.users,
+      newUsers: point.newUsers,
+      sessions: point.sessions,
+      pageViews: point.pageViews,
+      eventCount: point.eventCount,
+      engagementRate: point.engagementRate,
+      avgSessionSeconds: point.sessionSeconds,
+    })),
     topPages: PAGE_SHARES.filter(([path]) => !isHiddenPath(path)).map(([path, share, viewsPerUser]) => {
       const views = Math.max(1, Math.round(summary.pageViews * share * jitter(seed, path, 0.05)));
       return {

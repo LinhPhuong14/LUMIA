@@ -25,6 +25,7 @@ function emptyBreakdowns(summary: Partial<GaReport["summary"]> = {}): GaReport {
     },
     previousSummary: demoGa.previousSummary,
     trend: demoGa.trend,
+    daily: demoGa.daily,
     topPages: [],
     channels: [],
     devices: [],
