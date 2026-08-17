@@ -97,18 +97,51 @@ function toBreakdown(report: GaSingleReport | undefined): BreakdownRow[] {
   }));
 }
 
+/**
+ * Bộ lọc loại data tổng hợp (load-test) khỏi báo cáo.
+ *
+ * Chỉ bật khi GA4_EXCLUDE_SYNTHETIC=true. Data API chỉ lọc được tham số tùy
+ * biến `data_source` khi property đã ĐĂNG KÝ custom dimension event-scoped cho
+ * nó (Admin → Custom definitions → parameter `data_source`); chưa đăng ký mà
+ * thêm bộ lọc là API trả lỗi. Vì vậy mặc định TẮT — bật tường minh sau khi đã
+ * đăng ký dimension. Tên dimension và giá trị chỉnh được qua env để khớp đúng
+ * những gì script seed gắn (data_source = synthetic_load_test).
+ */
+export function syntheticExclusionFilter(): Record<string, unknown> | null {
+  if (process.env.GA4_EXCLUDE_SYNTHETIC !== "true") {
+    return null;
+  }
+  const fieldName = process.env.GA4_SYNTHETIC_DIMENSION?.trim() || "customEvent:data_source";
+  const value = process.env.GA4_SYNTHETIC_VALUE?.trim() || "synthetic_load_test";
+  return {
+    notExpression: {
+      filter: {
+        fieldName,
+        stringFilter: { matchType: "EXACT", value },
+      },
+    },
+  };
+}
+
 async function runBatch(
   propertyId: string,
   token: string,
-  requests: unknown[],
+  requests: Record<string, unknown>[],
 ): Promise<GaBatchResponse> {
+  // Gắn bộ lọc loại data test vào mọi request nếu đang bật — làm một chỗ để
+  // không truy vấn nào lọt lưới.
+  const filter = syntheticExclusionFilter();
+  const withFilter = filter
+    ? requests.map((request) => ({ ...request, dimensionFilter: filter }))
+    : requests;
+
   const response = await fetch(`${API_BASE}/properties/${propertyId}:batchRunReports`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ requests }),
+    body: JSON.stringify({ requests: withFilter }),
     cache: "no-store",
   });
 
@@ -165,13 +198,16 @@ async function runRealtime(
   token: string,
   body: Record<string, unknown>,
 ): Promise<GaSingleReport> {
+  const filter = syntheticExclusionFilter();
+  const merged = filter ? { ...body, dimensionFilter: filter } : body;
+
   const response = await fetch(`${API_BASE}/properties/${propertyId}:runRealtimeReport`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(merged),
     cache: "no-store",
   });
 
