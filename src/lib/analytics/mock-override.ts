@@ -1,4 +1,10 @@
-import type { GaDailyPoint, GaReport, GaSummary } from "@/lib/analytics/types";
+import type {
+  BreakdownRow,
+  GaDailyPoint,
+  GaPageRow,
+  GaReport,
+  GaSummary,
+} from "@/lib/analytics/types";
 
 /**
  * Thay riêng số liệu của những ngày chỉ định bằng dữ liệu mockup.
@@ -150,6 +156,24 @@ export function applyMockDates(data: GaReport, mockDates: Set<string>): GaReport
     summary.avgSessionSeconds = weighted.duration / weighted.sessions;
   }
 
+  // Co giãn các bảng cơ cấu (nguồn/thiết bị/quốc gia/top trang) theo đúng tỉ lệ
+  // tổng đã đổi, để chúng cùng scale với KPI — nếu không, KPI tụt xuống mock
+  // còn breakdown vẫn ở mức thật (lớn) và hai bên lệch hẳn. Giữ nguyên phân bố
+  // (nguồn nào lớn vẫn lớn), chỉ đổi độ lớn tuyệt đối.
+  const ratio = (next: number, prev: number): number => (prev > 0 ? next / prev : 1);
+  const usersRatio = ratio(summary.users, data.summary.users);
+  const sessionsRatio = ratio(summary.sessions, data.summary.sessions);
+  const pageViewsRatio = ratio(summary.pageViews, data.summary.pageViews);
+
+  const scaleRows = (rows: BreakdownRow[], factor: number): BreakdownRow[] =>
+    rows.map((row) => ({ ...row, value: Math.max(1, Math.round(row.value * factor)) }));
+  const scalePages = (rows: GaPageRow[]): GaPageRow[] =>
+    rows.map((row) => ({
+      ...row,
+      views: Math.max(1, Math.round(row.views * pageViewsRatio)),
+      users: Math.max(1, Math.round(row.users * usersRatio)),
+    }));
+
   return {
     ...data,
     daily: patchedDaily,
@@ -159,5 +183,9 @@ export function applyMockDates(data: GaReport, mockDates: Set<string>): GaReport
       users: point.users,
       sessions: point.sessions,
     })),
+    channels: scaleRows(data.channels, sessionsRatio),
+    devices: scaleRows(data.devices, usersRatio),
+    countries: scaleRows(data.countries, usersRatio),
+    topPages: scalePages(data.topPages),
   };
 }

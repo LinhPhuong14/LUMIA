@@ -94,10 +94,10 @@ describe("applyMockDates", () => {
     previousSummary: summaryFrom(days, 1000),
     trend: days.map((p) => ({ date: p.date, users: p.users, sessions: p.sessions })),
     daily: days,
-    topPages: [],
-    channels: [],
-    devices: [],
-    countries: [],
+    topPages: [{ path: "/", views: 800, users: 400 }],
+    channels: [{ label: "Direct", value: 900 }],
+    devices: [{ label: "mobile", value: 900 }],
+    countries: [{ label: "Vietnam", value: 900 }],
   };
 
   it("chỉ thay ngày trong danh sách, ngày 18 giữ nguyên số thật", () => {
@@ -122,6 +122,17 @@ describe("applyMockDates", () => {
   it("không có ngày mock nào trong kỳ → trả nguyên bản", () => {
     expect(applyMockDates(report, new Set(["2026-01-01"]))).toBe(report);
     expect(applyMockDates(report, new Set())).toBe(report);
+  });
+
+  it("bảng cơ cấu co giãn theo tổng đã mock — không để KPI nhỏ mà breakdown lớn", () => {
+    const out = applyMockDates(report, new Set(["2026-08-15", "2026-08-16"]));
+    // Tổng đã giảm mạnh (mock nhỏ hơn số thật), nên breakdown cũng phải nhỏ lại
+    // theo tỉ lệ — không còn kênh 900 phiên trong khi tổng chỉ vài trăm.
+    expect(out.channels[0].value).toBeLessThan(900);
+    expect(out.channels[0].value).toBeLessThanOrEqual(out.summary.sessions);
+    expect(out.devices[0].value).toBeLessThanOrEqual(out.summary.users);
+    expect(out.topPages[0].views).toBeLessThan(800);
+    expect(out.topPages[0].users).toBeLessThanOrEqual(out.summary.users);
   });
 
   it("trend khớp với daily đã vá", () => {
