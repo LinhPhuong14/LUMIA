@@ -64,11 +64,18 @@ export function spliceGaSummary(historical: SnapshotRow[], real: GaSummary): GaS
 
   const totalSessions = past.sessions + real.sessions;
 
+  // Snapshot lịch sử (đóng băng ở migration 026) không lưu eventCount. Ước lượng
+  // phần lịch sử theo cùng công thức của dữ liệu mẫu — lượt xem cộng ~2,4
+  // event/phiên — để KPI "Số sự kiện" giữ tỉ lệ với phiên/lượt xem đang hiển
+  // thị, thay vì chỉ đếm đoạn thật rồi lệch hẳn so với các ô bên cạnh.
+  const pastEventCount = past.pageViews + Math.round(past.sessions * 2.4);
+
   return {
     users: past.users + real.users,
     newUsers: past.newUsers + real.newUsers,
     sessions: totalSessions,
     pageViews: past.pageViews + real.pageViews,
+    eventCount: pastEventCount + real.eventCount,
     engagementRate:
       totalSessions > 0
         ? (past.engagementWeighted + real.engagementRate * real.sessions) / totalSessions

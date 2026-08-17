@@ -100,7 +100,10 @@ export async function GET(request: Request) {
   }
 
   const params = new URL(request.url).searchParams;
-  const range = resolveDateRange(parseRangeKey(params.get("range")));
+  // Tab Vận hành gửi includeToday=1 để cột cuối là hôm nay; Báo cáo bỏ qua và
+  // giữ mốc hôm qua. Key "today" tự bao gồm hôm nay bất kể cờ.
+  const includeToday = params.get("includeToday") === "1";
+  const range = resolveDateRange(parseRangeKey(params.get("range")), new Date(), includeToday);
   const sections = parseSections(params.get("sections"));
 
   // Mỗi nguồn tự trả SourceState riêng — một nguồn hỏng không kéo theo nguồn còn lại.

@@ -59,15 +59,18 @@ const EMPTY_SUMMARY: GaSummary = {
   newUsers: 0,
   sessions: 0,
   pageViews: 0,
+  eventCount: 0,
   engagementRate: 0,
   avgSessionSeconds: 0,
 };
 
+// Thứ tự phải khớp index trong toSummary bên dưới.
 const SUMMARY_METRICS = [
   "activeUsers",
   "newUsers",
   "sessions",
   "screenPageViews",
+  "eventCount",
   "engagementRate",
   "averageSessionDuration",
 ];
@@ -81,8 +84,9 @@ function toSummary(row: GaRow | undefined): GaSummary {
     newUsers: metric(row, 1),
     sessions: metric(row, 2),
     pageViews: metric(row, 3),
-    engagementRate: metric(row, 4),
-    avgSessionSeconds: metric(row, 5),
+    eventCount: metric(row, 4),
+    engagementRate: metric(row, 5),
+    avgSessionSeconds: metric(row, 6),
   };
 }
 

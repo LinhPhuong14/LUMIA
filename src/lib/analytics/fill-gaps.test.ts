@@ -18,6 +18,7 @@ function emptyBreakdowns(summary: Partial<GaReport["summary"]> = {}): GaReport {
       newUsers: 474,
       sessions: 845,
       pageViews: 2486,
+      eventCount: 4514,
       engagementRate: 0.612,
       avgSessionSeconds: 130,
       ...summary,
