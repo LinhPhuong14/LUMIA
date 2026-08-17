@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import datetime
 import json
 import os
 import random
@@ -561,21 +562,53 @@ async def run_backfill(args) -> None:
           "'New users' sẽ không tăng — first_visit là tên MP cấm gửi.")
 
 
+def _iso_for_offset(now_micros: int, day_offset: int, tz_offset_hours: int) -> str:
+    tz = datetime.timezone(datetime.timedelta(hours=tz_offset_hours))
+    today = datetime.datetime.fromtimestamp(now_micros / 1e6, tz).date()
+    return (today - datetime.timedelta(days=day_offset)).isoformat()
+
+
+def _resolve_day_offsets(args, now_micros: int, tz: int) -> list[int]:
+    """Trả danh sách day_offset cần feed. --date nhắm đúng một ngày; nếu không
+    thì N ngày gần nhất. Chặn ngày ngoài cửa sổ 72h của Measurement Protocol."""
+    if args.date:
+        try:
+            target = datetime.date.fromisoformat(args.date)
+        except ValueError:
+            sys.exit(f"DỪNG: --date '{args.date}' sai định dạng, cần YYYY-MM-DD.")
+        tzinfo = datetime.timezone(datetime.timedelta(hours=tz))
+        today = datetime.datetime.fromtimestamp(now_micros / 1e6, tzinfo).date()
+        offset = (today - target).days
+        if offset < 0:
+            sys.exit(f"DỪNG: --date {args.date} ở tương lai (theo múi giờ UTC{tz:+d}).")
+        if offset > 2:
+            sys.exit(
+                f"DỪNG: --date {args.date} lùi {offset} ngày — vượt cửa sổ 72h của MP.\n"
+                f"GA4 từ chối event cũ hơn 72h. Chỉ feed được từ "
+                f"{_iso_for_offset(now_micros, 2, tz)} trở về sau."
+            )
+        return [offset]
+    days = min(args.days or 3, 3)  # quá 3 ngày là ra ngoài cửa sổ 72h
+    return list(range(days - 1, -1, -1))  # ngày xa nhất trước
+
+
 async def run_daily(args) -> None:
-    """Feed chính xác N user / M session cho TỪNG ngày trong 3 ngày gần nhất
-    (cửa sổ 72h của MP). Mỗi user được chia đều số session trong ngày, giờ
-    rải theo nhịp ngày-đêm múi giờ property. Mặc định: 100 user / 600 session
-    mỗi ngày × 3 ngày."""
+    """Feed chính xác N user / M session cho TỪNG ngày trong cửa sổ 72h của MP.
+    Mỗi user được chia đều số session trong ngày, giờ rải theo nhịp ngày-đêm
+    múi giờ property. Mặc định: 100 user / 600 session mỗi ngày × 3 ngày.
+    Dùng --date YYYY-MM-DD để nhắm đúng một ngày (vd bù thêm cho 16/8)."""
     import aiohttp
     mid, secret = read_credentials()
     confirm_or_die(mid, args.confirm)
     params = {"measurement_id": mid, "api_secret": secret}
     users_per_day = args.users or 100
     sessions_per_day = args.sessions or 600
-    days = min(args.days or 3, 3)  # quá 3 ngày là ra ngoài cửa sổ 72h
     tz = args.tz_offset if args.tz_offset is not None else 7
-    print(f"DAILY: {days} ngày × ({users_per_day} user / {sessions_per_day} session), "
-          f"múi giờ UTC{tz:+d} → {MP_URL}")
+    now0 = time.time_ns() // 1000
+    offsets = _resolve_day_offsets(args, now0, tz)
+    span = ", ".join(_iso_for_offset(now0, d, tz) for d in offsets)
+    print(f"DAILY: {len(offsets)} ngày [{span}] × ({users_per_day} user / "
+          f"{sessions_per_day} session), múi giờ UTC{tz:+d} → {MP_URL}")
 
     metrics = StageMetrics(target_rate=0)
     warnings: list[str] = []
@@ -583,8 +616,8 @@ async def run_daily(args) -> None:
     tasks: set[asyncio.Task] = set()
     aborted = False
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=50)) as session:
-        for day in range(days - 1, -1, -1):  # ngày xa nhất trước
-            label = f"D-{day}"
+        for day in offsets:
+            label = _iso_for_offset(time.time_ns() // 1000, day, tz)
             identities = [make_identity() for _ in range(users_per_day)]
             # Chia session vòng tròn: mỗi user nhận sessions_per_day/users cái.
             specs = [identities[i % users_per_day] for i in range(sessions_per_day)]
@@ -758,6 +791,8 @@ def main() -> None:
                         help="daily: số ngày, tối đa 3 (mặc định 3)")
     parser.add_argument("--tz-offset", type=int, dest="tz_offset",
                         help="daily: múi giờ property, giờ so với UTC (mặc định +7)")
+    parser.add_argument("--date",
+                        help="daily: nhắm đúng một ngày YYYY-MM-DD (trong 72h qua)")
     args = parser.parse_args()
 
     runner = {"dry-run": run_dry_run, "smoke": run_smoke, "load": run_load,
