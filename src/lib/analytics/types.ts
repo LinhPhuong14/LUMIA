@@ -70,6 +70,23 @@ export type GaReport = {
   countries: BreakdownRow[];
 };
 
+export type GaRealtimePoint = {
+  /** 0 = phút hiện tại, 29 = xa nhất trong cửa sổ realtime của GA4. */
+  minutesAgo: number;
+  users: number;
+};
+
+/**
+ * Ảnh chụp realtime — tách khỏi GaReport vì không có "kỳ trước" để so, không
+ * đi qua máy nối lịch sử/lấp khối, và làm mới theo nhịp riêng.
+ */
+export type GaRealtime = {
+  /** Người dùng khác nhau có hoạt động trong 30 phút gần nhất. */
+  activeUsers: number;
+  /** Người dùng theo từng phút trong cửa sổ đó, đủ 30 điểm. */
+  byMinute: GaRealtimePoint[];
+};
+
 export type GscSummary = {
   clicks: number;
   impressions: number;
@@ -160,6 +177,8 @@ export type AnalyticsReport = {
    */
   business?: SourceState<BusinessReport>;
   google?: SourceState<GaReport>;
+  /** Chỉ có ở section `traffic` — người dùng đang hoạt động (30 phút gần nhất). */
+  realtime?: SourceState<GaRealtime>;
   searchConsole?: SourceState<GscReport>;
   vercel?: VercelState;
   /** Chỉ có ở section `traffic`, khi GA4 đã trả số thật. */

@@ -7,6 +7,8 @@ import { describeGoogleApiError } from "@/lib/analytics/google-errors";
 import type {
   BreakdownRow,
   GaPageRow,
+  GaRealtime,
+  GaRealtimePoint,
   GaReport,
   GaSummary,
   GaTrendPoint,
@@ -151,6 +153,100 @@ export async function fetchGaDailyUsers(
     }));
   } catch {
     return [];
+  }
+}
+
+async function runRealtime(
+  propertyId: string,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<GaSingleReport> {
+  const response = await fetch(`${API_BASE}/properties/${propertyId}:runRealtimeReport`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  const data = (await response.json()) as GaSingleReport & { error?: { message?: string } };
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? `GA4 realtime trả về HTTP ${response.status}`);
+  }
+  return data;
+}
+
+/**
+ * Người dùng đang hoạt động — cửa sổ 30 phút của GA4 Realtime API.
+ *
+ * Hai request thay vì một: tổng phải hỏi riêng (không dimension) vì cộng 30
+ * dòng theo phút sẽ đếm trùng người hoạt động ở nhiều phút.
+ */
+export async function fetchGaRealtime(): Promise<SourceState<GaRealtime>> {
+  const propertyId = getPropertyId();
+
+  if (!hasServiceAccount() || !propertyId) {
+    return {
+      status: "not_configured",
+      message: "Chưa cấu hình GA4_PROPERTY_ID hoặc service account của Google.",
+      data: null,
+    };
+  }
+
+  const token = await getGoogleAccessToken(GA4_SCOPE);
+  if (!token) {
+    return {
+      status: "error",
+      message: "Không lấy được access token — kiểm tra lại private key của service account.",
+      data: null,
+    };
+  }
+
+  try {
+    const [total, perMinute] = await Promise.all([
+      runRealtime(propertyId, token, {
+        metrics: [{ name: "activeUsers" }],
+      }),
+      runRealtime(propertyId, token, {
+        dimensions: [{ name: "minutesAgo" }],
+        metrics: [{ name: "activeUsers" }],
+        limit: 30,
+      }),
+    ]);
+
+    // GA4 bỏ qua những phút không có hoạt động — lấp đủ 30 điểm để biểu đồ
+    // không co giãn theo số phút có dữ liệu.
+    const byMap = new Map<number, number>();
+    for (const row of perMinute.rows ?? []) {
+      byMap.set(Number(dim(row, 0)), metric(row, 0));
+    }
+    const byMinute: GaRealtimePoint[] = Array.from({ length: 30 }, (_, i) => ({
+      minutesAgo: 29 - i,
+      users: byMap.get(29 - i) ?? 0,
+    }));
+
+    return {
+      status: "ok",
+      data: {
+        activeUsers: metric((total.rows ?? [])[0] ?? {}, 0),
+        byMinute,
+      },
+    };
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : "Không gọi được GA4 Realtime API.";
+    return {
+      status: "error",
+      message: describeGoogleApiError(
+        raw,
+        "ga4",
+        getServiceAccountCredentials()?.email,
+        propertyId,
+      ),
+      detail: `GA4 property ${propertyId} · service account ${getServiceAccountCredentials()?.email ?? "?"} · lỗi gốc: ${raw}`,
+      data: null,
+    };
   }
 }
 

@@ -2,6 +2,7 @@ import type { DateRange } from "@/lib/analytics/date-range";
 import { toIsoDate } from "@/lib/analytics/date-range";
 import type {
   BreakdownRow,
+  GaRealtime,
   GaReport,
   GaSummary,
   GscReport,
@@ -437,6 +438,50 @@ export function buildDemoGaReport(range: DateRange, calibration: DemoCalibration
     devices: toBreakdown(summary.users, DEVICE_SHARES, `${seed}:device`),
     countries: toBreakdown(summary.users, COUNTRY_SHARES, `${seed}:country`),
   };
+}
+
+/**
+ * Nhịp trong ngày cho realtime mẫu (giờ Việt Nam): đêm gần như im, nhích dần
+ * buổi sáng, cao nhất buổi tối trước giờ ngủ — đúng nhịp một site về giấc ngủ.
+ */
+const HOURLY_ACTIVITY = [
+  0.15, 0.08, 0.05, 0.04, 0.05, 0.12, 0.25, 0.4, 0.5, 0.55, 0.6, 0.65,
+  0.7, 0.6, 0.55, 0.55, 0.6, 0.7, 0.8, 0.95, 1, 0.9, 0.6, 0.3,
+];
+
+/** Múi giờ hiển thị của báo cáo — trùng múi giờ property GA4. */
+const REALTIME_TZ_OFFSET_HOURS = 7;
+
+/**
+ * Realtime mẫu, tất định theo (phút hiện tại, calibration): trong cùng một phút
+ * mọi lần gọi ra cùng con số — làm mới liên tục thấy số đứng yên rồi đổi theo
+ * phút, giống hành vi của số realtime thật; đổi loạn xạ mỗi lần bấm là lộ ngay
+ * số bịa. `at` nhận từ ngoài để test được.
+ */
+export function buildDemoGaRealtime(calibration: DemoCalibration, at: Date = new Date()): GaRealtime {
+  const minuteEpoch = Math.floor(at.getTime() / 60_000);
+
+  // Mức "đang hoạt động" hợp lý so với quy mô ngày: một site có N người/ngày
+  // thì một phút bất kỳ chỉ có cỡ vài phần trăm đang online, nhân nhịp giờ.
+  const byMinute = Array.from({ length: 30 }, (_, i) => {
+    const minutesAgo = 29 - i;
+    const pointEpoch = minuteEpoch - minutesAgo;
+    const hour = Math.floor((pointEpoch / 60 + REALTIME_TZ_OFFSET_HOURS) % 24);
+    const base = calibration.peakDailyUsers * 0.06 * HOURLY_ACTIVITY[hour];
+    const random = createRandom(hashString(`realtime:${pointEpoch}`));
+    return {
+      minutesAgo,
+      users: Math.max(0, Math.round(base * (0.6 + random() * 0.9))),
+    };
+  });
+
+  // Tổng 30 phút: lớn hơn phút cao nhất (có người vào-ra suốt cửa sổ) nhưng
+  // nhỏ hơn tổng cộng dồn (một người hoạt động nhiều phút chỉ đếm một lần).
+  const peakMinute = Math.max(...byMinute.map((point) => point.users), 0);
+  const summed = byMinute.reduce((total, point) => total + point.users, 0);
+  const activeUsers = Math.max(peakMinute, Math.round(summed * 0.45));
+
+  return { activeUsers, byMinute };
 }
 
 function toSearchRows(
