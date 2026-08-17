@@ -543,7 +543,6 @@ function ReportToolbar({
   loading,
   report,
   rangeKeys = RANGE_KEYS,
-  includeToday = false,
 }: {
   range: RangeKey;
   onSelect: (key: RangeKey) => void;
@@ -551,8 +550,6 @@ function ReportToolbar({
   loading: boolean;
   report: AnalyticsReport | null;
   rangeKeys?: readonly RangeKey[];
-  /** Kỳ có kéo tới hôm nay không — quyết định nhãn "gồm hôm nay" vs "tới hôm qua". */
-  includeToday?: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -575,27 +572,10 @@ function ReportToolbar({
 
       <div className="flex items-center gap-3 text-[12px] text-[var(--muted)]">
         {report ? (
-          // Nhãn khung ngày hiện rõ để không nhầm hai tab với nhau: Báo cáo
-          // dừng ở hôm qua (số đã chốt), Vận hành kéo tới hôm nay (đang cập
-          // nhật). Cùng nhãn "7 ngày" nhưng khung lệch một ngày là do đây.
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden tabular-nums sm:inline">
               {formatDayMonth(report.range.startDate)} → {formatDayMonth(report.range.endDate)}
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                includeToday
-                  ? "bg-[var(--green-wash)] text-[var(--green-deep)]"
-                  : "bg-[var(--surface-warm)]"
-              }`}
-              title={
-                includeToday
-                  ? "Kỳ tính cả hôm nay — ngày hôm nay chưa trọn nên số còn cập nhật."
-                  : "Kỳ dừng ở hôm qua — GA4/Search Console chưa chốt dữ liệu hôm nay."
-              }
-            >
-              {includeToday ? "gồm hôm nay" : "tới hôm qua"}
             </span>
           </span>
         ) : null}
@@ -850,7 +830,6 @@ export function AnalyticsReportPanel() {
         loading={loading}
         report={report}
         rangeKeys={OPERATIONS_RANGE_KEYS}
-        includeToday
       />
       <ReportStatus loading={loading} error={error} report={report} />
 
@@ -1050,7 +1029,6 @@ export function OperationsReportPanel() {
         loading={loading}
         report={report}
         rangeKeys={OPERATIONS_RANGE_KEYS}
-        includeToday
       />
       <ReportStatus loading={loading} error={error} report={report} />
 
