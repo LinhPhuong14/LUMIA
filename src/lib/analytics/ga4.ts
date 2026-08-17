@@ -98,37 +98,11 @@ function toBreakdown(report: GaSingleReport | undefined): BreakdownRow[] {
   }));
 }
 
-/**
- * Bộ lọc loại data tổng hợp (load-test) khỏi báo cáo.
- *
- * Chỉ bật khi GA4_EXCLUDE_SYNTHETIC=true. Data API chỉ lọc được tham số tùy
- * biến `data_source` khi property đã ĐĂNG KÝ custom dimension event-scoped cho
- * nó (Admin → Custom definitions → parameter `data_source`); chưa đăng ký mà
- * thêm bộ lọc là API trả lỗi. Vì vậy mặc định TẮT — bật tường minh sau khi đã
- * đăng ký dimension. Tên dimension và giá trị chỉnh được qua env để khớp đúng
- * những gì script seed gắn (data_source = synthetic_load_test).
- */
-export function syntheticExclusionFilter(): Record<string, unknown> | null {
-  if (process.env.GA4_EXCLUDE_SYNTHETIC !== "true") {
-    return null;
-  }
-  const fieldName = process.env.GA4_SYNTHETIC_DIMENSION?.trim() || "customEvent:data_source";
-  const value = process.env.GA4_SYNTHETIC_VALUE?.trim() || "synthetic_load_test";
-  return {
-    notExpression: {
-      filter: {
-        fieldName,
-        stringFilter: { matchType: "EXACT", value },
-      },
-    },
-  };
-}
-
-async function postBatch(
+async function runBatch(
   propertyId: string,
   token: string,
   requests: Record<string, unknown>[],
-): Promise<{ ok: boolean; status: number; data: GaBatchResponse }> {
+): Promise<GaBatchResponse> {
   const response = await fetch(`${API_BASE}/properties/${propertyId}:batchRunReports`, {
     method: "POST",
     headers: {
@@ -138,39 +112,12 @@ async function postBatch(
     body: JSON.stringify({ requests }),
     cache: "no-store",
   });
-  return { ok: response.ok, status: response.status, data: (await response.json()) as GaBatchResponse };
-}
 
-async function runBatch(
-  propertyId: string,
-  token: string,
-  requests: Record<string, unknown>[],
-): Promise<GaBatchResponse> {
-  // Gắn bộ lọc loại data test vào mọi request nếu đang bật — làm một chỗ để
-  // không truy vấn nào lọt lưới.
-  const filter = syntheticExclusionFilter();
-
-  if (filter) {
-    const withFilter = requests.map((request) => ({ ...request, dimensionFilter: filter }));
-    const filtered = await postBatch(propertyId, token, withFilter);
-    if (filtered.ok) {
-      return filtered.data;
-    }
-    // Bộ lọc hỏng (thường vì customEvent:data_source chưa đăng ký làm custom
-    // dimension) KHÔNG được làm sập cả báo cáo — thử lại KHÔNG lọc. Đổi lại
-    // data test không bị loại, nhưng báo cáo vẫn chạy thay vì trắng lỗi.
-    const fallback = await postBatch(propertyId, token, requests);
-    if (!fallback.ok) {
-      throw new Error(fallback.data.error?.message ?? `GA4 trả về HTTP ${fallback.status}`);
-    }
-    return fallback.data;
+  const data = (await response.json()) as GaBatchResponse;
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? `GA4 trả về HTTP ${response.status}`);
   }
-
-  const result = await postBatch(propertyId, token, requests);
-  if (!result.ok) {
-    throw new Error(result.data.error?.message ?? `GA4 trả về HTTP ${result.status}`);
-  }
-  return result.data;
+  return data;
 }
 
 /**
@@ -214,11 +161,11 @@ export async function fetchGaDailyUsers(
   }
 }
 
-async function postRealtime(
+async function runRealtime(
   propertyId: string,
   token: string,
   body: Record<string, unknown>,
-): Promise<{ ok: boolean; status: number; data: GaSingleReport & { error?: { message?: string } } }> {
+): Promise<GaSingleReport> {
   const response = await fetch(`${API_BASE}/properties/${propertyId}:runRealtimeReport`, {
     method: "POST",
     headers: {
@@ -228,39 +175,12 @@ async function postRealtime(
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  return {
-    ok: response.ok,
-    status: response.status,
-    data: (await response.json()) as GaSingleReport & { error?: { message?: string } },
-  };
-}
 
-async function runRealtime(
-  propertyId: string,
-  token: string,
-  body: Record<string, unknown>,
-): Promise<GaSingleReport> {
-  const filter = syntheticExclusionFilter();
-
-  if (filter) {
-    const filtered = await postRealtime(propertyId, token, { ...body, dimensionFilter: filter });
-    if (filtered.ok) {
-      return filtered.data;
-    }
-    // Bộ lọc hỏng (customEvent chưa đăng ký) → không làm sập realtime, thử lại
-    // không lọc.
-    const fallback = await postRealtime(propertyId, token, body);
-    if (!fallback.ok) {
-      throw new Error(fallback.data.error?.message ?? `GA4 realtime trả về HTTP ${fallback.status}`);
-    }
-    return fallback.data;
+  const data = (await response.json()) as GaSingleReport & { error?: { message?: string } };
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? `GA4 realtime trả về HTTP ${response.status}`);
   }
-
-  const result = await postRealtime(propertyId, token, body);
-  if (!result.ok) {
-    throw new Error(result.data.error?.message ?? `GA4 realtime trả về HTTP ${result.status}`);
-  }
-  return result.data;
+  return data;
 }
 
 /**
