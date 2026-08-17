@@ -503,12 +503,20 @@ HOUR_WEIGHTS = [1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 6, 7,
                 8, 7, 6, 6, 6, 7, 8, 9, 8, 6, 4, 2]
 
 
-def backdated_start(now_micros: int, day_offset: int, tz_offset_hours: int = 7) -> int:
+def backdated_start(now_micros: int, day_offset: int, tz_offset_hours: int = 7,
+                    hours: tuple[int, int] | None = None) -> int:
     """Chọn thời điểm mở phiên trong ngày (hôm nay - day_offset), giờ lấy theo
     HOUR_WEIGHTS, kẹp trong (now-72h+10ph, now] để không rơi vào vùng GA4
     từ chối và không ở tương lai. Ranh giới 'ngày' và giờ tính theo múi giờ
-    của property (mặc định UTC+7) để report theo ngày đếm đúng từng ngày."""
-    hour = _weighted(list(zip(range(24), HOUR_WEIGHTS)))
+    của property (mặc định UTC+7) để report theo ngày đếm đúng từng ngày.
+    hours=(start,end) giới hạn giờ mở phiên trong khung [start,end] (giờ địa
+    phương) — dùng khi chỉ khung tối của một ngày còn nằm trong 72h."""
+    if hours is not None:
+        start_h, end_h = hours
+        candidates = list(range(start_h, end_h + 1))
+        hour = random.choices(candidates, weights=[HOUR_WEIGHTS[h] for h in candidates])[0]
+    else:
+        hour = _weighted(list(zip(range(24), HOUR_WEIGHTS)))
     tz = tz_offset_hours * 3600 * 1_000_000
     local = now_micros + tz - day_offset * 86_400_000_000
     local -= (local // 1_000_000 % 86_400) * 1_000_000    # về 00:00 giờ địa phương
@@ -574,9 +582,25 @@ def _iso_for_offset(now_micros: int, day_offset: int, tz_offset_hours: int) -> s
     return (today - datetime.timedelta(days=day_offset)).isoformat()
 
 
-def _resolve_day_offsets(args, now_micros: int, tz: int) -> list[int]:
+def _parse_hours(raw: str | None) -> tuple[int, int] | None:
+    """'18-23' → (18, 23). Chặn định dạng sai và khoảng giờ vô lý."""
+    if not raw:
+        return None
+    try:
+        start_h, end_h = (int(x) for x in raw.split("-"))
+    except ValueError:
+        sys.exit(f"DỪNG: --hours '{raw}' sai định dạng, cần dạng START-END (vd 18-23).")
+    if not (0 <= start_h <= end_h <= 23):
+        sys.exit(f"DỪNG: --hours '{raw}' phải nằm trong 0..23 và start ≤ end.")
+    return (start_h, end_h)
+
+
+def _resolve_day_offsets(args, now_micros: int, tz: int,
+                         hours: tuple[int, int] | None) -> list[int]:
     """Trả danh sách day_offset cần feed. --date nhắm đúng một ngày; nếu không
-    thì N ngày gần nhất. Chặn ngày ngoài cửa sổ 72h của Measurement Protocol."""
+    thì N ngày gần nhất. Chặn ngày ngoài cửa sổ 72h của Measurement Protocol.
+    Với --hours, cho phép cả D-3 nếu khung giờ đó vẫn còn trong 72h (vd chỉ
+    khung tối của ngày kia còn kịp)."""
     if args.date:
         try:
             target = datetime.date.fromisoformat(args.date)
@@ -587,12 +611,21 @@ def _resolve_day_offsets(args, now_micros: int, tz: int) -> list[int]:
         offset = (today - target).days
         if offset < 0:
             sys.exit(f"DỪNG: --date {args.date} ở tương lai (theo múi giờ UTC{tz:+d}).")
-        if offset > 2:
-            sys.exit(
-                f"DỪNG: --date {args.date} lùi {offset} ngày — vượt cửa sổ 72h của MP.\n"
-                f"GA4 từ chối event cũ hơn 72h. Chỉ feed được từ "
-                f"{_iso_for_offset(now_micros, 2, tz)} trở về sau."
-            )
+        max_offset = 2
+        if hours is not None:
+            # Giờ SỚM NHẤT của khung phải còn trong 72h thì ngày đó mới feed được.
+            start_h, _ = hours
+            earliest = (datetime.datetime.combine(target, datetime.time(start_h))
+                        .replace(tzinfo=tzinfo).timestamp() * 1e6)
+            if now_micros - earliest <= MAX_BACKDATE_MICROS:
+                max_offset = 3
+        if offset > max_offset:
+            hint = (f"Khung giờ {hours[0]:02d}-{hours[1]:02d} của ngày này cũng đã "
+                    f"vượt 72h." if hours else
+                    f"Thêm --hours để feed phần tối còn kịp, hoặc chỉ feed từ "
+                    f"{_iso_for_offset(now_micros, 2, tz)} trở về sau.")
+            sys.exit(f"DỪNG: --date {args.date} lùi {offset} ngày — vượt cửa sổ 72h "
+                     f"của MP. GA4 từ chối event cũ hơn 72h. {hint}")
         return [offset]
     days = min(args.days or 3, 3)  # quá 3 ngày là ra ngoài cửa sổ 72h
     return list(range(days - 1, -1, -1))  # ngày xa nhất trước
@@ -610,11 +643,13 @@ async def run_daily(args) -> None:
     users_per_day = args.users or 100
     sessions_per_day = args.sessions or 600
     tz = args.tz_offset if args.tz_offset is not None else 7
+    hours = _parse_hours(args.hours)
     now0 = time.time_ns() // 1000
-    offsets = _resolve_day_offsets(args, now0, tz)
+    offsets = _resolve_day_offsets(args, now0, tz, hours)
     span = ", ".join(_iso_for_offset(now0, d, tz) for d in offsets)
+    hours_txt = f", khung giờ {hours[0]:02d}:00-{hours[1]:02d}:59" if hours else ""
     print(f"DAILY: {len(offsets)} ngày [{span}] × ({users_per_day} user / "
-          f"{sessions_per_day} session), múi giờ UTC{tz:+d} → {MP_URL}")
+          f"{sessions_per_day} session), múi giờ UTC{tz:+d}{hours_txt} → {MP_URL}")
 
     metrics = StageMetrics(target_rate=0)
     warnings: list[str] = []
@@ -633,7 +668,7 @@ async def run_daily(args) -> None:
                 now = time.time_ns() // 1000
                 payload = make_session(
                     now, warnings,
-                    session_start_micros=backdated_start(now, day, tz),
+                    session_start_micros=backdated_start(now, day, tz, hours),
                     identity=ident)
                 if payload is None:
                     continue
@@ -942,6 +977,10 @@ def main() -> None:
                         help="daily: múi giờ property, giờ so với UTC (mặc định +7)")
     parser.add_argument("--date",
                         help="daily: nhắm đúng một ngày YYYY-MM-DD (trong 72h qua)")
+    parser.add_argument("--hours",
+                        help="daily: giới hạn khung giờ mở phiên START-END, giờ "
+                             "property (vd 18-23 cho traffic buổi tối); cho phép "
+                             "cả D-3 nếu khung đó còn trong 72h")
     args = parser.parse_args()
 
     runner = {"dry-run": run_dry_run, "smoke": run_smoke, "load": run_load,
