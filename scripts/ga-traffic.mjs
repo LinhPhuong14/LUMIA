@@ -126,11 +126,21 @@ function formatMs(ms) {
 }
 
 export function parseArgs(argv) {
-  const args = { users: 20, dryRun: false, confirmed: false, url: null, seed: null, headed: false };
+  const args = {
+    users: 20,
+    dryRun: false,
+    diagnose: false,
+    confirmed: false,
+    url: null,
+    seed: null,
+    headed: false,
+  };
 
   for (const raw of argv) {
     if (raw === "--dry-run") {
       args.dryRun = true;
+    } else if (raw === "--diagnose") {
+      args.diagnose = true;
     } else if (raw === CONFIRM_FLAG) {
       args.confirmed = true;
     } else if (raw === "--headed") {
@@ -163,7 +173,8 @@ function validate(args) {
   if (!Number.isInteger(args.users) || args.users < 1 || args.users > 200) {
     throw new Error("--users phải là số nguyên trong khoảng 1..200.");
   }
-  if (!args.dryRun && !args.confirmed) {
+  // --diagnose chỉ mở đúng một trang để đọc trạng thái, không cần cờ xác nhận.
+  if (!args.dryRun && !args.diagnose && !args.confirmed) {
     throw new Error(
       `Thiếu cờ xác nhận. Chạy thật sẽ ghi vĩnh viễn vào GA4 và không xoá được.\n` +
         `  Xem trước:  --dry-run\n` +
@@ -253,9 +264,112 @@ async function runVisit(browser, plan, origin, index) {
   return beacons;
 }
 
+/** Trình duyệt dùng chung cho cả chạy thật lẫn --diagnose. */
+async function launchBrowser(headed) {
+  const { chromium } = await import("playwright");
+  return chromium.launch({
+    headless: !headed,
+    args: ["--disable-blink-features=AutomationControlled"],
+  });
+}
+
+/**
+ * Mở đúng một trang rồi đọc trạng thái thật của GA trên đó.
+ *
+ * Có bốn chỗ chuỗi này đứt được, và bốn chỗ đó cần bốn cách sửa hoàn toàn khác
+ * nhau. Đoán mò thì sửa nhầm chỗ, nên hỏi thẳng trình duyệt.
+ */
+async function runDiagnose(origin, headed) {
+  const browser = await launchBrowser(headed);
+  const context = await browser.newContext({
+    userAgent: USER_AGENTS[0],
+    viewport: VIEWPORTS[0],
+    locale: "vi-VN",
+    timezoneId: "Asia/Ho_Chi_Minh",
+  });
+  const page = await context.newPage();
+
+  const beacons = [];
+  page.on("request", (request) => {
+    if (isGaBeacon(request.url())) {
+      beacons.push(request.url());
+    }
+  });
+
+  try {
+    const response = await page.goto(origin, { waitUntil: "load", timeout: 60_000 });
+    const html = await response.text();
+    const loader = /googletagmanager\.com\/gtag\/js\?id=(G-[A-Z0-9]+)/i.exec(html);
+
+    // gtag.js nạp afterInteractive; chờ đủ lâu để hydrate xong rồi mới kết luận.
+    await sleep(12_000);
+
+    const state = await page.evaluate(() => ({
+      gtagType: typeof window.gtag,
+      dataLayerLength: Array.isArray(window.dataLayer) ? window.dataLayer.length : null,
+      dataLayerEvents: Array.isArray(window.dataLayer)
+        ? window.dataLayer
+            .map((entry) => {
+              const list = Array.from(entry ?? []);
+              return list[0] === "event" ? String(list[1]) : String(list[0] ?? "");
+            })
+            .filter(Boolean)
+        : [],
+      hasGaCookie: /(^|;\s*)_ga=/.test(document.cookie),
+    }));
+
+    console.log(`HTML có thẻ gtag        ${loader ? `có — ${loader[1]}` : "KHÔNG"}`);
+    console.log(`window.gtag             ${state.gtagType}`);
+    console.log(`dataLayer              ${state.dataLayerLength ?? "không có"} mục`);
+    console.log(`  nội dung             ${state.dataLayerEvents.join(", ") || "(rỗng)"}`);
+    console.log(`cookie _ga              ${state.hasGaCookie ? "có" : "KHÔNG"}`);
+    console.log(`beacon /g/collect       ${beacons.length}`);
+
+    console.log(`\n── Kết luận ──`);
+    if (!loader) {
+      console.log(
+        `NEXT_PUBLIC_GA_ID không có trong HTML server trả về.\n` +
+          `Biến chưa set, hoặc NEXT_PUBLIC_ANALYTICS_DISABLED=true, hoặc trang này được\n` +
+          `render tĩnh từ lần build TRƯỚC khi bạn thêm biến — trường hợp cuối cần deploy lại.`,
+      );
+    } else if (state.gtagType !== "function") {
+      console.log(
+        `Thẻ script có trong HTML nhưng window.gtag không bao giờ được định nghĩa.\n` +
+          `Script gtag bị chặn (adblock/DNS/CSP) hoặc không tải được.`,
+      );
+    } else if (beacons.length === 0) {
+      console.log(
+        `gtag sẵn sàng nhưng KHÔNG có beacon nào rời trình duyệt.\n` +
+          `Đây là triệu chứng của send_page_view:false cộng với page_view bị mất:\n` +
+          `trackPageView() trong src/lib/analytics.ts trả false khi window.gtag chưa\n` +
+          `kịp tồn tại lúc useEffect chạy, và nó nuốt lỗi im lặng.`,
+      );
+    } else {
+      console.log(
+        `Phía trình duyệt CHẠY ĐÚNG — ${beacons.length} beacon đã gửi đi.\n` +
+          `Số không lên là do phía GA4, hãy kiểm tra theo thứ tự:\n` +
+          `  1. Admin → Data Settings → Data Filters: bộ lọc "Internal Traffic" có đang\n` +
+          `     loại IP của bạn không (rất hay gặp, bật sẵn lúc setup).\n` +
+          `  2. Bạn đang xem báo cáo chuẩn (trễ 24-48h) thay vì Realtime.\n` +
+          `  3. Measurement ID trong HTML có đúng data stream bạn đang mở không.`,
+      );
+    }
+    console.log("");
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   validate(args);
+
+  if (args.diagnose) {
+    console.log(`\nChẩn đoán ${args.url}\n`);
+    await runDiagnose(args.url, args.headed);
+    return;
+  }
 
   const seed = args.seed ?? Math.floor(Date.now() / 86_400_000);
   const rand = createRandom(seed);
@@ -285,11 +399,7 @@ async function main() {
   }
 
   // Nạp muộn để --dry-run chạy được khi chưa cài Playwright.
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({
-    headless: !args.headed,
-    args: ["--disable-blink-features=AutomationControlled"],
-  });
+  const browser = await launchBrowser(args.headed);
 
   let sent = 0;
   let visited = 0;
