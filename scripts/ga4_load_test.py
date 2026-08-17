@@ -27,6 +27,13 @@ Quy trình 3 bước:
   python scripts/ga4_load_test.py smoke                   # 100 event thật, rate thấp
   python scripts/ga4_load_test.py load --stages 100,1000,10000 --duration 60
 
+Mode bổ sung — mô phỏng "người dùng đang hoạt động" trong Realtime:
+  python scripts/ga4_load_test.py active --users 50 --duration 600
+  Giữ một pool N client_id cố định, mỗi user bắn event heartbeat mỗi 20-60s
+  với timestamp hiện tại → Realtime giữ ổn định quanh N active users
+  (Realtime đếm client_id khác nhau có event kèm session_id +
+  engagement_time_msec trong cửa sổ 30 phút).
+
 Tuỳ chọn chung:
   --confirm G-XXXXXXX   xác nhận không tương tác (phải khớp GA_MEASUREMENT_ID)
   --offline             (chỉ dry-run) in payload mẫu, KHÔNG gửi gì lên mạng
@@ -455,10 +462,113 @@ async def run_load(args) -> None:
     print_report(rows)
 
 
+class SyntheticUser:
+    """Một 'người dùng đang hoạt động': client_id/session_id cố định, bắn
+    event heartbeat với timestamp HIỆN TẠI (không backdate) để Realtime
+    đếm được liên tục trong cửa sổ 30 phút."""
+
+    def __init__(self) -> None:
+        self.client_id = f"{random.randint(10**8, 10**9 - 1)}.{random.randint(10**8, 10**9 - 1)}"
+        self.user_id = f"synthetic_{uuid.uuid4().hex[:16]}"
+        self.session_id = str(random.randint(10**9, 10**10 - 1))
+        self.device_cat, self.os_name, self.os_ver, self.lang, self.screen = _weighted(DEVICES)
+        self.city, self.country = _weighted(GEOS)
+        self.page = _weighted(PAGES)
+        self.opened = False
+
+    def next_payload(self) -> dict:
+        if not self.opened:
+            name = "synthetic_session_start"
+            self.opened = True
+        else:
+            name = _weighted([("page_view", 4), ("scroll", 3), ("select_content", 2)])
+            if name == "page_view" and random.random() < 0.5:
+                self.page = _weighted(PAGES)  # user điều hướng sang trang khác
+        params = {
+            "session_id": self.session_id,
+            "engagement_time_msec": random.randint(5_000, 55_000),
+            "page_location": BASE_URL + self.page,
+            "page_title": f"LUMIA {self.page}",
+            "traffic_type": "internal",
+            "data_source": "synthetic_load_test",
+        }
+        if name == "scroll":
+            params["percent_scrolled"] = random.choice([25, 50, 75, 90])
+        if name == "select_content":
+            params["content_type"] = "cta"
+            params["item_id"] = f"cta_{random.randint(1, 6)}"
+        return {
+            "client_id": self.client_id,
+            "user_id": self.user_id,
+            "timestamp_micros": time.time_ns() // 1000,
+            "device": {
+                "category": self.device_cat,
+                "operating_system": self.os_name,
+                "operating_system_version": self.os_ver,
+                "language": self.lang,
+                "screen_resolution": self.screen,
+            },
+            "user_location": {"city": self.city, "country_id": self.country},
+            "events": [{"name": name,
+                        "params": params,
+                        "timestamp_micros": time.time_ns() // 1000}],
+        }
+
+
+async def run_active(args) -> None:
+    """Mô phỏng N người dùng đang hoạt động đồng thời trong --duration giây.
+    Mỗi user một vòng lặp riêng: event đầu ngay khi vào (lệch pha ngẫu nhiên
+    0-30s cho giống thật), sau đó heartbeat mỗi 20-60s."""
+    import aiohttp
+    mid, secret = read_credentials()
+    confirm_or_die(mid, args.confirm)
+    params = {"measurement_id": mid, "api_secret": secret}
+    n_users = args.users or 50
+    duration = args.duration or 600
+    print(f"ACTIVE: {n_users} user đồng thời trong {duration}s "
+          f"(~{n_users * 60 // 40} event/phút) → {MP_URL}")
+    print("Mở GA4 → Reports → Realtime và quan sát 'Active users' leo dần "
+          f"rồi giữ quanh {n_users}.")
+
+    metrics = StageMetrics(target_rate=0)
+    deadline = time.monotonic() + duration
+
+    async def user_loop(session) -> None:
+        user = SyntheticUser()
+        await asyncio.sleep(random.uniform(0, min(30, duration / 2)))
+        while time.monotonic() < deadline:
+            metrics.events_sent += 1
+            await send_payload(session, MP_URL, params, user.next_payload(), metrics)
+            if metrics.requests >= MIN_REQUESTS_BEFORE_ABORT and \
+                    metrics.error_rate > ERROR_RATE_ABORT:
+                return
+            await asyncio.sleep(random.uniform(20, 60))
+
+    async def progress() -> None:
+        while time.monotonic() < deadline:
+            await asyncio.sleep(30)
+            remain = int(deadline - time.monotonic())
+            print(f"  … {metrics.events_sent} event / {metrics.requests} req gửi, "
+                  f"err {metrics.error_rate:.1%}, còn ~{max(remain, 0)}s")
+
+    connector = aiohttp.TCPConnector(limit=100)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        tasks = [asyncio.create_task(user_loop(session)) for _ in range(n_users)]
+        prog = asyncio.create_task(progress())
+        await asyncio.gather(*tasks)
+        prog.cancel()
+    metrics.ended_at = time.monotonic()
+    print_report([(f"{n_users}u", metrics)])
+    if metrics.error_rate > ERROR_RATE_ABORT:
+        print("!! Dừng sớm: error rate vượt 5%.")
+    print(f"\nSau khi dừng, Realtime sẽ giữ các user này thêm tối đa 30 phút "
+          f"(cửa sổ đếm) rồi tự về 0.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("mode", choices=["dry-run", "smoke", "load"])
+    parser.add_argument("mode", choices=["dry-run", "smoke", "load", "active"])
     parser.add_argument("--confirm", metavar="G-XXXX",
                         help="xác nhận không tương tác; phải khớp GA_MEASUREMENT_ID")
     parser.add_argument("--offline", action="store_true",
@@ -466,9 +576,12 @@ def main() -> None:
     parser.add_argument("--rate", type=int, help="event mỗi phút")
     parser.add_argument("--duration", type=int, help="giây mỗi bậc load (mặc định 60)")
     parser.add_argument("--stages", help="danh sách bậc, vd: 100,1000,10000")
+    parser.add_argument("--users", type=int,
+                        help="active: số người dùng đồng thời (mặc định 50)")
     args = parser.parse_args()
 
-    runner = {"dry-run": run_dry_run, "smoke": run_smoke, "load": run_load}[args.mode]
+    runner = {"dry-run": run_dry_run, "smoke": run_smoke,
+              "load": run_load, "active": run_active}[args.mode]
     try:
         asyncio.run(runner(args))
     except KeyboardInterrupt:
