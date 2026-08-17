@@ -48,3 +48,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Python bytecode (scripts/ga4_load_test.py)
+__pycache__/
+*.pyc
