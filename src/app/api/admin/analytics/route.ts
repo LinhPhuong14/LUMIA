@@ -9,6 +9,7 @@ import { ANCHOR_MIN_REAL_DAYS, isBeforeCutover } from "@/lib/analytics/backfill"
 import { fetchBusinessReport, fetchDemoAnchors } from "@/lib/analytics/business";
 import { parseRangeKey, resolveDateRange } from "@/lib/analytics/date-range";
 import {
+  buildDemoGaRealtime,
   buildDemoGaReport,
   buildDemoGscReport,
   calibrateForSignups,
@@ -16,7 +17,7 @@ import {
   type DemoCalibration,
 } from "@/lib/analytics/demo-data";
 import { fillGaGaps, fillGscGaps, isGscEmpty } from "@/lib/analytics/fill-gaps";
-import { fetchGaReport } from "@/lib/analytics/ga4";
+import { fetchGaRealtime, fetchGaReport } from "@/lib/analytics/ga4";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
 import { readSnapshot } from "@/lib/analytics/snapshot";
 import {
@@ -105,10 +106,11 @@ export async function GET(request: Request) {
   // Mỗi nguồn tự trả SourceState riêng — một nguồn hỏng không kéo theo nguồn còn lại.
   // Chỉ gọi những nguồn được yêu cầu: tab chỉ xem doanh thu không phải chờ hai
   // vòng gọi API Google mà nó không hiển thị.
-  const [business, google, searchConsole] = await Promise.all([
+  const [business, google, searchConsole, realtime] = await Promise.all([
     sections.business ? fetchBusinessReport(range) : null,
     sections.traffic ? fetchGaReport(range) : null,
     sections.traffic ? fetchSearchConsoleReport(range) : null,
+    sections.traffic ? fetchGaRealtime() : null,
   ]);
 
   const report: AnalyticsReport = {
@@ -125,6 +127,7 @@ export async function GET(request: Request) {
   if (sections.traffic) {
     report.google = google ?? undefined;
     report.searchConsole = searchConsole ?? undefined;
+    report.realtime = realtime ?? undefined;
     report.vercel = {
       onVercel: Boolean(process.env.VERCEL),
       environment: env.VERCEL_ENV ?? null,
@@ -167,6 +170,9 @@ export async function GET(request: Request) {
 
       if (google?.status === "not_configured") {
         report.google = { status: "ok", demo: true, data: buildDemoGaReport(range, calibration) };
+      }
+      if (realtime?.status === "not_configured") {
+        report.realtime = { status: "ok", demo: true, data: buildDemoGaRealtime(calibration) };
       }
       if (searchConsole?.status === "not_configured") {
         report.searchConsole = {

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   ResponsiveContainer,
@@ -12,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  Activity,
   AlertTriangle,
   BarChart3,
   ExternalLink,
@@ -49,6 +52,7 @@ import type {
   AnalyticsReport,
   BreakdownRow,
   GaPageRow,
+  GaRealtime,
   GscRow,
   SourceState,
 } from "@/lib/analytics/types";
@@ -604,6 +608,90 @@ function TopPagesTable({ rows }: { rows: GaPageRow[] }) {
 }
 
 /**
+ * Người dùng đang hoạt động — cửa sổ 30 phút của GA4 Realtime.
+ *
+ * Chưa cấu hình (và demo tắt) thì ẩn hẳn: khối GA ngay dưới đã hiện hướng dẫn
+ * cấu hình, lặp lại lần nữa chỉ tổ chiếm chỗ. Số chỉ đổi khi bấm "Làm mới" —
+ * đây là ảnh chụp cùng nhịp với cả báo cáo, không tự chạy nền.
+ */
+function RealtimeCard({
+  state,
+  demoLabel,
+}: {
+  state?: SourceState<GaRealtime>;
+  demoLabel: boolean;
+}) {
+  if (!state || state.status === "not_configured") {
+    return null;
+  }
+
+  return (
+    <SectionCard
+      title="Đang hoạt động"
+      icon={Activity}
+      action={demoLabel && state.demo ? <DemoBadge /> : undefined}
+    >
+      {state.status !== "ok" || !state.data ? (
+        <p className="text-[13px] text-[var(--muted)]">
+          Không đọc được số realtime{state.message ? ` — ${state.message}` : "."}
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-end gap-6">
+          <div className="shrink-0">
+            <div className="text-3xl font-bold tabular-nums text-[var(--foreground)]">
+              {formatNumber(state.data.activeUsers)}
+            </div>
+            <div className="mt-1 text-[12px] text-[var(--muted)]">
+              người dùng trong 30 phút gần nhất
+            </div>
+          </div>
+          <div className="h-[72px] min-w-[240px] flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={state.data.byMinute.map((point) => ({
+                  label: point.minutesAgo === 0 ? "bây giờ" : `${point.minutesAgo}p`,
+                  users: point.users,
+                }))}
+                margin={{ top: 2, right: 0, left: 0, bottom: 0 }}
+              >
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--muted)", fontSize: 10 }}
+                  ticks={["29p", "15p", "bây giờ"]}
+                />
+                <Tooltip
+                  cursor={{ fill: "var(--surface-warm)" }}
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface-card)",
+                    fontSize: 12,
+                  }}
+                  formatter={(value: unknown) => [formatNumber(Number(value)), "người dùng"]}
+                  labelFormatter={(label: unknown) =>
+                    label === "bây giờ"
+                      ? "Phút hiện tại"
+                      : `${String(label).replace(/p$/, "")} phút trước`
+                  }
+                />
+                <Bar
+                  dataKey="users"
+                  fill="var(--green)"
+                  radius={[2, 2, 0, 0]}
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+/**
  * Dựng điểm cho biểu đồ: kỳ ngắn vẽ từng ngày, kỳ 90 ngày gom theo tuần.
  * Nhãn series kèm hậu tố khi đã gom, để không ai đọc nhầm trung bình thành tổng.
  */
@@ -895,6 +983,8 @@ export function OperationsReportPanel() {
                 <strong>Không dựng được lịch sử:</strong> {report.backfill.note}
               </p>
             ) : null}
+
+            <RealtimeCard state={report.realtime} demoLabel={showDemoLabel} />
 
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice

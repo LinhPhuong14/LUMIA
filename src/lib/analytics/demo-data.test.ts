@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { resolveDateRange } from "@/lib/analytics/date-range";
 import {
   baselineDailyUsers,
+  buildDemoGaRealtime,
   buildDemoGaReport,
   buildDemoGscReport,
   calibrateForSignups,
@@ -235,5 +236,39 @@ describe("buildDemoGscReport", () => {
     for (const row of report.topPages) {
       expect(row.label).not.toContain("/blog");
     }
+  });
+});
+
+describe("buildDemoGaRealtime", () => {
+  it("tất định trong cùng một phút — làm mới liên tục không làm số nhảy", () => {
+    const first = buildDemoGaRealtime(CALIBRATION, TODAY);
+    const second = buildDemoGaRealtime(CALIBRATION, new Date(TODAY.getTime() + 30_000));
+    expect(second).toEqual(first);
+  });
+
+  it("sang phút khác thì cửa sổ trượt theo", () => {
+    // Quy mô lớn để từng phút có biên độ — ở peak 30, phút nào cũng ~1 người
+    // và hai cửa sổ liền nhau có thể trùng nhau về giá trị.
+    const big: DemoCalibration = { ...CALIBRATION, peakDailyUsers: 300 };
+    const now = buildDemoGaRealtime(big, TODAY);
+    const later = buildDemoGaRealtime(big, new Date(TODAY.getTime() + 60_000));
+    expect(later).not.toEqual(now);
+    // Phút "5 phút trước" của lần sau chính là phút "6 phút trước" của lần đầu.
+    expect(later.byMinute[24].users).toBe(now.byMinute[25].users);
+  });
+
+  it("đủ 30 điểm, thứ tự từ xa tới gần, số không âm", () => {
+    const realtime = buildDemoGaRealtime(CALIBRATION, TODAY);
+    expect(realtime.byMinute).toHaveLength(30);
+    expect(realtime.byMinute[0].minutesAgo).toBe(29);
+    expect(realtime.byMinute[29].minutesAgo).toBe(0);
+    expect(realtime.byMinute.every((point) => point.users >= 0)).toBe(true);
+  });
+
+  it("tổng cửa sổ ≥ phút cao nhất và ở quy mô hợp lý so với peakDailyUsers", () => {
+    const realtime = buildDemoGaRealtime(CALIBRATION, TODAY);
+    const peakMinute = Math.max(...realtime.byMinute.map((point) => point.users));
+    expect(realtime.activeUsers).toBeGreaterThanOrEqual(peakMinute);
+    expect(realtime.activeUsers).toBeLessThan(CALIBRATION.peakDailyUsers * 3);
   });
 });
