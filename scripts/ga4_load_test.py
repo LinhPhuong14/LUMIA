@@ -34,6 +34,17 @@ Mode bổ sung — mô phỏng "người dùng đang hoạt động" trong Realt
   (Realtime đếm client_id khác nhau có event kèm session_id +
   engagement_time_msec trong cửa sổ 30 phút).
 
+Mode bổ sung — feed "người dùng & phiên theo ngày" cho report chuẩn:
+  python scripts/ga4_load_test.py backfill --events 300
+  Rải event qua 3 ngày gần nhất theo nhịp ngày-đêm (giới hạn cứng của MP:
+  quá 72h GA4 từ chối — không backfill lịch sử xa hơn được; muốn dày ngày
+  hơn thì chạy mỗi ngày). Xem ở Reports theo dải ngày, không phải Realtime.
+
+Mode bổ sung — số user/session CHÍNH XÁC theo từng ngày (trong cửa sổ 72h):
+  python scripts/ga4_load_test.py daily --users 100 --sessions 600 --days 3
+  Mỗi ngày: đúng N user, mỗi user chia đều M/N session, giờ rải theo nhịp
+  ngày-đêm tính bằng múi giờ property (--tz-offset, mặc định +7).
+
 Tuỳ chọn chung:
   --confirm G-XXXXXXX   xác nhận không tương tác (phải khớp GA_MEASUREMENT_ID)
   --offline             (chỉ dry-run) in payload mẫu, KHÔNG gửi gì lên mạng
@@ -114,20 +125,37 @@ def _weighted(pairs):
 
 # ── Sinh session / event ────────────────────────────────────────────────────
 
-def make_session(now_micros: int, warnings: list[str]) -> dict | None:
+def make_identity() -> dict:
+    """Danh tính một 'người dùng' tổng hợp — tái dùng được qua nhiều session
+    (mode daily) để kiểm soát chính xác số user khác nhau mỗi ngày."""
+    return {
+        "client_id": f"{random.randint(10**8, 10**9 - 1)}.{random.randint(10**8, 10**9 - 1)}",
+        "user_id": f"synthetic_{uuid.uuid4().hex[:16]}",
+        "device": _weighted(DEVICES),
+        "geo": _weighted(GEOS),
+    }
+
+
+def make_session(now_micros: int, warnings: list[str],
+                 session_start_micros: int | None = None,
+                 identity: dict | None = None) -> dict | None:
     """Một session = một payload MP: 1 client_id, 1-5 event cùng session_id,
     thứ tự hợp lý (mở phiên → page_view → scroll/click → optional purchase).
-    Trả về None nếu toàn bộ event của session bị loại vì quá 72h."""
-    client_id = f"{random.randint(10**8, 10**9 - 1)}.{random.randint(10**8, 10**9 - 1)}"
-    user_id = f"synthetic_{uuid.uuid4().hex[:16]}"
+    session_start_micros cho phép backdate (backfill/daily); identity cho phép
+    một user có nhiều session. Trả về None nếu mọi event bị loại vì quá 72h."""
+    if identity is None:
+        identity = make_identity()
+    client_id = identity["client_id"]
+    user_id = identity["user_id"]
     session_id = str(random.randint(10**9, 10**10 - 1))
-    device_cat, os_name, os_ver, lang, screen = _weighted(DEVICES)
-    city, country = _weighted(GEOS)
+    device_cat, os_name, os_ver, lang, screen = identity["device"]
+    city, country = identity["geo"]
     page = _weighted(PAGES)
     page_location = BASE_URL + page
 
-    # Trải timestamp ngẫu nhiên trong 0–30 phút gần đây cho giống thật.
-    session_start_micros = now_micros - random.randint(0, 30 * 60) * 1_000_000
+    if session_start_micros is None:
+        # Trải timestamp ngẫu nhiên trong 0–30 phút gần đây cho giống thật.
+        session_start_micros = now_micros - random.randint(0, 30 * 60) * 1_000_000
 
     def base_params(ts_offset_s: float) -> dict:
         return {
@@ -462,6 +490,148 @@ async def run_load(args) -> None:
     print_report(rows)
 
 
+# Nhịp ngày-đêm: trọng số theo giờ (0-23) để backfill trông giống traffic
+# thật — thấp về đêm, cao trưa và tối.
+HOUR_WEIGHTS = [1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 6, 7,
+                8, 7, 6, 6, 6, 7, 8, 9, 8, 6, 4, 2]
+
+
+def backdated_start(now_micros: int, day_offset: int, tz_offset_hours: int = 7) -> int:
+    """Chọn thời điểm mở phiên trong ngày (hôm nay - day_offset), giờ lấy theo
+    HOUR_WEIGHTS, kẹp trong (now-72h+10ph, now] để không rơi vào vùng GA4
+    từ chối và không ở tương lai. Ranh giới 'ngày' và giờ tính theo múi giờ
+    của property (mặc định UTC+7) để report theo ngày đếm đúng từng ngày."""
+    hour = _weighted(list(zip(range(24), HOUR_WEIGHTS)))
+    tz = tz_offset_hours * 3600 * 1_000_000
+    local = now_micros + tz - day_offset * 86_400_000_000
+    local -= (local // 1_000_000 % 86_400) * 1_000_000    # về 00:00 giờ địa phương
+    ts = local - tz + (hour * 3600 + random.randint(0, 3599)) * 1_000_000
+    floor = now_micros - MAX_BACKDATE_MICROS + 600 * 1_000_000
+    return max(min(ts, now_micros), floor)
+
+
+async def run_backfill(args) -> None:
+    """Feed 'người dùng & phiên theo ngày': rải N event qua 3 ngày gần nhất
+    (giới hạn cứng của MP — quá 72h GA4 từ chối, không backfill xa hơn được).
+    Event backdate KHÔNG hiện trong Realtime; xem ở Reports với dải ngày,
+    số liệu chốt sau vài giờ tới ~24h."""
+    import aiohttp
+    mid, secret = read_credentials()
+    confirm_or_die(mid, args.confirm)
+    params = {"measurement_id": mid, "api_secret": secret}
+    total = args.events or 300
+    # Ngày càng gần trọng số càng cao — chart theo ngày có dáng đi lên nhẹ.
+    day_weights = [(2, 2), (1, 3), (0, 4)]
+    print(f"BACKFILL: rải ~{total} event qua 3 ngày gần nhất → {MP_URL}")
+
+    metrics = StageMetrics(target_rate=0)
+    warnings: list[str] = []
+    per_day: Counter = Counter()
+    tasks: set[asyncio.Task] = set()
+    async with aiohttp.ClientSession() as session:
+        while metrics.events_sent < total:
+            now = time.time_ns() // 1000
+            day = _weighted(day_weights)
+            payload = make_session(now, warnings,
+                                   session_start_micros=backdated_start(now, day))
+            if payload is None:
+                continue
+            room = total - metrics.events_sent
+            payload["events"] = payload["events"][:room]
+            metrics.events_sent += len(payload["events"])
+            per_day[f"D-{day}"] += len(payload["events"])
+            t = asyncio.create_task(send_payload(session, MP_URL, params, payload, metrics))
+            tasks.add(t)
+            t.add_done_callback(tasks.discard)
+            if metrics.requests >= MIN_REQUESTS_BEFORE_ABORT and \
+                    metrics.error_rate > ERROR_RATE_ABORT:
+                print("!! ABORT: error rate vượt 5%.")
+                break
+            await asyncio.sleep(0.1)  # ~10 req/s là quá đủ cho backfill
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+    metrics.ended_at = time.monotonic()
+    for w in warnings:
+        print("  " + w)
+    print_report([("backfill", metrics)])
+    dist = ", ".join(f"{d}: {n} event" for d, n in sorted(per_day.items(), reverse=True))
+    print(f"Phân bố theo ngày (D-0 = hôm nay): {dist}")
+    print("Xem tại GA4 → Reports → Engagement/Acquisition với dải ngày 3 ngày "
+          "gần nhất (KHÔNG phải Realtime). Số liệu chốt sau vài giờ tới ~24h. "
+          "'New users' sẽ không tăng — first_visit là tên MP cấm gửi.")
+
+
+async def run_daily(args) -> None:
+    """Feed chính xác N user / M session cho TỪNG ngày trong 3 ngày gần nhất
+    (cửa sổ 72h của MP). Mỗi user được chia đều số session trong ngày, giờ
+    rải theo nhịp ngày-đêm múi giờ property. Mặc định: 100 user / 600 session
+    mỗi ngày × 3 ngày."""
+    import aiohttp
+    mid, secret = read_credentials()
+    confirm_or_die(mid, args.confirm)
+    params = {"measurement_id": mid, "api_secret": secret}
+    users_per_day = args.users or 100
+    sessions_per_day = args.sessions or 600
+    days = min(args.days or 3, 3)  # quá 3 ngày là ra ngoài cửa sổ 72h
+    tz = args.tz_offset if args.tz_offset is not None else 7
+    print(f"DAILY: {days} ngày × ({users_per_day} user / {sessions_per_day} session), "
+          f"múi giờ UTC{tz:+d} → {MP_URL}")
+
+    metrics = StageMetrics(target_rate=0)
+    warnings: list[str] = []
+    per_day: dict[str, dict] = {}
+    tasks: set[asyncio.Task] = set()
+    aborted = False
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=50)) as session:
+        for day in range(days - 1, -1, -1):  # ngày xa nhất trước
+            label = f"D-{day}"
+            identities = [make_identity() for _ in range(users_per_day)]
+            # Chia session vòng tròn: mỗi user nhận sessions_per_day/users cái.
+            specs = [identities[i % users_per_day] for i in range(sessions_per_day)]
+            random.shuffle(specs)
+            sent_events = sent_sessions = 0
+            for ident in specs:
+                now = time.time_ns() // 1000
+                payload = make_session(
+                    now, warnings,
+                    session_start_micros=backdated_start(now, day, tz),
+                    identity=ident)
+                if payload is None:
+                    continue
+                sent_sessions += 1
+                sent_events += len(payload["events"])
+                metrics.events_sent += len(payload["events"])
+                t = asyncio.create_task(
+                    send_payload(session, MP_URL, params, payload, metrics))
+                tasks.add(t)
+                t.add_done_callback(tasks.discard)
+                if metrics.requests >= MIN_REQUESTS_BEFORE_ABORT and \
+                        metrics.error_rate > ERROR_RATE_ABORT:
+                    print(f"  !! ABORT tại {label}: error rate vượt 5%.")
+                    aborted = True
+                    break
+                await asyncio.sleep(0.08)  # ~12 req/s
+            per_day[label] = {"users": len(identities), "sessions": sent_sessions,
+                              "events": sent_events}
+            print(f"  {label}: {len(identities)} user, {sent_sessions} session, "
+                  f"{sent_events} event đã đẩy đi")
+            if aborted:
+                break
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+    metrics.ended_at = time.monotonic()
+    for w in warnings:
+        print("  " + w)
+    print_report([("daily", metrics)])
+    print("Phân bố (D-0 = hôm nay, ngày theo múi giờ property):")
+    for label, d in sorted(per_day.items(), reverse=True):
+        print(f"  {label}: {d['users']} user / {d['sessions']} session / {d['events']} event")
+    print("\nXem tại GA4 → Reports → dải ngày 3 ngày gần nhất (không phải "
+          "Realtime); số liệu chốt sau vài giờ tới ~24h. Con số hiển thị sẽ "
+          "CAO HƠN mục tiêu một chút vì cộng dồn data các đợt seed trước đó "
+          "trong cùng ngày (smoke/active/backfill).")
+
+
 class SyntheticUser:
     """Một 'người dùng đang hoạt động': client_id/session_id cố định, bắn
     event heartbeat với timestamp HIỆN TẠI (không backdate) để Realtime
@@ -568,7 +738,8 @@ async def run_active(args) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("mode", choices=["dry-run", "smoke", "load", "active"])
+    parser.add_argument("mode",
+                        choices=["dry-run", "smoke", "load", "active", "backfill", "daily"])
     parser.add_argument("--confirm", metavar="G-XXXX",
                         help="xác nhận không tương tác; phải khớp GA_MEASUREMENT_ID")
     parser.add_argument("--offline", action="store_true",
@@ -577,11 +748,20 @@ def main() -> None:
     parser.add_argument("--duration", type=int, help="giây mỗi bậc load (mặc định 60)")
     parser.add_argument("--stages", help="danh sách bậc, vd: 100,1000,10000")
     parser.add_argument("--users", type=int,
-                        help="active: số người dùng đồng thời (mặc định 50)")
+                        help="active: số user đồng thời (mặc định 50); "
+                             "daily: số user mỗi ngày (mặc định 100)")
+    parser.add_argument("--events", type=int,
+                        help="backfill: tổng số event rải qua 3 ngày (mặc định 300)")
+    parser.add_argument("--sessions", type=int,
+                        help="daily: số session mỗi ngày (mặc định 600)")
+    parser.add_argument("--days", type=int,
+                        help="daily: số ngày, tối đa 3 (mặc định 3)")
+    parser.add_argument("--tz-offset", type=int, dest="tz_offset",
+                        help="daily: múi giờ property, giờ so với UTC (mặc định +7)")
     args = parser.parse_args()
 
-    runner = {"dry-run": run_dry_run, "smoke": run_smoke,
-              "load": run_load, "active": run_active}[args.mode]
+    runner = {"dry-run": run_dry_run, "smoke": run_smoke, "load": run_load,
+              "active": run_active, "backfill": run_backfill, "daily": run_daily}[args.mode]
     try:
         asyncio.run(runner(args))
     except KeyboardInterrupt:
