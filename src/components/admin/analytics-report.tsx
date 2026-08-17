@@ -213,6 +213,18 @@ function EmptyRows({ label }: { label: string }) {
   return <p className="py-6 text-center text-[13px] text-[var(--muted)]">{label}</p>;
 }
 
+// Bỏ mọi kênh không quy được về nguồn xác định (Unassigned/(not set)…) — lọc
+// ngay ở UI để chắc chắn "Nguồn truy cập" ở cả hai tab không còn dòng đó, dù
+// dữ liệu tới từ nguồn nào.
+const UNASSIGNED_CHANNEL_LABELS = ["unassigned", "(not set)", "(không xác định)", "(other)"];
+
+function assignedChannels(rows: BreakdownRow[]): BreakdownRow[] {
+  return rows.filter((row) => {
+    const label = row.label.trim().toLowerCase();
+    return label !== "" && !UNASSIGNED_CHANNEL_LABELS.includes(label);
+  });
+}
+
 /** Thanh ngang xếp hạng — dùng cho kênh traffic, thiết bị, quốc gia. */
 function BreakdownList({ rows, unit }: { rows: BreakdownRow[]; unit: string }) {
   const max = Math.max(...rows.map((row) => row.value), 1);
@@ -960,7 +972,7 @@ export function AnalyticsReportPanel() {
                   </SectionCard>
 
                   <SectionCard title="Nguồn truy cập" icon={Gauge}>
-                    <BreakdownList rows={ga.data.channels} unit="phiên" />
+                    <BreakdownList rows={assignedChannels(ga.data.channels)} unit="phiên" />
                   </SectionCard>
                 </div>
               </>
@@ -1142,7 +1154,7 @@ export function OperationsReportPanel() {
                   </SectionCard>
 
                   <SectionCard title="Nguồn truy cập" icon={Gauge}>
-                    <BreakdownList rows={ga.data.channels} unit="phiên" />
+                    <BreakdownList rows={assignedChannels(ga.data.channels)} unit="phiên" />
                   </SectionCard>
 
                   <SectionCard title="Thiết bị" icon={MonitorSmartphone}>
