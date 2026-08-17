@@ -7,13 +7,35 @@ import type { GaDailyPoint, GaReport, GaSummary } from "@/lib/analytics/types";
  * cáo hiển thị số mockup hợp lý cho đúng những ngày đó, giữ nguyên các ngày
  * còn lại là số thật. CHỈ ở tầng hiển thị của app — không đụng gì tới GA4.
  *
- * Mục tiêu số liệu (theo yêu cầu vận hành): mỗi ngày mock ~15-25 người dùng,
- * trung bình 1,2-1,5 phiên/người; các chỉ số còn lại suy ra từ hai con số đó
- * cho nhất quán. Số TẤT ĐỊNH theo ngày (không nhảy mỗi lần làm mới) — số nhảy
- * loạn sau mỗi lần bấm là dấu hiệu rõ nhất của dữ liệu bịa.
+ * Mục tiêu số liệu (theo yêu cầu vận hành): mỗi ngày mock ~100-200 người dùng,
+ * ~600-1800 phiên; các chỉ số còn lại suy ra từ hai con số đó cho nhất quán.
+ * Số TẤT ĐỊNH theo ngày (không nhảy mỗi lần làm mới) — số nhảy loạn sau mỗi
+ * lần bấm là dấu hiệu rõ nhất của dữ liệu bịa.
  */
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Những ngày mock BAKE SẴN vào code — 14-17/8 đã lỡ trộn data test load-test
+ * và không seed lại được (ngoài cửa sổ 72h của GA4). Hard-code để báo cáo luôn
+ * hiển thị số mockup cho đúng các ngày này mà không phụ thuộc env. Muốn đổi
+ * danh sách về sau thì đặt ANALYTICS_MOCK_GA_DATES để ghi đè.
+ */
+export const DEFAULT_MOCK_DATES = [
+  "2026-08-14",
+  "2026-08-15",
+  "2026-08-16",
+  "2026-08-17",
+] as const;
+
+/**
+ * Danh sách ngày cần thay bằng mockup: ưu tiên env ANALYTICS_MOCK_GA_DATES
+ * nếu có giá trị hợp lệ, ngược lại dùng danh sách bake sẵn ở trên.
+ */
+export function resolveMockDates(raw: string | undefined): Set<string> {
+  const fromEnv = parseMockGaDates(raw);
+  return fromEnv.size > 0 ? fromEnv : new Set(DEFAULT_MOCK_DATES);
+}
 
 /** `"2026-08-15,2026-08-16"` → Set các ngày ISO hợp lệ. */
 export function parseMockGaDates(raw: string | undefined): Set<string> {
@@ -57,9 +79,12 @@ function hashString(value: string): number {
 export function buildMockDay(date: string): GaDailyPoint {
   const rand = createRandom(hashString(`mock:${date}`));
 
-  const users = Math.round(15 + rand() * 10); // 15..25
-  const sessionsPerUser = 1.2 + rand() * 0.3; // 1,2..1,5
-  const sessions = Math.max(users, Math.round(users * sessionsPerUser));
+  const rUsers = rand();
+  const rSessions = rand();
+  const users = Math.round(100 + rUsers * 100); // 100..200
+  // Phiên trong [600,1800], nghiêng theo users (ngày đông người thì đông phiên)
+  // pha thêm chút nhiễu riêng để không thẳng tắp.
+  const sessions = Math.round(600 + (0.6 * rUsers + 0.4 * rSessions) * 1200);
 
   // Người mới chiếm phần lớn ở một site còn nhỏ, nhưng luôn ≤ tổng người dùng.
   const newUsers = Math.min(users, Math.round(users * (0.6 + rand() * 0.18)));
