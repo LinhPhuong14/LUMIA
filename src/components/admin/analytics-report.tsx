@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Area,
   AreaChart,
@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import {
+  isRangeKey,
   OPERATIONS_RANGE_KEYS,
   percentChange,
   RANGE_KEYS,
@@ -422,13 +423,58 @@ type ReportSection = "business" | "traffic";
  * Tải báo cáo cho đúng những section mà tab đang cần. Tab Báo cáo chỉ xin
  * `business` nên không phải chờ hai vòng gọi API Google mà nó không hiển thị.
  */
+// ─── Kỳ báo cáo dùng chung cho cả hai tab ────────────────────────────────────
+
+/**
+ * Range được chia sẻ giữa tab Báo cáo và tab Vận hành qua một store nhỏ (kèm
+ * localStorage). Hai panel render riêng lẻ theo tab nên nếu mỗi cái giữ range
+ * cục bộ, chuyển tab sẽ reset về default riêng và cùng một ô số liệu lại lệch
+ * nhau. Chia sẻ range đảm bảo hai tab luôn truy xuất GA4 cùng một khoảng ngày.
+ */
+const RANGE_STORAGE_KEY = "lumia:admin:analytics-range";
+const DEFAULT_SHARED_RANGE: RangeKey = "28d";
+
+function loadInitialRange(): RangeKey {
+  if (typeof window === "undefined") {
+    return DEFAULT_SHARED_RANGE;
+  }
+  const stored = window.localStorage.getItem(RANGE_STORAGE_KEY);
+  return isRangeKey(stored) ? stored : DEFAULT_SHARED_RANGE;
+}
+
+let sharedRange: RangeKey = loadInitialRange();
+const rangeListeners = new Set<() => void>();
+
+function setSharedRange(next: RangeKey): void {
+  if (next === sharedRange) {
+    return;
+  }
+  sharedRange = next;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(RANGE_STORAGE_KEY, next);
+  }
+  rangeListeners.forEach((listener) => listener());
+}
+
+function useSharedRange(): RangeKey {
+  return useSyncExternalStore(
+    (listener) => {
+      rangeListeners.add(listener);
+      return () => rangeListeners.delete(listener);
+    },
+    () => sharedRange,
+    () => DEFAULT_SHARED_RANGE,
+  );
+}
+
 function useAnalyticsReport(
   sections: ReportSection[],
-  options: { defaultRange?: RangeKey; includeToday?: boolean } = {},
+  options: { includeToday?: boolean } = {},
 ) {
-  const { defaultRange = "28d", includeToday = false } = options;
+  const { includeToday = false } = options;
   const sectionsParam = sections.join(",");
-  const [range, setRange] = useState<RangeKey>(defaultRange);
+  // Range dùng chung giữa hai tab — không phải state cục bộ của panel.
+  const range = useSharedRange();
   const [reloadToken, setReloadToken] = useState(0);
   const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -439,7 +485,7 @@ function useAnalyticsReport(
   const requestRange = useCallback((key: RangeKey) => {
     setLoading(true);
     setError(null);
-    setRange(key);
+    setSharedRange(key);
   }, []);
 
   const refresh = useCallback(() => {
@@ -803,6 +849,7 @@ export function AnalyticsReportPanel() {
         onRefresh={refresh}
         loading={loading}
         report={report}
+        rangeKeys={OPERATIONS_RANGE_KEYS}
         includeToday
       />
       <ReportStatus loading={loading} error={error} report={report} />
@@ -955,11 +1002,11 @@ export function AnalyticsReportPanel() {
 // ─── Tab "Vận hành" — GA4, Search Console, Vercel ────────────────────────────
 
 export function OperationsReportPanel() {
-  // Vận hành là màn hình theo dõi trực tiếp: mặc định xem hôm nay, và mọi kỳ
-  // đều bao gồm ngày hôm nay thay vì dừng ở hôm qua như tab Báo cáo.
+  // Vận hành dùng chung kỳ báo cáo với tab Báo cáo (store chia sẻ) để cùng một
+  // ô số liệu không lệch nhau giữa hai tab; mọi kỳ đều bao gồm ngày hôm nay.
   const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport(
     ["traffic"],
-    { defaultRange: "today", includeToday: true },
+    { includeToday: true },
   );
 
   const ga = report?.google;
