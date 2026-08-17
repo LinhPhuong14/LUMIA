@@ -33,13 +33,14 @@ describe("resolveMockDates", () => {
 });
 
 describe("buildMockDay", () => {
-  it("bám đúng mục tiêu: 100-200 người, 600-1800 phiên", () => {
+  it("bám đúng mục tiêu: 15-25 người, 1,2-1,5 phiên/người", () => {
     for (const date of [...DEFAULT_MOCK_DATES, "2026-08-01"]) {
       const day = buildMockDay(date);
-      expect(day.users).toBeGreaterThanOrEqual(100);
-      expect(day.users).toBeLessThanOrEqual(200);
-      expect(day.sessions).toBeGreaterThanOrEqual(600);
-      expect(day.sessions).toBeLessThanOrEqual(1800);
+      expect(day.users).toBeGreaterThanOrEqual(15);
+      expect(day.users).toBeLessThanOrEqual(25);
+      const perUser = day.sessions / day.users;
+      expect(perUser).toBeGreaterThanOrEqual(1.2);
+      expect(perUser).toBeLessThanOrEqual(1.55); // +biên làm tròn
     }
   });
 
@@ -105,8 +106,8 @@ describe("applyMockDates", () => {
     expect(d18).toEqual(daily("2026-08-18")); // nguyên vẹn
     for (const date of ["2026-08-15", "2026-08-16"]) {
       const patched = out.daily.find((p) => p.date === date)!;
-      expect(patched.users).toBeLessThanOrEqual(200);
-      expect(patched.users).toBeGreaterThanOrEqual(100);
+      expect(patched.users).toBeLessThanOrEqual(25);
+      expect(patched.users).toBeGreaterThanOrEqual(15);
     }
   });
 

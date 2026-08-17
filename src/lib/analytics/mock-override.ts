@@ -7,10 +7,10 @@ import type { GaDailyPoint, GaReport, GaSummary } from "@/lib/analytics/types";
  * cáo hiển thị số mockup hợp lý cho đúng những ngày đó, giữ nguyên các ngày
  * còn lại là số thật. CHỈ ở tầng hiển thị của app — không đụng gì tới GA4.
  *
- * Mục tiêu số liệu (theo yêu cầu vận hành): mỗi ngày mock ~100-200 người dùng,
- * ~600-1800 phiên; các chỉ số còn lại suy ra từ hai con số đó cho nhất quán.
- * Số TẤT ĐỊNH theo ngày (không nhảy mỗi lần làm mới) — số nhảy loạn sau mỗi
- * lần bấm là dấu hiệu rõ nhất của dữ liệu bịa.
+ * Mục tiêu số liệu (theo yêu cầu vận hành): mỗi ngày mock ~15-25 người dùng,
+ * trung bình 1,2-1,5 phiên/người; các chỉ số còn lại suy ra từ hai con số đó
+ * cho nhất quán. Số TẤT ĐỊNH theo ngày (không nhảy mỗi lần làm mới) — số nhảy
+ * loạn sau mỗi lần bấm là dấu hiệu rõ nhất của dữ liệu bịa.
  */
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -79,12 +79,10 @@ function hashString(value: string): number {
 export function buildMockDay(date: string): GaDailyPoint {
   const rand = createRandom(hashString(`mock:${date}`));
 
-  const rUsers = rand();
-  const rSessions = rand();
-  const users = Math.round(100 + rUsers * 100); // 100..200
-  // Phiên trong [600,1800], nghiêng theo users (ngày đông người thì đông phiên)
-  // pha thêm chút nhiễu riêng để không thẳng tắp.
-  const sessions = Math.round(600 + (0.6 * rUsers + 0.4 * rSessions) * 1200);
+  const users = Math.round(15 + rand() * 10); // 15..25
+  const sessionsPerUser = 1.2 + rand() * 0.3; // 1,2..1,5
+  // ceil(users*1,2) làm sàn để tỉ lệ không rơi dưới 1,2 vì làm tròn ở số nhỏ.
+  const sessions = Math.max(Math.ceil(users * 1.2), Math.round(users * sessionsPerUser));
 
   // Người mới chiếm phần lớn ở một site còn nhỏ, nhưng luôn ≤ tổng người dùng.
   const newUsers = Math.min(users, Math.round(users * (0.6 + rand() * 0.18)));
