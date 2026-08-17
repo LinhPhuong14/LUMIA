@@ -595,10 +595,20 @@ function ReportStatus({
   );
 }
 
-function ReportFooter({ report, note }: { report: AnalyticsReport; note?: string }) {
+function ReportFooter({
+  report,
+  note,
+  includeToday = false,
+}: {
+  report: AnalyticsReport;
+  note?: string;
+  includeToday?: boolean;
+}) {
   return (
     <p className="text-center text-[11px] text-[var(--muted)]">
-      Dữ liệu tính tới hết ngày {report.range.endDate}
+      {includeToday
+        ? `Dữ liệu tính tới hôm nay ${report.range.endDate} (ngày chưa trọn, số còn cập nhật)`
+        : `Dữ liệu tính tới hết ngày ${report.range.endDate}`}
       {note ? ` — ${note}` : ""}. Cập nhật lúc{" "}
       {new Date(report.generatedAt).toLocaleString("vi-VN")}.
     </p>
@@ -750,10 +760,10 @@ function seriesLabel(label: string, range: RangeKey): string {
 // ─── Tab "Báo cáo" — kinh doanh + tổng quan truy cập ─────────────────────────
 
 export function AnalyticsReportPanel() {
-  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport([
-    "business",
-    "traffic",
-  ]);
+  const { range, requestRange, refresh, report, loading, error } = useAnalyticsReport(
+    ["business", "traffic"],
+    { includeToday: true },
+  );
   const business = report?.business;
   const ga = report?.google;
   const gsc = report?.searchConsole;
@@ -793,6 +803,7 @@ export function AnalyticsReportPanel() {
         onRefresh={refresh}
         loading={loading}
         report={report}
+        includeToday
       />
       <ReportStatus loading={loading} error={error} report={report} />
 
@@ -933,6 +944,7 @@ export function AnalyticsReportPanel() {
           <ReportFooter
             report={report}
             note="đơn hàng tính theo trạng thái đã thu tiền, GA4 chốt số theo ngày"
+            includeToday
           />
         </>
       ) : null}
@@ -1242,6 +1254,7 @@ export function OperationsReportPanel() {
           <ReportFooter
             report={report}
             note="GA4 chốt số theo ngày, Search Console trễ khoảng 2-3 ngày"
+            includeToday
           />
         </>
       ) : null}
