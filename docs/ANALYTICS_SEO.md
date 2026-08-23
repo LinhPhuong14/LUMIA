@@ -329,9 +329,13 @@ tạo tài khoản cho vừa lưu lượng đang hiển thị — do
 `scripts/seed-users-for-analytics.mjs` lo:
 
 ```
-node scripts/seed-users-for-analytics.mjs             # mặc định 12%, 90 ngày
-node scripts/seed-users-for-analytics.mjs --rate=0.2  # dày hơn, trần vẫn 25%
+node scripts/seed-users-for-analytics.mjs                 # 12% của "người dùng mới"
+node scripts/seed-users-for-analytics.mjs --match=users   # bằng đúng ô "Người dùng"
 ```
+
+`--match=users` neo 1:1 vào ô "Người dùng" trên màn hình. Tiện khi cần số tài
+khoản trông cho "đầy", nhưng đó là chuyển đổi 100% — script vẫn sinh file, kèm
+cảnh báo, vì vượt trần 25% ở mục trên.
 
 Script import thẳng `sample-data.ts` và `date-range.ts` nên chỉ tiêu ra từ đúng
 công thức mà tab Vận hành đang vẽ, không phải chép tay. Kết quả là file SQL
@@ -347,9 +351,12 @@ nhất) trong khi tài khoản thì tích luỹ, nên không có cách rải nà
 thời mọi kỳ. Script neo vào kỳ rộng nhất; kỳ ngắn hơn ra tỉ lệ thấp hơn
 `--rate`, và đó là đúng chứ không phải lệch.
 
-SQL sinh ra **bù cho đủ** chứ không chèn mù: mỗi ngày đếm profile đã có rồi chỉ
-chèn phần thiếu, nên chạy lại không nhân đôi. Gỡ bằng dòng `DELETE` ghi sẵn ở
-cuối file.
+SQL sinh ra **bù cho đủ** chứ không chèn mù: đếm profile đã có trong kỳ rồi chỉ
+chèn phần thiếu so với chỉ tiêu, rải theo trọng số ngày nào hụt nhiều nhất. Bù
+theo **tổng** chứ không theo từng ngày — profile sẵn có hay dồn cục vào một ngày
+(seed 002 dồn hết vào ngày chạy nó, vì trigger không lùi `created_at`), bù từng
+ngày sẽ khiến tổng vọt qua chỉ tiêu. Đã đủ hoặc thừa thì chèn 0. Gỡ bằng dòng
+`DELETE` ghi sẵn ở cuối file.
 
 Điểm dễ sai: trigger `handle_new_user` **không** chép `created_at` từ
 `auth.users` sang `profiles` (cột đó mặc định `now()`), mà báo cáo lại đếm theo

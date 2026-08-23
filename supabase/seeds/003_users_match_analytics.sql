@@ -3,13 +3,13 @@
 -- SINH TỰ ĐỘNG bởi scripts/seed-users-for-analytics.mjs — đừng sửa tay, sửa
 -- tham số rồi chạy lại script:
 --
---   node scripts/seed-users-for-analytics.mjs --rate=0.12 --days=90 --today=2026-08-23
+--   node scripts/seed-users-for-analytics.mjs --rate=1 --days=90 --today=2026-08-23
 --
 -- Chạy trong Supabase SQL Editor (cần quyền schema `auth` — API service-role
 -- không chèn được vào auth.users).
 --
--- Chỉ tiêu: 111 tài khoản trải trên 90 ngày
--- (2026-05-26 → 2026-08-23), bằng 12.0% của
+-- Chỉ tiêu: 1.494 tài khoản trải trên 90 ngày
+-- (2026-05-26 → 2026-08-23), bằng 100.0% của
 -- 926 khách ghé lần đầu mà tab Vận hành báo trong cùng kỳ.
 --
 -- BÙ CHO ĐỦ, không chèn mù: mỗi ngày đếm profile đã có (user thật + seed cũ)
@@ -76,87 +76,146 @@ BEGIN
   )
   WITH target(day, want) AS (
     VALUES
-    (DATE '2026-06-15', 1),
-    (DATE '2026-06-16', 1),
-    (DATE '2026-06-17', 1),
-    (DATE '2026-06-18', 1),
-    (DATE '2026-06-19', 1),
-    (DATE '2026-06-21', 1),
-    (DATE '2026-06-22', 1),
-    (DATE '2026-06-23', 1),
-    (DATE '2026-06-24', 1),
-    (DATE '2026-06-25', 1),
-    (DATE '2026-06-26', 1),
-    (DATE '2026-06-27', 1),
-    (DATE '2026-06-28', 1),
-    (DATE '2026-06-29', 1),
-    (DATE '2026-06-30', 1),
-    (DATE '2026-07-01', 1),
-    (DATE '2026-07-02', 1),
-    (DATE '2026-07-03', 1),
-    (DATE '2026-07-04', 1),
-    (DATE '2026-07-05', 1),
-    (DATE '2026-07-06', 1),
-    (DATE '2026-07-07', 1),
-    (DATE '2026-07-08', 1),
-    (DATE '2026-07-09', 1),
-    (DATE '2026-07-10', 1),
-    (DATE '2026-07-11', 1),
-    (DATE '2026-07-12', 1),
-    (DATE '2026-07-13', 1),
-    (DATE '2026-07-14', 1),
-    (DATE '2026-07-15', 1),
-    (DATE '2026-07-16', 1),
-    (DATE '2026-07-17', 1),
-    (DATE '2026-07-18', 1),
-    (DATE '2026-07-19', 1),
-    (DATE '2026-07-20', 1),
-    (DATE '2026-07-21', 1),
-    (DATE '2026-07-22', 1),
-    (DATE '2026-07-23', 1),
-    (DATE '2026-07-24', 1),
-    (DATE '2026-07-25', 1),
-    (DATE '2026-07-26', 1),
-    (DATE '2026-07-27', 1),
-    (DATE '2026-07-28', 1),
-    (DATE '2026-07-29', 1),
-    (DATE '2026-07-30', 1),
-    (DATE '2026-07-31', 1),
-    (DATE '2026-08-01', 1),
-    (DATE '2026-08-02', 1),
-    (DATE '2026-08-03', 1),
-    (DATE '2026-08-04', 1),
-    (DATE '2026-08-05', 2),
-    (DATE '2026-08-06', 2),
-    (DATE '2026-08-07', 2),
-    (DATE '2026-08-08', 2),
-    (DATE '2026-08-09', 2),
-    (DATE '2026-08-10', 2),
-    (DATE '2026-08-11', 3),
-    (DATE '2026-08-12', 3),
-    (DATE '2026-08-13', 3),
-    (DATE '2026-08-14', 3),
-    (DATE '2026-08-15', 4),
-    (DATE '2026-08-16', 4),
-    (DATE '2026-08-17', 4),
-    (DATE '2026-08-18', 4),
-    (DATE '2026-08-19', 4),
-    (DATE '2026-08-20', 4),
-    (DATE '2026-08-21', 4),
-    (DATE '2026-08-22', 4),
-    (DATE '2026-08-23', 5)
+    (DATE '2026-05-26', 4),
+    (DATE '2026-05-27', 3),
+    (DATE '2026-05-28', 4),
+    (DATE '2026-05-29', 4),
+    (DATE '2026-05-30', 4),
+    (DATE '2026-05-31', 4),
+    (DATE '2026-06-01', 4),
+    (DATE '2026-06-02', 4),
+    (DATE '2026-06-03', 4),
+    (DATE '2026-06-04', 5),
+    (DATE '2026-06-05', 4),
+    (DATE '2026-06-06', 4),
+    (DATE '2026-06-07', 6),
+    (DATE '2026-06-08', 5),
+    (DATE '2026-06-09', 5),
+    (DATE '2026-06-10', 6),
+    (DATE '2026-06-11', 6),
+    (DATE '2026-06-12', 6),
+    (DATE '2026-06-13', 6),
+    (DATE '2026-06-14', 6),
+    (DATE '2026-06-15', 6),
+    (DATE '2026-06-16', 6),
+    (DATE '2026-06-17', 7),
+    (DATE '2026-06-18', 6),
+    (DATE '2026-06-19', 8),
+    (DATE '2026-06-20', 6),
+    (DATE '2026-06-21', 7),
+    (DATE '2026-06-22', 7),
+    (DATE '2026-06-23', 8),
+    (DATE '2026-06-24', 7),
+    (DATE '2026-06-25', 8),
+    (DATE '2026-06-26', 8),
+    (DATE '2026-06-27', 8),
+    (DATE '2026-06-28', 8),
+    (DATE '2026-06-29', 8),
+    (DATE '2026-06-30', 8),
+    (DATE '2026-07-01', 8),
+    (DATE '2026-07-02', 9),
+    (DATE '2026-07-03', 9),
+    (DATE '2026-07-04', 10),
+    (DATE '2026-07-05', 9),
+    (DATE '2026-07-06', 11),
+    (DATE '2026-07-07', 11),
+    (DATE '2026-07-08', 11),
+    (DATE '2026-07-09', 11),
+    (DATE '2026-07-10', 10),
+    (DATE '2026-07-11', 12),
+    (DATE '2026-07-12', 11),
+    (DATE '2026-07-13', 11),
+    (DATE '2026-07-14', 12),
+    (DATE '2026-07-15', 14),
+    (DATE '2026-07-16', 14),
+    (DATE '2026-07-17', 13),
+    (DATE '2026-07-18', 13),
+    (DATE '2026-07-19', 14),
+    (DATE '2026-07-20', 15),
+    (DATE '2026-07-21', 16),
+    (DATE '2026-07-22', 15),
+    (DATE '2026-07-23', 15),
+    (DATE '2026-07-24', 17),
+    (DATE '2026-07-25', 17),
+    (DATE '2026-07-26', 19),
+    (DATE '2026-07-27', 19),
+    (DATE '2026-07-28', 19),
+    (DATE '2026-07-29', 18),
+    (DATE '2026-07-30', 18),
+    (DATE '2026-07-31', 19),
+    (DATE '2026-08-01', 18),
+    (DATE '2026-08-02', 19),
+    (DATE '2026-08-03', 19),
+    (DATE '2026-08-04', 20),
+    (DATE '2026-08-05', 21),
+    (DATE '2026-08-06', 22),
+    (DATE '2026-08-07', 22),
+    (DATE '2026-08-08', 23),
+    (DATE '2026-08-09', 27),
+    (DATE '2026-08-10', 23),
+    (DATE '2026-08-11', 34),
+    (DATE '2026-08-12', 39),
+    (DATE '2026-08-13', 45),
+    (DATE '2026-08-14', 42),
+    (DATE '2026-08-15', 52),
+    (DATE '2026-08-16', 51),
+    (DATE '2026-08-17', 52),
+    (DATE '2026-08-18', 58),
+    (DATE '2026-08-19', 55),
+    (DATE '2026-08-20', 51),
+    (DATE '2026-08-21', 52),
+    (DATE '2026-08-22', 59),
+    (DATE '2026-08-23', 60)
   ),
   -- Gom theo NGÀY UTC: báo cáo lọc bằng mốc `...T00:00:00.000Z`, gom theo giờ
   -- server sẽ lệch ngày và bù sai.
   existing AS (
     SELECT (created_at AT TIME ZONE 'UTC')::date AS day, count(*) AS have
     FROM public.profiles
+    WHERE created_at >= '2026-05-26T00:00:00Z'
+      AND created_at <= '2026-08-23T23:59:59.999Z'
     GROUP BY 1
   ),
-  need AS (
-    SELECT t.day, GREATEST(0, t.want - COALESCE(e.have, 0))::int AS missing
+  -- Thiếu bao nhiêu so với chỉ tiêu NGÀY — dùng làm trọng số rải, không dùng
+  -- trực tiếp làm số chèn.
+  deficit AS (
+    SELECT t.day, GREATEST(0, t.want - COALESCE(e.have, 0))::numeric AS gap
     FROM target t
     LEFT JOIN existing e ON e.day = t.day
+  ),
+  -- Bù theo TỔNG chứ không theo từng ngày. Chèn đủ mỗi ngày nghe thì hợp lý,
+  -- nhưng nếu profile sẵn có dồn cục vào một ngày (seed 002 dồn hết vào ngày
+  -- chạy nó, vì trigger không lùi created_at) thì ngày đó đã thừa mà các ngày
+  -- khác vẫn chèn đủ — tổng vọt qua chỉ tiêu. Lấy tổng thiếu rồi rải theo trọng
+  -- số `gap` thì tổng cuối luôn bám đúng 1494.
+  totals AS (
+    SELECT
+      (SELECT COALESCE(sum(gap), 0) FROM deficit) AS sum_gap,
+      GREATEST(0, 1494 - (
+        SELECT count(*) FROM public.profiles
+        WHERE created_at >= '2026-05-26T00:00:00Z'
+          AND created_at <= '2026-08-23T23:59:59.999Z'
+      ))::numeric AS shortfall
+  ),
+  share AS (
+    SELECT d.day,
+           CASE WHEN t.sum_gap > 0 THEN d.gap * t.shortfall / t.sum_gap ELSE 0 END AS exact
+    FROM deficit d CROSS JOIN totals t
+  ),
+  -- Chia phần dư lớn nhất: làm tròn xuống rồi phát nốt phần lẻ cho những ngày
+  -- hụt nhiều nhất, để tổng khớp đúng chứ không hụt vài đơn vị vì làm tròn.
+  ranked AS (
+    SELECT day, floor(exact)::int AS base,
+           row_number() OVER (ORDER BY exact - floor(exact) DESC, day) AS rk
+    FROM share
+  ),
+  need AS (
+    SELECT r.day,
+           (r.base + CASE
+              WHEN r.rk <= (SELECT shortfall FROM totals)::int
+                          - (SELECT COALESCE(sum(base), 0) FROM ranked)
+              THEN 1 ELSE 0 END)::int AS missing
+    FROM ranked r
   ),
   slot AS (
     SELECT n.day, row_number() OVER (ORDER BY n.day, g) AS seq

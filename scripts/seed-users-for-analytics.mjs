@@ -9,8 +9,12 @@
  * một công thức — sửa `sample-data.ts` thì chỉ cần chạy lại script, không phải
  * đồng bộ tay hai nơi.
  *
- * Chỉ tiêu = `summary.newUsers` của cả kỳ × TỈ LỆ CHUYỂN ĐỔI (`--rate`, mặc
- * định 0.12), rồi rải ra từng ngày theo hình sóng của `daily.newUsers`.
+ * Chỉ tiêu = ô báo cáo đã neo (`--match`) × `--rate`, rồi rải ra từng ngày theo
+ * hình sóng của `daily.newUsers`.
+ *
+ *   --match=new-users (mặc định)  neo vào "người dùng mới", rate mặc định 0.12
+ *   --match=users                 neo vào ô "Người dùng", rate mặc định 1 —
+ *                                 tức seed cho bằng đúng con số trên màn hình
  *
  * Hai điểm dễ nhầm:
  *   - Dùng `newUsers` chứ không phải `users`: chỉ khách LẦN ĐẦU mới tạo được
@@ -82,7 +86,8 @@ register(`data:text/javascript,${encodeURIComponent(HOOK)}`);
 const { resolveDateRange } = await import("@/lib/analytics/date-range");
 const { buildSampleGaReport } = await import("@/lib/analytics/sample-data");
 // Trần chuyển đổi lấy từ chính app: vượt ngưỡng này thì demo-data coi là số sai
-// chứ không phải marketing giỏi, nên seed cũng không được phép vượt.
+// chứ không phải marketing giỏi. Ở đây chỉ dùng để CẢNH BÁO, không chặn — chọn
+// vượt trần hay không là quyết định của người chạy.
 const { SIGNUP_CONVERSION_CEILING } = await import("@/lib/analytics/demo-data");
 
 // ─── Tham số ────────────────────────────────────────────────────────────────
@@ -98,7 +103,8 @@ if (args.help) {
   console.log(`
 Sinh seed SQL tạo tài khoản khớp đường cong người dùng của tab Vận hành.
 
-  --rate=<0..0.25>  Tỉ lệ khách ghé lần đầu → tài khoản. Mặc định 0.12
+  --match=<what>    Neo vào ô nào của báo cáo: new-users (mặc định) hoặc users
+  --rate=<0..1>     Nhân với ô đã neo. Mặc định 0.12, hoặc 1 khi --match=users
   --days=<n>        Số ngày lùi về, tính cả hôm nay. Mặc định 90 (phủ hết mọi kỳ của tab)
   --today=<ISO>     Cố định "hôm nay" (YYYY-MM-DD). Mặc định là ngày hệ thống
   --out=<path>      File SQL kết quả. Mặc định supabase/seeds/003_users_match_analytics.sql
@@ -113,15 +119,18 @@ function fail(message, hint) {
   process.exit(1);
 }
 
-const rate = args.rate === undefined ? 0.12 : Number(args.rate);
-if (!Number.isFinite(rate) || rate <= 0) {
-  fail(`--rate không hợp lệ: ${args.rate}`, "Cần một số > 0, ví dụ --rate=0.12");
+// Neo vào ô nào của báo cáo: "Người dùng" (users) hay "người dùng mới"
+// (new-users). Mặc định new-users vì chỉ khách lần đầu mới tạo được tài khoản.
+const match = String(args.match ?? "new-users");
+if (match !== "users" && match !== "new-users") {
+  fail(`--match không hợp lệ: ${match}`, "Chỉ nhận users hoặc new-users.");
 }
-if (rate > SIGNUP_CONVERSION_CEILING) {
-  fail(
-    `--rate=${rate} vượt trần ${SIGNUP_CONVERSION_CEILING} của app`,
-    "demo-data.ts coi tỉ lệ khách → tài khoản trên 25% là dấu hiệu số liệu sai. Hạ --rate xuống.",
-  );
+
+// Neo theo users thì mặc định 1:1 — mỗi khách một tài khoản, đúng nghĩa "seed
+// cho bằng đúng ô Người dùng".
+const rate = args.rate === undefined ? (match === "users" ? 1 : 0.12) : Number(args.rate);
+if (!Number.isFinite(rate) || rate <= 0 || rate > 1) {
+  fail(`--rate không hợp lệ: ${args.rate}`, "Cần một số trong khoảng (0, 1], ví dụ --rate=0.12");
 }
 
 const days = args.days === undefined ? 90 : Number(args.days);
@@ -176,11 +185,16 @@ const report = buildSampleGaReport(fullRange);
 // — sample-data neo KPI đúng theo bản chất đó, nên seed phải bám vào cùng con
 // số mà màn hình hiển thị.
 const totalNewUsers = report.summary.newUsers;
-const totalWant = Math.round(totalNewUsers * rate);
+const anchorValue = match === "users" ? report.summary.users : totalNewUsers;
+const totalWant = Math.round(anchorValue * rate);
 
 if (totalWant === 0) {
   fail("Chỉ tiêu tính ra 0 tài khoản", "Tăng --rate hoặc --days.");
 }
+
+// Cảnh báo, KHÔNG chặn: đây là lựa chọn của người chạy, nhưng phải nói rõ hệ quả.
+const impliedConversion = report.summary.users > 0 ? totalWant / report.summary.users : 0;
+const overCeiling = impliedConversion > SIGNUP_CONVERSION_CEILING;
 
 // Rải chỉ tiêu theo HÌNH SÓNG của newUsers từng ngày, để biểu đồ tài khoản mới
 // lên xuống giống biểu đồ lưu lượng. Chia theo phần dư lớn nhất (largest
@@ -298,12 +312,50 @@ ${values}
   existing AS (
     SELECT (created_at AT TIME ZONE 'UTC')::date AS day, count(*) AS have
     FROM public.profiles
+    WHERE created_at >= '${startDate}T00:00:00Z'
+      AND created_at <= '${endDate}T23:59:59.999Z'
     GROUP BY 1
   ),
-  need AS (
-    SELECT t.day, GREATEST(0, t.want - COALESCE(e.have, 0))::int AS missing
+  -- Thiếu bao nhiêu so với chỉ tiêu NGÀY — dùng làm trọng số rải, không dùng
+  -- trực tiếp làm số chèn.
+  deficit AS (
+    SELECT t.day, GREATEST(0, t.want - COALESCE(e.have, 0))::numeric AS gap
     FROM target t
     LEFT JOIN existing e ON e.day = t.day
+  ),
+  -- Bù theo TỔNG chứ không theo từng ngày. Chèn đủ mỗi ngày nghe thì hợp lý,
+  -- nhưng nếu profile sẵn có dồn cục vào một ngày (seed 002 dồn hết vào ngày
+  -- chạy nó, vì trigger không lùi created_at) thì ngày đó đã thừa mà các ngày
+  -- khác vẫn chèn đủ — tổng vọt qua chỉ tiêu. Lấy tổng thiếu rồi rải theo trọng
+  -- số \`gap\` thì tổng cuối luôn bám đúng ${totalWant}.
+  totals AS (
+    SELECT
+      (SELECT COALESCE(sum(gap), 0) FROM deficit) AS sum_gap,
+      GREATEST(0, ${totalWant} - (
+        SELECT count(*) FROM public.profiles
+        WHERE created_at >= '${startDate}T00:00:00Z'
+          AND created_at <= '${endDate}T23:59:59.999Z'
+      ))::numeric AS shortfall
+  ),
+  share AS (
+    SELECT d.day,
+           CASE WHEN t.sum_gap > 0 THEN d.gap * t.shortfall / t.sum_gap ELSE 0 END AS exact
+    FROM deficit d CROSS JOIN totals t
+  ),
+  -- Chia phần dư lớn nhất: làm tròn xuống rồi phát nốt phần lẻ cho những ngày
+  -- hụt nhiều nhất, để tổng khớp đúng chứ không hụt vài đơn vị vì làm tròn.
+  ranked AS (
+    SELECT day, floor(exact)::int AS base,
+           row_number() OVER (ORDER BY exact - floor(exact) DESC, day) AS rk
+    FROM share
+  ),
+  need AS (
+    SELECT r.day,
+           (r.base + CASE
+              WHEN r.rk <= (SELECT shortfall FROM totals)::int
+                          - (SELECT COALESCE(sum(base), 0) FROM ranked)
+              THEN 1 ELSE 0 END)::int AS missing
+    FROM ranked r
   ),
   slot AS (
     SELECT n.day, row_number() OVER (ORDER BY n.day, g) AS seq
@@ -404,9 +456,17 @@ writeFileSync(outPath, sql, "utf8");
 const rel = path.relative(ROOT, outPath);
 console.log(`✓ Đã ghi ${rel}`);
 console.log(`  Kỳ           ${perDay[0].date} → ${perDay[perDay.length - 1].date} (${perDay.length} ngày)`);
-console.log(`  Tỉ lệ        ${(rate * 100).toFixed(1)}% khách ghé lần đầu → tài khoản (trần ${SIGNUP_CONVERSION_CEILING * 100}%)`);
-console.log(`  Khách lần đầu ${totalNewUsers.toLocaleString("vi-VN")} (theo tab Vận hành)`);
+console.log(`  Neo theo     ô "${match === "users" ? "Người dùng" : "người dùng mới"}" = ${anchorValue.toLocaleString("vi-VN")} × ${(rate * 100).toFixed(1)}%`);
+console.log(`  Báo cáo      ${report.summary.users.toLocaleString("vi-VN")} người dùng · ${totalNewUsers.toLocaleString("vi-VN")} lần đầu`);
 console.log(`  Chỉ tiêu     ${totalWant.toLocaleString("vi-VN")} tài khoản`);
+if (overCeiling) {
+  console.log("");
+  console.log(`  (!) Tỉ lệ khách → tài khoản thành ${(impliedConversion * 100).toFixed(0)}%, vượt trần ${SIGNUP_CONVERSION_CEILING * 100}% của app.`);
+  console.log("      Vẫn sinh file vì đây là lựa chọn của bạn, nhưng cần biết:");
+  console.log("      - 100% khách ghé đều tạo tài khoản là con số không có thật ngoài đời.");
+  console.log("      - Nếu sau này tắt ANALYTICS_SAMPLE_MODE, calibrateForSignups sẽ tự");
+  console.log(`        thổi lưu lượng demo lên ~${Math.ceil(totalWant / SIGNUP_CONVERSION_CEILING).toLocaleString("vi-VN")} người để phủ số tài khoản này.`);
+}
 console.log("");
 console.log("  Đối chiếu từng kỳ của tab Vận hành:");
 console.log("    kỳ     người dùng  lần đầu  tài khoản  tỉ lệ");
@@ -416,7 +476,9 @@ for (const key of ["today", "7d", "28d", "90d"]) {
   const want = perDay
     .filter((d) => d.date >= r.startDate && d.date <= r.endDate)
     .reduce((sum, d) => sum + d.want, 0);
-  const ratio = summary.newUsers > 0 ? (want / summary.newUsers) * 100 : 0;
+  // Chia cho đúng ô đã neo, không thì --match=users sẽ ra tỉ lệ vô nghĩa.
+  const base = match === "users" ? summary.users : summary.newUsers;
+  const ratio = base > 0 ? (want / base) * 100 : 0;
   console.log(
     `    ${key.padEnd(6)} ${String(summary.users).padStart(9)}` +
       ` ${String(summary.newUsers).padStart(8)}` +
@@ -425,6 +487,7 @@ for (const key of ["today", "7d", "28d", "90d"]) {
   );
 }
 console.log("");
+console.log(`  Cột tỉ lệ = tài khoản / ô "${match === "users" ? "Người dùng" : "người dùng mới"}" của kỳ đó.`);
 console.log("  Chỉ kỳ rộng nhất khớp đúng --rate. Kỳ ngắn thấp hơn là đúng: KPI người");
 console.log("  dùng đã loại trùng nên không cộng được, còn tài khoản thì tích luỹ.");
 console.log("");
