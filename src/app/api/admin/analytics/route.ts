@@ -19,6 +19,7 @@ import {
 import { fillGaGaps, fillGscGaps, isGscEmpty } from "@/lib/analytics/fill-gaps";
 import { fetchGaRealtime, fetchGaReport } from "@/lib/analytics/ga4";
 import { applyMockDates, resolveMockDates } from "@/lib/analytics/mock-override";
+import { buildSampleGaReport, buildSampleGscReport } from "@/lib/analytics/sample-data";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
 import { readSnapshot } from "@/lib/analytics/snapshot";
 import {
@@ -126,6 +127,32 @@ export async function GET(request: Request) {
 
   if (business) {
     report.business = business;
+  }
+
+  // Chế độ SỐ MẪU (sample): khi bật, tab Vận hành/Báo cáo hiển thị bộ số liệu
+  // mẫu theo kịch bản chiến dịch (sample-data.ts) THAY cho số GA4/Search Console
+  // thật. Đánh dấu `demo: true` nên: (a) badge nhãn "Dữ liệu mẫu" dùng chung cơ
+  // chế sẵn có (hiện khi ANALYTICS_DEMO_SHOW_LABEL=true), (b) các bước nối lịch
+  // sử / mock-override / lấp khối tự bỏ qua nguồn demo. MẶC ĐỊNH TẮT — không đổi
+  // gì cho tới khi bật env. ⚠️ Số mẫu: khi trình bày PHẢI bật nhãn.
+  const sampleMode = process.env.ANALYTICS_SAMPLE_MODE === "true";
+
+  if (sections.traffic && sampleMode) {
+    const siteUrl = resolveSiteUrl();
+    report.google = { status: "ok", demo: true, data: buildSampleGaReport(range) };
+    report.searchConsole = { status: "ok", demo: true, data: buildSampleGscReport(range, siteUrl) };
+    report.realtime = {
+      status: "ok",
+      demo: true,
+      data: buildDemoGaRealtime({ launchDate: new Date(range.startDate), peakDailyUsers: 125 }),
+    };
+    report.vercel = {
+      onVercel: Boolean(process.env.VERCEL),
+      environment: env.VERCEL_ENV ?? null,
+      projectUrl: getAppUrl(),
+      analyticsDisabled: env.NEXT_PUBLIC_ANALYTICS_DISABLED,
+    };
+    return NextResponse.json(report);
   }
 
   if (sections.traffic) {
