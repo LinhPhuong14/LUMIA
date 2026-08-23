@@ -1004,7 +1004,6 @@ export function OperationsReportPanel() {
   const gsc = report?.searchConsole;
   const vercel = report?.vercel;
   const showDemoLabel = Boolean(report?.showDemoLabel);
-  const hasDemoSection = showDemoLabel && Boolean(ga?.demo || gsc?.demo);
 
   const gaTrend = useMemo<TrendPoint[]>(
     () =>
@@ -1046,18 +1045,6 @@ export function OperationsReportPanel() {
 
       {report ? (
         <>
-          {hasDemoSection ? (
-            <div className="flex items-start gap-3 rounded-[14px] bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-              <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                Đang bật <strong>ANALYTICS_DEMO_MODE</strong>. Các khối có nhãn{" "}
-                <em>Dữ liệu mẫu</em> là số do app tự sinh để xem trước giao diện —{" "}
-                <strong>không phải số thật</strong>. Nối GA4 và Search Console theo{" "}
-                <code>docs/ANALYTICS_SEO.md</code> thì dữ liệu thật sẽ tự thay thế.
-              </span>
-            </div>
-          ) : null}
-
           {/* ── Google Analytics ─────────────────────────────────────────── */}
           <div className="space-y-4">
             <SectionHeading
