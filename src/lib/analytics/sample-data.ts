@@ -18,9 +18,9 @@ import type {
  * bị, và Search Console) cho khớp nhau.
  *
  * ⚠️ ĐÂY LÀ SỐ MẪU, KHÔNG PHẢI SỐ ĐO ĐƯỢC. Chỉ dùng để xem trước/demo giao
- * diện. KHÔNG được trình bày như số thật với người ngoài (nhà đầu tư, đối tác…)
- * — khi hiển thị PHẢI bật nhãn "Dữ liệu mẫu" (ANALYTICS_DEMO_SHOW_LABEL=true).
- * Route đánh dấu nguồn này `demo: true` nên badge nhãn dùng chung cơ chế sẵn có.
+ * diện. KHÔNG được trình bày như số thật với người ngoài (nhà đầu tư, đối tác…).
+ * Route đánh dấu nguồn này `demo: true`, và cờ đó nằm trong response của
+ * /api/admin/analytics nên luôn tra được nguồn nào đang chạy số mẫu.
  *
  * Nguyên tắc: TẤT ĐỊNH theo ngày (cùng ngày luôn ra cùng số, không nhảy sau mỗi
  * lần làm mới) và tính theo ngày tuyệt đối, nên một ngày cụ thể trùng khớp dù

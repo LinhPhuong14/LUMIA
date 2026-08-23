@@ -182,12 +182,6 @@ export type AnalyticsReport = {
   range: DateRange;
   generatedAt: string;
   /**
-   * Có hiện nhãn "Dữ liệu mẫu" trên UI hay không. Mặc định tắt để màn hình
-   * báo cáo gọn; cờ `demo` của từng nguồn vẫn giữ nguyên trong payload nên
-   * luôn tra được nguồn nào là số mẫu qua API hoặc tab Network.
-   */
-  showDemoLabel: boolean;
-  /**
    * Các khối dưới đây chỉ có mặt khi client xin đúng section tương ứng
    * (`?sections=business|traffic`) — vắng nghĩa là không được yêu cầu,
    * không phải là chưa cấu hình.

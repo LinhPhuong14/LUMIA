@@ -232,10 +232,9 @@ ANALYTICS_DEMO_MODE=false
   **dữ liệu thật luôn thắng**, kể cả khi API trả về 0. Nguồn đang lỗi cũng giữ
   nguyên thông báo lỗi để còn biết mà sửa.
 - Khối **Kinh doanh** luôn là số thật từ database, không bao giờ bị thay.
-- Nhãn "Dữ liệu mẫu" trên UI **mặc định ẩn** cho gọn màn hình. Cờ `demo` của
-  từng nguồn vẫn nằm trong response của `/api/admin/analytics`, nên lúc nào
-  cũng tra được nguồn nào đang chạy số mẫu — bật `ANALYTICS_DEMO_SHOW_LABEL=true`
-  để hiện nhãn lại trên giao diện.
+- Giao diện **không gắn nhãn** gì lên khối đang chạy số mẫu. Cờ `demo` của
+  từng nguồn vẫn nằm trong response của `/api/admin/analytics`, nên tra được
+  nguồn nào là số mẫu qua API hoặc tab Network của trình duyệt.
 - Đây là số do app tự sinh, không phải số đo được. Đừng dùng để báo cáo ra
   ngoài hay ra quyết định kinh doanh.
 
@@ -245,7 +244,6 @@ Các biến tinh chỉnh:
 |---|---|
 | `ANALYTICS_DEMO_LAUNCH_DATE` | Mốc mở bán. Bỏ trống = profile sớm nhất trong DB, không có thì lùi 60 ngày |
 | `ANALYTICS_DEMO_PEAK_DAILY_USERS` | Trần người dùng/ngày, mặc định `110` |
-| `ANALYTICS_DEMO_SHOW_LABEL` | `true` = hiện nhãn "Dữ liệu mẫu" trên UI. Mặc định ẩn |
 
 #### Mô hình đằng sau số liệu mẫu
 

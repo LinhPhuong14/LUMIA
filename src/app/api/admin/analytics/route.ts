@@ -120,8 +120,6 @@ export async function GET(request: Request) {
   const report: AnalyticsReport = {
     range,
     generatedAt: new Date().toISOString(),
-    // Mặc định ẩn nhãn; đặt ANALYTICS_DEMO_SHOW_LABEL=true để hiện lại.
-    showDemoLabel: process.env.ANALYTICS_DEMO_SHOW_LABEL === "true",
   };
 
   if (business) {
@@ -131,15 +129,11 @@ export async function GET(request: Request) {
   // Chế độ SỐ MẪU (sample): khi bật, tab Vận hành/Báo cáo hiển thị bộ số liệu
   // mẫu theo kịch bản chiến dịch (sample-data.ts) THAY cho số GA4/Search Console
   // thật. Đánh dấu `demo: true` nên các bước nối lịch sử / lấp khối tự bỏ qua,
-  // và badge nhãn "Dữ liệu mẫu" LUÔN hiện (route buộc showDemoLabel=true bên
-  // dưới) — không thể trình bày sample như số thật. MẶC ĐỊNH TẮT: sample off →
-  // dashboard hiển thị 100% GA4 thật.
+  // và cờ đó nằm luôn trong response nên vẫn tra được nguồn nào là số mẫu.
+  // MẶC ĐỊNH TẮT: sample off → dashboard hiển thị 100% GA4 thật.
   const sampleMode = process.env.ANALYTICS_SAMPLE_MODE === "true";
 
   if (sections.traffic && sampleMode) {
-    // Số MẪU thì LUÔN gắn nhãn: buộc showDemoLabel=true bất kể env, để badge
-    // "Dữ liệu mẫu" luôn hiện — không thể trình bày sample như số thật.
-    report.showDemoLabel = true;
     const siteUrl = resolveSiteUrl();
     // Nối GA THẬT cho ngày sau 23/8: truyền daily thật nếu GA đọc được.
     const realDaily =
