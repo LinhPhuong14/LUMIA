@@ -101,7 +101,7 @@ describe("buildSampleGaReport", () => {
   });
 
   it("từ 24/8 nối GA thật khi truyền realDaily; tới 23/8 vẫn là sample", () => {
-    const range = {
+    const range: DateRange = {
       key: "28d",
       days: 14,
       startDate: "2026-08-17",
