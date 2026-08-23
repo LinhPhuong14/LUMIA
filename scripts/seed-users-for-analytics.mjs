@@ -9,9 +9,21 @@
  * một công thức — sửa `sample-data.ts` thì chỉ cần chạy lại script, không phải
  * đồng bộ tay hai nơi.
  *
- * Mỗi ngày lấy `newUsers` của ngày đó nhân TỈ LỆ CHUYỂN ĐỔI khách ghé → tài
- * khoản (`--rate`, mặc định 0.12). Dùng `newUsers` chứ không phải `users` vì
- * chỉ khách LẦN ĐẦU mới có thể tạo tài khoản mới.
+ * Chỉ tiêu = `summary.newUsers` của cả kỳ × TỈ LỆ CHUYỂN ĐỔI (`--rate`, mặc
+ * định 0.12), rồi rải ra từng ngày theo hình sóng của `daily.newUsers`.
+ *
+ * Hai điểm dễ nhầm:
+ *   - Dùng `newUsers` chứ không phải `users`: chỉ khách LẦN ĐẦU mới tạo được
+ *     tài khoản mới.
+ *   - Lấy từ `summary`, KHÔNG cộng dồn `daily`. GA4 đếm người dùng của một kỳ
+ *     theo đầu người đã loại trùng; cộng theo ngày thì một người ghé nhiều ngày
+ *     bị tính nhiều lần, ra số lớn gấp đôi những gì màn hình hiển thị.
+ *
+ * Hệ quả: KPI "người dùng" không cộng được giữa các kỳ (28 ngày và 90 ngày đều
+ * ~1.500 người duy nhất), trong khi tài khoản seed thì cộng được — mỗi ngày một
+ * nhóm dòng thật. Nên không có cách rải nào khớp đồng thời mọi kỳ. Script neo
+ * vào kỳ RỘNG NHẤT (`--days`); các kỳ ngắn hơn sẽ ra tỉ lệ thấp hơn --rate, và
+ * đó là đúng: tài khoản thì tích luỹ, còn khách duy nhất thì không.
  *
  * SQL sinh ra là dạng BÙ CHO ĐỦ, không phải chèn mù: mỗi ngày đếm số profile
  * đã có sẵn (user thật + seed cũ) rồi chỉ chèn phần còn thiếu. Chạy lại lần hai
@@ -158,18 +170,41 @@ const fullRange = {
 };
 const report = buildSampleGaReport(fullRange);
 
-const perDay = report.daily.map((point) => ({
-  date: point.date,
-  newUsers: point.newUsers,
-  want: Math.round(point.newUsers * rate),
-}));
-
-const totalWant = perDay.reduce((sum, d) => sum + d.want, 0);
-const totalNewUsers = perDay.reduce((sum, d) => sum + d.newUsers, 0);
+// Chỉ tiêu lấy từ summary.newUsers của cả kỳ, KHÔNG phải tổng newUsers theo
+// ngày cộng lại. GA4 đếm "người dùng mới" của một kỳ theo đầu người đã loại
+// trùng, còn cộng dồn theo ngày thì một người ghé nhiều ngày bị tính nhiều lần
+// — sample-data neo KPI đúng theo bản chất đó, nên seed phải bám vào cùng con
+// số mà màn hình hiển thị.
+const totalNewUsers = report.summary.newUsers;
+const totalWant = Math.round(totalNewUsers * rate);
 
 if (totalWant === 0) {
   fail("Chỉ tiêu tính ra 0 tài khoản", "Tăng --rate hoặc --days.");
 }
+
+// Rải chỉ tiêu theo HÌNH SÓNG của newUsers từng ngày, để biểu đồ tài khoản mới
+// lên xuống giống biểu đồ lưu lượng. Chia theo phần dư lớn nhất (largest
+// remainder) nên tổng sau khi làm tròn khớp đúng totalWant, không hụt vài đơn vị.
+const weights = report.daily.map((point) => point.newUsers);
+const weightSum = weights.reduce((sum, w) => sum + w, 0);
+
+const shares = weights.map((w) => (weightSum > 0 ? (w / weightSum) * totalWant : 0));
+const counts = shares.map((s) => Math.floor(s));
+let leftover = totalWant - counts.reduce((sum, c) => sum + c, 0);
+for (const i of shares
+  .map((s, idx) => [s - Math.floor(s), idx])
+  .sort((a, b) => b[0] - a[0])
+  .map(([, idx]) => idx)) {
+  if (leftover <= 0) break;
+  counts[i] += 1;
+  leftover -= 1;
+}
+
+const perDay = report.daily.map((point, i) => ({
+  date: point.date,
+  newUsers: point.newUsers,
+  want: counts[i],
+}));
 
 // ─── Sinh SQL ───────────────────────────────────────────────────────────────
 
@@ -374,17 +409,23 @@ console.log(`  Khách lần đầu ${totalNewUsers.toLocaleString("vi-VN")} (the
 console.log(`  Chỉ tiêu     ${totalWant.toLocaleString("vi-VN")} tài khoản`);
 console.log("");
 console.log("  Đối chiếu từng kỳ của tab Vận hành:");
+console.log("    kỳ     người dùng  lần đầu  tài khoản  tỉ lệ");
 for (const key of ["today", "7d", "28d", "90d"]) {
   const r = resolveDateRange(key, today, true);
   const summary = buildSampleGaReport(r).summary;
   const want = perDay
     .filter((d) => d.date >= r.startDate && d.date <= r.endDate)
     .reduce((sum, d) => sum + d.want, 0);
+  const ratio = summary.newUsers > 0 ? (want / summary.newUsers) * 100 : 0;
   console.log(
-    `    ${key.padEnd(6)} ${String(summary.users).padStart(5)} người dùng` +
-      ` · ${String(summary.newUsers).padStart(5)} lần đầu` +
-      ` → ${String(want).padStart(4)} tài khoản`,
+    `    ${key.padEnd(6)} ${String(summary.users).padStart(9)}` +
+      ` ${String(summary.newUsers).padStart(8)}` +
+      ` ${String(want).padStart(10)}` +
+      ` ${ratio.toFixed(1).padStart(6)}%`,
   );
 }
+console.log("");
+console.log("  Chỉ kỳ rộng nhất khớp đúng --rate. Kỳ ngắn thấp hơn là đúng: KPI người");
+console.log("  dùng đã loại trùng nên không cộng được, còn tài khoản thì tích luỹ.");
 console.log("");
 console.log(`  Chạy tiếp: mở ${rel} rồi dán vào Supabase SQL Editor.`);
