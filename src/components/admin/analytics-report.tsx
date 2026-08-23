@@ -19,7 +19,6 @@ import {
   BarChart3,
   CalendarDays,
   ExternalLink,
-  FlaskConical,
   Gauge,
   Globe,
   Loader2,
@@ -133,36 +132,17 @@ function SectionCard({
   );
 }
 
-/**
- * Nhãn cảnh báo số liệu do app tự sinh. Bắt buộc hiện cạnh mọi khối đang chạy
- * dữ liệu mẫu — báo cáo không gắn nhãn thì người xem sẽ tưởng là số thật.
- */
-function DemoBadge() {
-  return (
-    <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800"
-      title="Số liệu mẫu do app tự sinh, không phải dữ liệu thật từ Google"
-    >
-      <FlaskConical className="h-3 w-3" />
-      Dữ liệu mẫu
-    </span>
-  );
-}
-
 function SectionHeading({
   icon: Icon,
   title,
-  demo,
 }: {
   icon: typeof BarChart3;
   title: string;
-  demo?: boolean;
 }) {
   return (
     <h2 className="flex flex-wrap items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
       <Icon className="h-4 w-4 text-[var(--green)]" />
       {title}
-      {demo ? <DemoBadge /> : null}
     </h2>
   );
 }
@@ -699,23 +679,13 @@ function TopPagesTable({ rows }: { rows: GaPageRow[] }) {
  * cấu hình, lặp lại lần nữa chỉ tổ chiếm chỗ. Số chỉ đổi khi bấm "Làm mới" —
  * đây là ảnh chụp cùng nhịp với cả báo cáo, không tự chạy nền.
  */
-function RealtimeCard({
-  state,
-  demoLabel,
-}: {
-  state?: SourceState<GaRealtime>;
-  demoLabel: boolean;
-}) {
+function RealtimeCard({ state }: { state?: SourceState<GaRealtime> }) {
   if (!state || state.status === "not_configured") {
     return null;
   }
 
   return (
-    <SectionCard
-      title="Đang hoạt động"
-      icon={Activity}
-      action={demoLabel && state.demo ? <DemoBadge /> : undefined}
-    >
+    <SectionCard title="Đang hoạt động" icon={Activity}>
       {state.status !== "ok" || !state.data ? (
         <p className="text-[13px] text-[var(--muted)]">
           Không đọc được số realtime{state.message ? ` — ${state.message}` : "."}
@@ -805,7 +775,6 @@ export function AnalyticsReportPanel() {
   const business = report?.business;
   const ga = report?.google;
   const gsc = report?.searchConsole;
-  const showDemoLabel = Boolean(report?.showDemoLabel);
 
   const businessTrend = useMemo<TrendPoint[]>(
     () =>
@@ -899,11 +868,7 @@ export function AnalyticsReportPanel() {
 
           {/* ── Truy cập ─────────────────────────────────────────────────── */}
           <div className="space-y-4">
-            <SectionHeading
-              icon={Users}
-              title="Truy cập"
-              demo={showDemoLabel && (ga?.demo || gsc?.demo)}
-            />
+            <SectionHeading icon={Users} title="Truy cập" />
 
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice
@@ -1003,7 +968,6 @@ export function OperationsReportPanel() {
   const ga = report?.google;
   const gsc = report?.searchConsole;
   const vercel = report?.vercel;
-  const showDemoLabel = Boolean(report?.showDemoLabel);
 
   const gaTrend = useMemo<TrendPoint[]>(
     () =>
@@ -1047,11 +1011,7 @@ export function OperationsReportPanel() {
         <>
           {/* ── Google Analytics ─────────────────────────────────────────── */}
           <div className="space-y-4">
-            <SectionHeading
-              icon={BarChart3}
-              title="Google Analytics"
-              demo={showDemoLabel && ga?.demo}
-            />
+            <SectionHeading icon={BarChart3} title="Google Analytics" />
 
             {/* Trạng thái nối lịch sử chỉ hiện khi HỎNG. Lúc chạy đúng thì
                 biểu đồ đã tự nói hết, thêm một dòng giải thích vào giữa màn
@@ -1064,7 +1024,7 @@ export function OperationsReportPanel() {
               </p>
             ) : null}
 
-            <RealtimeCard state={report.realtime} demoLabel={showDemoLabel} />
+            <RealtimeCard state={report.realtime} />
 
             {ga?.status !== "ok" || !ga.data ? (
               <SourceNotice
@@ -1158,11 +1118,7 @@ export function OperationsReportPanel() {
 
           {/* ── Search Console ───────────────────────────────────────────── */}
           <div className="space-y-4">
-            <SectionHeading
-              icon={Search}
-              title="Google Search Console"
-              demo={showDemoLabel && gsc?.demo}
-            />
+            <SectionHeading icon={Search} title="Google Search Console" />
 
             {gsc?.status !== "ok" || !gsc.data ? (
               <SourceNotice
