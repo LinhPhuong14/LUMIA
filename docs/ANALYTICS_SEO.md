@@ -322,6 +322,31 @@ Hai tính chất được test khoá lại (`demo-data.test.ts`):
    từng ngày với biểu đồ 7 ngày, nên đổi kỳ không bao giờ ra hai câu chuyện
    mâu thuẫn.
 
+#### Seed tài khoản cho khớp đường cong
+
+`calibrateForSignups` chỉnh số mẫu cho vừa số tài khoản thật. Chiều ngược lại —
+tạo tài khoản cho vừa lưu lượng đang hiển thị — do
+`scripts/seed-users-for-analytics.mjs` lo:
+
+```
+node scripts/seed-users-for-analytics.mjs             # mặc định 12%, 90 ngày
+node scripts/seed-users-for-analytics.mjs --rate=0.2  # dày hơn, trần vẫn 25%
+```
+
+Script import thẳng `sample-data.ts` và `date-range.ts` nên chỉ tiêu từng ngày
+ra từ đúng công thức mà tab Vận hành đang vẽ, không phải chép tay. Kết quả là
+file SQL trong `supabase/seeds/`, chạy bằng Supabase SQL Editor (chèn
+`auth.users` cần quyền schema `auth`, API service-role không có).
+
+SQL sinh ra **bù cho đủ** chứ không chèn mù: mỗi ngày đếm profile đã có rồi chỉ
+chèn phần thiếu, nên chạy lại không nhân đôi. Gỡ bằng dòng `DELETE` ghi sẵn ở
+cuối file.
+
+Điểm dễ sai: trigger `handle_new_user` **không** chép `created_at` từ
+`auth.users` sang `profiles` (cột đó mặc định `now()`), mà báo cáo lại đếm theo
+`profiles.created_at`. Vì vậy seed phải `UPDATE` lại cột này sau khi chèn —
+thiếu bước đó thì mọi tài khoản dồn hết vào hôm nay.
+
 ### Chuyển từ dữ liệu mẫu sang số thật
 
 GA4 **không có dữ liệu hồi tố** — chỉ đếm từ lúc tag chạy. Search Console thì

@@ -379,7 +379,7 @@ function summarizeSearch(points: DailyPoint[]): GscSummary {
  * có thể đạt rất cao, nhưng vượt 25% thì là dấu hiệu số liệu sai chứ không
  * phải marketing giỏi.
  */
-const SIGNUP_CONVERSION_CEILING = 0.25;
+export const SIGNUP_CONVERSION_CEILING = 0.25;
 
 /**
  * Nâng quy mô dữ liệu mẫu cho đủ phủ số tài khoản **thật** đã đăng ký trong kỳ.
