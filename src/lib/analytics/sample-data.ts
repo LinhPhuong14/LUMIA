@@ -29,6 +29,9 @@ import type {
 
 // Ngày bắt đầu chiến dịch — "Ngày 1" trong tài liệu.
 const CAMPAIGN_START = "2026-08-10";
+// Ngày cuối của sample chiến dịch. Từ NGÀY SAU đó (24/8) trở đi, dashboard nối
+// số GA THẬT (xem buildSampleGaReport splice).
+export const SAMPLE_END = "2026-08-23";
 const DAY_MS = 86_400_000;
 
 // ─── PRNG tất định (cùng idiom với demo-data) ───────────────────────────────
@@ -90,8 +93,10 @@ const CAMPAIGN_FLOOR = 50;
 
 function baseDailyUsers(dayIndex: number): number {
   if (dayIndex < 0) {
-    // Tuyến tính lùi ~1,2 user/ngày từ mốc đầu chiến dịch — nối trơn vào day 0.
-    return Math.max(12, CAMPAIGN_FLOOR + dayIndex * 1.2);
+    // Đường tăng dần theo hàm mũ tiến tới mốc đầu chiến dịch (~50 ở 10/8): xa
+    // 10/8 thì rất thấp, càng gần càng cao — trải mượt cho cả kỳ 90 ngày (không
+    // phẳng-rồi-nhảy). Sàn 6 để không tụt về 0 ở những ngày xa nhất.
+    return Math.max(6, CAMPAIGN_FLOOR * Math.exp(dayIndex / 40));
   }
   const plateau = 125;
   return CAMPAIGN_FLOOR + (plateau - CAMPAIGN_FLOOR) * (1 - Math.exp(-dayIndex / 4.5));
@@ -225,8 +230,38 @@ function toTopPages(summary: GaSummary, seed: string): GaPageRow[] {
   }).sort((a, b) => b.views - a.views);
 }
 
-export function buildSampleGaReport(range: DateRange): GaReport {
-  const daily = eachDay(range.startDate, range.endDate);
+/**
+ * Báo cáo GA mẫu cho kịch bản chiến dịch.
+ *
+ * `realDaily` (số GA THẬT theo ngày, nếu có): mọi ngày SAU 23/8 sẽ lấy số thật
+ * thay cho sample — tức sample chỉ đóng vai "lịch sử chiến dịch" tới 23/8, còn
+ * từ 24/8 dashboard nối GA bình thường. Truyền null/undefined để dùng sample
+ * cho toàn kỳ (khi GA thật chưa sẵn).
+ */
+export function buildSampleGaReport(
+  range: DateRange,
+  realDaily?: GaDailyPoint[] | null,
+): GaReport {
+  const sampleDaily = eachDay(range.startDate, range.endDate);
+  const realByDate = realDaily ? new Map(realDaily.map((p) => [p.date, p])) : null;
+  const daily = sampleDaily.map((point) => {
+    if (realByDate && point.date > SAMPLE_END) {
+      // Từ 24/8: số GA thật; ngày thật không có bản ghi = chưa có traffic (0).
+      return (
+        realByDate.get(point.date) ?? {
+          date: point.date,
+          users: 0,
+          newUsers: 0,
+          sessions: 0,
+          pageViews: 0,
+          eventCount: 0,
+          engagementRate: 0,
+          avgSessionSeconds: 0,
+        }
+      );
+    }
+    return point;
+  });
   const previous = eachDay(range.previousStartDate, range.previousEndDate);
   const summary = summarize(daily);
   const seed = range.endDate;

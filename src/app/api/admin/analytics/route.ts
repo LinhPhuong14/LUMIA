@@ -141,13 +141,20 @@ export async function GET(request: Request) {
     // "Dữ liệu mẫu" luôn hiện — không thể trình bày sample như số thật.
     report.showDemoLabel = true;
     const siteUrl = resolveSiteUrl();
-    report.google = { status: "ok", demo: true, data: buildSampleGaReport(range) };
+    // Nối GA THẬT cho ngày sau 23/8: truyền daily thật nếu GA đọc được.
+    const realDaily =
+      google?.status === "ok" && google.data && !google.demo ? google.data.daily : null;
+    report.google = { status: "ok", demo: true, data: buildSampleGaReport(range, realDaily) };
     report.searchConsole = { status: "ok", demo: true, data: buildSampleGscReport(range, siteUrl) };
-    report.realtime = {
-      status: "ok",
-      demo: true,
-      data: buildDemoGaRealtime({ launchDate: new Date(range.startDate), peakDailyUsers: 125 }),
-    };
+    // Realtime là "bây giờ" (đã sau 24/8) → dùng số THẬT nếu có; không thì mẫu.
+    report.realtime =
+      realtime?.status === "ok" && realtime.data
+        ? realtime
+        : {
+            status: "ok",
+            demo: true,
+            data: buildDemoGaRealtime({ launchDate: new Date(range.startDate), peakDailyUsers: 125 }),
+          };
     report.vercel = {
       onVercel: Boolean(process.env.VERCEL),
       environment: env.VERCEL_ENV ?? null,

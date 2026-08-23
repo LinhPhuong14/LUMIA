@@ -100,6 +100,27 @@ describe("buildSampleGaReport", () => {
     expect(vietnam / report.summary.users).toBeGreaterThan(0.95);
   });
 
+  it("từ 24/8 nối GA thật khi truyền realDaily; tới 23/8 vẫn là sample", () => {
+    const range = {
+      key: "28d",
+      days: 14,
+      startDate: "2026-08-17",
+      endDate: "2026-08-30",
+      previousStartDate: "2026-08-03",
+      previousEndDate: "2026-08-16",
+    };
+    const realDaily = [
+      { date: "2026-08-24", users: 7, newUsers: 5, sessions: 9, pageViews: 20, eventCount: 40, engagementRate: 0.6, avgSessionSeconds: 120 },
+      { date: "2026-08-25", users: 9, newUsers: 6, sessions: 12, pageViews: 26, eventCount: 50, engagementRate: 0.61, avgSessionSeconds: 130 },
+    ];
+    const out = buildSampleGaReport(range, realDaily);
+    const at = (d: string) => out.daily.find((p) => p.date === d)!;
+    expect(at("2026-08-23").users).toBeGreaterThan(100); // sample chiến dịch
+    expect(at("2026-08-24").users).toBe(7); // GA thật
+    expect(at("2026-08-25").users).toBe(9); // GA thật
+    expect(at("2026-08-26").users).toBe(0); // thật thiếu ngày = 0 (chưa có traffic)
+  });
+
   it("quan hệ chỉ số hợp lý: phiên ≥ người, lượt xem ≥ phiên, sự kiện ≥ lượt xem", () => {
     expect(report.summary.sessions).toBeGreaterThan(report.summary.users);
     expect(report.summary.pageViews).toBeGreaterThan(report.summary.sessions);
