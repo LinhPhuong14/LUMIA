@@ -18,7 +18,6 @@ import {
 } from "@/lib/analytics/demo-data";
 import { fillGaGaps, fillGscGaps, isGscEmpty } from "@/lib/analytics/fill-gaps";
 import { fetchGaRealtime, fetchGaReport } from "@/lib/analytics/ga4";
-import { applyMockDates, resolveMockDates } from "@/lib/analytics/mock-override";
 import { buildSampleGaReport, buildSampleGscReport } from "@/lib/analytics/sample-data";
 import { fetchSearchConsoleReport, resolveSiteUrl } from "@/lib/analytics/search-console";
 import { readSnapshot } from "@/lib/analytics/snapshot";
@@ -131,13 +130,16 @@ export async function GET(request: Request) {
 
   // Chế độ SỐ MẪU (sample): khi bật, tab Vận hành/Báo cáo hiển thị bộ số liệu
   // mẫu theo kịch bản chiến dịch (sample-data.ts) THAY cho số GA4/Search Console
-  // thật. Đánh dấu `demo: true` nên: (a) badge nhãn "Dữ liệu mẫu" dùng chung cơ
-  // chế sẵn có (hiện khi ANALYTICS_DEMO_SHOW_LABEL=true), (b) các bước nối lịch
-  // sử / mock-override / lấp khối tự bỏ qua nguồn demo. MẶC ĐỊNH TẮT — không đổi
-  // gì cho tới khi bật env. ⚠️ Số mẫu: khi trình bày PHẢI bật nhãn.
+  // thật. Đánh dấu `demo: true` nên các bước nối lịch sử / lấp khối tự bỏ qua,
+  // và badge nhãn "Dữ liệu mẫu" LUÔN hiện (route buộc showDemoLabel=true bên
+  // dưới) — không thể trình bày sample như số thật. MẶC ĐỊNH TẮT: sample off →
+  // dashboard hiển thị 100% GA4 thật.
   const sampleMode = process.env.ANALYTICS_SAMPLE_MODE === "true";
 
   if (sections.traffic && sampleMode) {
+    // Số MẪU thì LUÔN gắn nhãn: buộc showDemoLabel=true bất kể env, để badge
+    // "Dữ liệu mẫu" luôn hiện — không thể trình bày sample như số thật.
+    report.showDemoLabel = true;
     const siteUrl = resolveSiteUrl();
     report.google = { status: "ok", demo: true, data: buildSampleGaReport(range) };
     report.searchConsole = { status: "ok", demo: true, data: buildSampleGscReport(range, siteUrl) };
@@ -212,16 +214,6 @@ export async function GET(request: Request) {
           data: buildDemoGscReport(range, calibration, resolveSiteUrl()),
         };
       }
-    }
-
-    // Thay riêng các ngày đã lỡ trộn data test load-test bằng số mockup. Danh
-    // sách bake sẵn (14-17/8) trong mock-override, ghi đè được qua env
-    // ANALYTICS_MOCK_GA_DATES. Chỉ đụng nguồn GA4 THẬT (không phải demo), làm
-    // TRƯỚC bước nối lịch sử để mọi xử lý sau đó thao tác trên số đã vá.
-    const mockDates = resolveMockDates(process.env.ANALYTICS_MOCK_GA_DATES);
-    const gaReal = report.google;
-    if (mockDates.size > 0 && gaReal?.status === "ok" && gaReal.data && !gaReal.demo) {
-      report.google = { ...gaReal, data: applyMockDates(gaReal.data, mockDates) };
     }
 
     // Nối lịch sử đã đóng băng vào đầu kỳ, khi đã cắt sang số thật.
