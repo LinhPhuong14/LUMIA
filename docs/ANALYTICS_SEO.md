@@ -333,10 +333,19 @@ node scripts/seed-users-for-analytics.mjs             # mặc định 12%, 90 ng
 node scripts/seed-users-for-analytics.mjs --rate=0.2  # dày hơn, trần vẫn 25%
 ```
 
-Script import thẳng `sample-data.ts` và `date-range.ts` nên chỉ tiêu từng ngày
-ra từ đúng công thức mà tab Vận hành đang vẽ, không phải chép tay. Kết quả là
-file SQL trong `supabase/seeds/`, chạy bằng Supabase SQL Editor (chèn
-`auth.users` cần quyền schema `auth`, API service-role không có).
+Script import thẳng `sample-data.ts` và `date-range.ts` nên chỉ tiêu ra từ đúng
+công thức mà tab Vận hành đang vẽ, không phải chép tay. Kết quả là file SQL
+trong `supabase/seeds/`, chạy bằng Supabase SQL Editor (chèn `auth.users` cần
+quyền schema `auth`, API service-role không có).
+
+Chỉ tiêu lấy `summary.newUsers` của cả kỳ rồi rải theo hình sóng của
+`daily.newUsers` — **không** cộng dồn `daily`. KPI người dùng đã loại trùng
+(xem mục trên), cộng theo ngày sẽ ra số lớn gấp đôi những gì màn hình hiện.
+
+Hệ quả: KPI không cộng được giữa các kỳ (28 và 90 ngày đều ~1.500 người duy
+nhất) trong khi tài khoản thì tích luỹ, nên không có cách rải nào khớp đồng
+thời mọi kỳ. Script neo vào kỳ rộng nhất; kỳ ngắn hơn ra tỉ lệ thấp hơn
+`--rate`, và đó là đúng chứ không phải lệch.
 
 SQL sinh ra **bù cho đủ** chứ không chèn mù: mỗi ngày đếm profile đã có rồi chỉ
 chèn phần thiếu, nên chạy lại không nhân đôi. Gỡ bằng dòng `DELETE` ghi sẵn ở
