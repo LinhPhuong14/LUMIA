@@ -170,13 +170,13 @@ const DEVICE_SHARES: [string, number][] = [
   ["mobile", 0.8],
   ["desktop", 0.2],
 ];
-// Thị trường chính là Việt Nam.
-const COUNTRY_SHARES: [string, number][] = [
-  ["Vietnam", 0.955],
-  ["United States", 0.016],
-  ["Japan", 0.012],
-  ["South Korea", 0.009],
-  ["Singapore", 0.008],
+// Các nước khác ngoài Việt Nam — chiếm phần rất nhỏ. Việt Nam gánh phần còn
+// lại (xem toCountries) nên bảng quốc gia cộng ĐÚNG bằng tổng người dùng.
+const OTHER_COUNTRY_SHARES: [string, number][] = [
+  ["United States", 0.008],
+  ["Japan", 0.005],
+  ["South Korea", 0.004],
+  ["Singapore", 0.003],
 ];
 // Trang marketing công khai (khớp PAGES của site), tỉ trọng lượt xem.
 const PAGE_SHARES: [string, number][] = [
@@ -196,6 +196,20 @@ function toBreakdown(total: number, shares: [string, number][], seed: string): B
       value: Math.max(1, Math.round(total * share * jitter(seed, label, 0.04))),
     }))
     .sort((a, b) => b.value - a.value);
+}
+
+/**
+ * Bảng quốc gia: các nước khác giữ phần nhỏ, Việt Nam GÁNH phần còn lại để
+ * tổng của bảng cộng đúng bằng tổng người dùng của kỳ (khớp KPI users).
+ */
+function toCountries(totalUsers: number, seed: string): BreakdownRow[] {
+  const others = OTHER_COUNTRY_SHARES.map(([label, share]) => ({
+    label,
+    value: Math.max(1, Math.round(totalUsers * share * jitter(seed, label, 0.12))),
+  }));
+  const othersTotal = others.reduce((sum, row) => sum + row.value, 0);
+  const vietnam = Math.max(1, totalUsers - othersTotal);
+  return [{ label: "Vietnam", value: vietnam }, ...others].sort((a, b) => b.value - a.value);
 }
 
 function toTopPages(summary: GaSummary, seed: string): GaPageRow[] {
@@ -222,7 +236,7 @@ export function buildSampleGaReport(range: DateRange): GaReport {
     topPages: toTopPages(summary, `${seed}:pages`),
     channels: toBreakdown(summary.sessions, CHANNEL_SHARES, `${seed}:channel`),
     devices: toBreakdown(summary.users, DEVICE_SHARES, `${seed}:device`),
-    countries: toBreakdown(summary.users, COUNTRY_SHARES, `${seed}:country`),
+    countries: toCountries(summary.users, `${seed}:country`),
   };
 }
 

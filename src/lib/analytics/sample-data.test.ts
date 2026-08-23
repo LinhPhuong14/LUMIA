@@ -70,8 +70,12 @@ describe("buildSampleGaReport", () => {
     expect(mobile / total).toBeLessThan(0.85);
   });
 
-  it("thị trường chính là Việt Nam", () => {
+  it("thị trường chính là Việt Nam, và tổng bảng quốc gia = tổng users", () => {
     expect(report.countries[0].label).toBe("Vietnam");
+    const countryTotal = report.countries.reduce((s, r) => s + r.value, 0);
+    expect(countryTotal).toBe(report.summary.users);
+    const vietnam = report.countries.find((r) => r.label === "Vietnam")!.value;
+    expect(vietnam / report.summary.users).toBeGreaterThan(0.95);
   });
 
   it("quan hệ chỉ số hợp lý: phiên ≥ người, lượt xem ≥ phiên, sự kiện ≥ lượt xem", () => {
