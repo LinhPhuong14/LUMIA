@@ -77,21 +77,24 @@ function daysBetween(fromIso: string, toIsoStr: string): number {
 /**
  * Người dùng/ngày theo số ngày kể từ Ngày 1 của chiến dịch.
  *
- * - Trước chiến dịch (dayIndex < 0): nền thấp ~22 để biểu đồ có chỗ "trước
- *   sóng", cho thấy chiến dịch kéo traffic lên.
+ * - Trước chiến dịch (dayIndex < 0): TĂNG DẦN đều tiến tới mức đầu chiến dịch
+ *   (~50 ở ngày 10/8), để biểu đồ có đoạn "khởi động" mượt liền mạch với phần
+ *   sau chứ không phẳng rồi nhảy vọt. Ngày càng xa 10/8 càng thấp, sàn ~12.
  * - Trong và sau chiến dịch: bò lên từ ~50 tới trần ~125 theo đường bão hoà,
  *   rồi giữ nhịp (khớp roadmap: tăng nhanh tuần đầu, sau đó tăng nhẹ đều).
  *
  * Hằng số được canh để TỔNG 14 ngày (10→23/8) xấp xỉ 1.400 users — đúng mốc
  * mục tiêu — trong khi mỗi ngày vẫn dao động nhờ jitter để tạo sóng.
  */
+const CAMPAIGN_FLOOR = 50;
+
 function baseDailyUsers(dayIndex: number): number {
   if (dayIndex < 0) {
-    return 22;
+    // Tuyến tính lùi ~1,2 user/ngày từ mốc đầu chiến dịch — nối trơn vào day 0.
+    return Math.max(12, CAMPAIGN_FLOOR + dayIndex * 1.2);
   }
   const plateau = 125;
-  const floor = 50;
-  return floor + (plateau - floor) * (1 - Math.exp(-dayIndex / 4.5));
+  return CAMPAIGN_FLOOR + (plateau - CAMPAIGN_FLOOR) * (1 - Math.exp(-dayIndex / 4.5));
 }
 
 function buildSampleDay(date: string): GaDailyPoint {

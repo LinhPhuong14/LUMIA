@@ -52,6 +52,28 @@ describe("buildSampleGaReport", () => {
     expect(report.summary.users).toBeGreaterThan(report.previousSummary.users);
   });
 
+  it("ngày trước 10/8 khởi động tăng dần, thấp hơn giai đoạn chiến dịch", () => {
+    // Kỳ 28 ngày phủ cả trước 10/8 (27/7 → 23/8).
+    const wide = buildSampleGaReport({
+      key: "28d",
+      days: 28,
+      startDate: "2026-07-27",
+      endDate: "2026-08-23",
+      previousStartDate: "2026-06-29",
+      previousEndDate: "2026-07-26",
+    });
+    const pre = wide.daily.filter((p) => p.date < "2026-08-10");
+    const campaign = wide.daily.filter((p) => p.date >= "2026-08-10");
+    const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
+    // Trung bình trước chiến dịch thấp hơn trong chiến dịch (đường đi lên).
+    expect(avg(pre.map((p) => p.users))).toBeLessThan(avg(campaign.map((p) => p.users)));
+    // Nửa sau của đoạn pre cao hơn nửa đầu (khởi động tăng dần, không phẳng).
+    const half = Math.floor(pre.length / 2);
+    expect(avg(pre.slice(half).map((p) => p.users))).toBeGreaterThan(
+      avg(pre.slice(0, half).map((p) => p.users)),
+    );
+  });
+
   it("nguồn 50/35/15, không có Unassigned", () => {
     const total = report.channels.reduce((s, r) => s + r.value, 0);
     const direct = report.channels.find((r) => r.label === "Direct")!.value;
