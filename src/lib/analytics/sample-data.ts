@@ -102,6 +102,22 @@ function baseDailyUsers(dayIndex: number): number {
   return CAMPAIGN_FLOOR + (plateau - CAMPAIGN_FLOOR) * (1 - Math.exp(-dayIndex / 4.5));
 }
 
+// Mốc NGƯỜI DÙNG DUY NHẤT của cả chiến dịch (~1.400-1.500). KPI Users của một kỳ
+// trong GA4 là số DUY NHẤT đã loại trùng — KHÔNG phải tổng người hoạt động theo
+// ngày cộng lại (một người quay lại nhiều ngày chỉ tính 1). Neo tổng quan vào mốc
+// này để KPI không phình to khi kéo 28/90 ngày, đồng thời các chỉ số còn lại suy
+// ra từ chính số này nên mọi ô luôn "khớp".
+const SAMPLE_TOTAL_USERS = 1450;
+
+// Tổng base users của riêng kỳ chiến dịch (10→23/8), làm mẫu số quy đổi "độ phủ"
+// của range hiện tại. Range phủ trọn chiến dịch → độ phủ 1 → đúng mốc 1.450.
+const CAMPAIGN_BASE_SUM = (() => {
+  let sum = 0;
+  const lastIndex = daysBetween(CAMPAIGN_START, SAMPLE_END);
+  for (let i = 0; i <= lastIndex; i += 1) sum += baseDailyUsers(i);
+  return sum;
+})();
+
 function buildSampleDay(date: string): GaDailyPoint {
   const dayIndex = daysBetween(CAMPAIGN_START, date);
   const users = Math.max(1, Math.round(baseDailyUsers(dayIndex) * jitter(date, "users", 0.1)));
@@ -161,6 +177,69 @@ function summarize(points: GaDailyPoint[]): GaSummary {
     ...totals,
     engagementRate: totals.sessions > 0 ? weighted.engagement / totals.sessions : 0,
     avgSessionSeconds: totals.sessions > 0 ? weighted.duration / totals.sessions : 0,
+  };
+}
+
+/**
+ * Tổng quan cho PHẦN MẪU, neo theo NGƯỜI DÙNG DUY NHẤT (~1.450) thay vì cộng dồn
+ * người hoạt động theo ngày — đúng bản chất GA4 (Users của một kỳ đã loại trùng).
+ * Nhờ vậy KPI ổn định ~1.400-1.500 dù xem 7/28/90 ngày. Các chỉ số còn lại
+ * (người mới, phiên, lượt xem, sự kiện) suy ra từ chính số users theo đúng tỉ lệ
+ * chiến dịch (phiên ~1,35×; lượt xem ~3,6×phiên) nên mọi ô luôn khớp với nhau.
+ * Engagement & thời lượng lấy trung bình có trọng số theo phiên của các ngày mẫu.
+ */
+function anchoredSampleSummary(sampleDays: GaDailyPoint[]): GaSummary {
+  const baseSum = sampleDays.reduce(
+    (s, p) => s + baseDailyUsers(daysBetween(CAMPAIGN_START, p.date)),
+    0,
+  );
+  // Độ phủ so với kỳ chiến dịch; chặn trần 1,03 để range rộng (kèm đoạn khởi động
+  // trước 10/8) chỉ nhỉnh nhẹ chứ không vọt lên quá 1.500.
+  const coverage = CAMPAIGN_BASE_SUM > 0 ? Math.min(1.03, baseSum / CAMPAIGN_BASE_SUM) : 0;
+  const users = Math.round(SAMPLE_TOTAL_USERS * coverage);
+  const newUsers = Math.round(users * 0.62);
+  const sessions = Math.round(users * 1.35);
+  const pageViews = Math.round(sessions * 3.6);
+  const eventCount = Math.round(pageViews + sessions * 2.4);
+  const w = sampleDays.reduce(
+    (acc, p) => ({
+      eng: acc.eng + p.engagementRate * p.sessions,
+      dur: acc.dur + p.avgSessionSeconds * p.sessions,
+      s: acc.s + p.sessions,
+    }),
+    { eng: 0, dur: 0, s: 0 },
+  );
+  return {
+    users,
+    newUsers,
+    sessions,
+    pageViews,
+    eventCount,
+    engagementRate: w.s > 0 ? w.eng / w.s : 0.6,
+    avgSessionSeconds: w.s > 0 ? w.dur / w.s : 150,
+  };
+}
+
+/** Cộng phần GA THẬT (ngày > 23/8) vào tổng quan mẫu đã neo. */
+function mergeRealIntoSummary(sample: GaSummary, realDays: GaDailyPoint[]): GaSummary {
+  if (realDays.length === 0) return sample;
+  const real = summarize(realDays);
+  const sessions = sample.sessions + real.sessions;
+  return {
+    users: sample.users + real.users,
+    newUsers: sample.newUsers + real.newUsers,
+    sessions,
+    pageViews: sample.pageViews + real.pageViews,
+    eventCount: sample.eventCount + real.eventCount,
+    engagementRate:
+      sessions > 0
+        ? (sample.engagementRate * sample.sessions + real.engagementRate * real.sessions) / sessions
+        : sample.engagementRate,
+    avgSessionSeconds:
+      sessions > 0
+        ? (sample.avgSessionSeconds * sample.sessions + real.avgSessionSeconds * real.sessions) /
+          sessions
+        : sample.avgSessionSeconds,
   };
 }
 
@@ -263,12 +342,16 @@ export function buildSampleGaReport(
     return point;
   });
   const previous = eachDay(range.previousStartDate, range.previousEndDate);
-  const summary = summarize(daily);
+  // Tổng quan neo theo người dùng duy nhất: phần mẫu (≤ 23/8) neo ~1.450, phần
+  // GA thật (> 23/8) cộng thêm bình thường.
+  const sampleDays = daily.filter((p) => p.date <= SAMPLE_END);
+  const realDays = daily.filter((p) => p.date > SAMPLE_END);
+  const summary = mergeRealIntoSummary(anchoredSampleSummary(sampleDays), realDays);
   const seed = range.endDate;
 
   return {
     summary,
-    previousSummary: summarize(previous),
+    previousSummary: anchoredSampleSummary(previous),
     trend: daily.map((p) => ({ date: p.date, users: p.users, sessions: p.sessions })),
     daily,
     topPages: toTopPages(summary, `${seed}:pages`),

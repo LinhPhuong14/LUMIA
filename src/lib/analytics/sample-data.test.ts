@@ -20,9 +20,29 @@ describe("buildSampleGaReport", () => {
     expect(buildSampleGaReport(CAMPAIGN)).toEqual(report);
   });
 
-  it("chạm mốc ~1.400 users cho kỳ chiến dịch", () => {
-    expect(report.summary.users).toBeGreaterThanOrEqual(1300);
+  it("chạm mốc ~1.400-1.500 users cho kỳ chiến dịch", () => {
+    expect(report.summary.users).toBeGreaterThanOrEqual(1400);
     expect(report.summary.users).toBeLessThanOrEqual(1500);
+  });
+
+  it("KPI users vẫn ~1.400-1.500 khi kéo 90 ngày (không phình theo range)", () => {
+    // Users của một kỳ là số DUY NHẤT (loại trùng) nên không cộng dồn theo ngày:
+    // kéo 90 ngày vẫn xấp xỉ mốc chiến dịch, chỉ nhỉnh nhẹ.
+    const wide = buildSampleGaReport({
+      key: "90d",
+      days: 90,
+      startDate: "2026-05-26",
+      endDate: "2026-08-23",
+      previousStartDate: "2026-02-25",
+      previousEndDate: "2026-05-25",
+    });
+    expect(wide.summary.users).toBeGreaterThanOrEqual(1400);
+    expect(wide.summary.users).toBeLessThanOrEqual(1500);
+    // Và các chỉ số khác khớp theo số users này (phiên ~1,35×, xem ~3,6×phiên).
+    expect(wide.summary.sessions / wide.summary.users).toBeGreaterThan(1.2);
+    expect(wide.summary.sessions / wide.summary.users).toBeLessThan(1.5);
+    expect(wide.summary.pageViews / wide.summary.sessions).toBeGreaterThan(3.2);
+    expect(wide.summary.pageViews / wide.summary.sessions).toBeLessThan(4.0);
   });
 
   it("tổng phiên ~1.800-2.000, lượt xem ~6.840", () => {
@@ -39,11 +59,13 @@ describe("buildSampleGaReport", () => {
     expect(report.summary.avgSessionSeconds).toBeLessThanOrEqual(165);
   });
 
-  it("trend đủ 14 ngày, tăng dần (sóng) và tổng trend = KPI users", () => {
+  it("trend đủ 14 ngày, tăng dần (sóng); KPI ~ tổng active theo ngày cho kỳ chiến dịch", () => {
     expect(report.trend).toHaveLength(14);
     expect(report.daily).toHaveLength(14);
+    // KPI là số DUY NHẤT nên không bắt buộc bằng tổng active theo ngày, nhưng cho
+    // riêng kỳ chiến dịch (độ phủ = 1) hai giá trị phải xấp xỉ nhau (±10%).
     const trendUsers = report.trend.reduce((s, p) => s + p.users, 0);
-    expect(report.summary.users).toBe(trendUsers);
+    expect(Math.abs(report.summary.users - trendUsers) / trendUsers).toBeLessThan(0.1);
     // Ngày cuối phải cao hơn ngày đầu (đường đi lên).
     expect(report.trend[13].users).toBeGreaterThan(report.trend[0].users);
   });
