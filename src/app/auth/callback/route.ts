@@ -114,13 +114,18 @@ export async function GET(request: NextRequest) {
     console.error(TAG, "profile upsert error", profileUpsertError.message);
   }
 
-  // Create free subscription if not present
+  // Create free subscription if not present.
+  // Chưa có subscription = đây là lần đăng nhập OAuth ĐẦU TIÊN → user mới tạo
+  // acc Free. Dùng làm cờ để bắn GA `sign_up`: đăng ký qua Google đi vòng server
+  // rồi redirect nên không có client gtag nào chạy, nếu không đánh dấu ở đây thì
+  // GA mất hẳn event sign_up của mọi user đăng ký bằng Google.
   const { data: sub } = await db
     .from("subscriptions")
     .select("id")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
+  const isNewUser = !sub;
   if (!sub) {
     const { error: subError } = await db.from("subscriptions").insert({ user_id: user.id, status: "free" });
     if (subError) console.error(TAG, "subscription insert error", subError.message);
@@ -162,7 +167,12 @@ export async function GET(request: NextRequest) {
   });
 
   // Attach the session cookies to the redirect so the browser is actually logged in.
-  const response = NextResponse.redirect(new URL(destination, origin));
+  const destinationUrl = new URL(destination, origin);
+  // User mới → gắn cờ để OAuthSignupTracker bắn GA `sign_up` khi trang đích tải.
+  if (isNewUser) {
+    destinationUrl.searchParams.set("ga_signup", "google");
+  }
+  const response = NextResponse.redirect(destinationUrl);
   for (const { name, value, options } of pendingCookies) {
     response.cookies.set(name, value, options);
   }
