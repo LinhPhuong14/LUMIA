@@ -5,7 +5,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { createClient } from "@/lib/supabase/server";
-import { BLOG_POSTS } from "@/data/blog-posts";
+import { sortedStaticPosts } from "@/lib/blog-query";
 import {
   BLOG_BASE_PATH,
   buildBlogListingSchema,
@@ -63,22 +63,18 @@ async function getPosts(): Promise<BlogPost[]> {
       .order("published_at", { ascending: false });
     if (data && data.length > 0) return data as BlogPost[];
   }
-  // Fall back to static data. Phải tự sắp xếp: `BLOG_POSTS` nằm theo thứ tự
-  // ngày TĂNG dần, trong khi nhánh DB trả về giảm dần — không thống nhất thì
-  // khối "Mới nhất" đầu trang lại hiện đúng bài cũ nhất.
-  return [...BLOG_POSTS]
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-    .map((p) => ({
-      slug: p.slug,
-      title: p.title,
-      excerpt: p.excerpt,
-      category: p.category,
-      emoji: p.emoji,
-      cover_color: p.coverColor,
-      cover_image_url: null,
-      read_time: p.readTime,
-      published_at: p.publishedAt,
-    }));
+  // Fall back to static data.
+  return sortedStaticPosts().map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category,
+    emoji: p.emoji,
+    cover_color: p.coverColor,
+    cover_image_url: null,
+    read_time: p.readTime,
+    published_at: p.publishedAt,
+  }));
 }
 
 function formatDate(value: string) {

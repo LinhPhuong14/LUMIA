@@ -43,7 +43,8 @@ export async function POST(req: Request) {
 
   const isPublished = published ?? false;
 
-  // Ngày đăng chỉ được đặt MỘT LẦN, ở lần publish đầu tiên.
+  // Ngày đăng chỉ được đặt MỘT LẦN, ở lần publish đầu tiên, rồi giữ nguyên
+  // vĩnh viễn — kể cả khi bài bị ẩn đi.
   //
   // Bản cũ gán `published_at: new Date()` ở mọi lần lưu, nên chỉ sửa một lỗi
   // chính tả là bài viết nhảy ngày đăng thành hôm nay. Google đọc `datePublished`
@@ -51,16 +52,22 @@ export async function POST(req: Request) {
   // một bài được sửa vặt vài lần sẽ liên tục tự nhận là bài mới, và khi Google
   // đối chiếu với bản đã crawl trước đó thì đây là tín hiệu ngày tháng không
   // đáng tin. Ngày sửa là việc của `updated_at`.
-  let publishedAt: string | null = isPublished ? new Date().toISOString() : null;
+  //
+  // Ẩn bài KHÔNG xoá ngày đăng: cái quyết định bài có hiện hay không là cờ
+  // `published`, còn `published_at` là mốc lịch sử. Xoá nó đi thì thao tác
+  // "ẩn tạm rồi bật lại" — sửa gấp một đoạn sai chẳng hạn — lại đẩy bài viết
+  // hai năm tuổi thành bài đăng hôm nay.
+  let publishedAt: string | null = null;
   if (id) {
     const { data: existing } = await admin
       .from("blog_posts")
       .select("published_at")
       .eq("id", id)
       .maybeSingle();
-    if (isPublished && existing?.published_at) {
-      publishedAt = existing.published_at;
-    }
+    publishedAt = existing?.published_at ?? null;
+  }
+  if (isPublished && !publishedAt) {
+    publishedAt = new Date().toISOString();
   }
 
   const payload = {
@@ -95,7 +102,19 @@ export async function POST(req: Request) {
       .single();
   }
 
-  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 });
+  if (result.error) {
+    // 23505 = unique_violation. Slug sinh tự động từ tiêu đề, nên hai bài đặt
+    // tên gần giống nhau là đụng ngay — mà thông báo gốc của Postgres
+    // ("duplicate key value violates unique constraint...") không nói cho người
+    // viết bài biết họ cần sửa cái gì.
+    if (result.error.code === "23505") {
+      return NextResponse.json(
+        { error: `Đường dẫn "${slug}" đã có bài khác dùng. Đổi tiêu đề hoặc sửa lại đường dẫn.` },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: result.error.message }, { status: 500 });
+  }
   return NextResponse.json({ post: result.data });
 }
 

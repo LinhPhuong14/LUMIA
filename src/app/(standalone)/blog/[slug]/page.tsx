@@ -40,8 +40,21 @@ type RelatedPost = {
   readTime: number;
 };
 
-/** Fetch a published post from the DB (admin-managed) by slug; fall back to the
- *  static seed content so pre-DB posts still render. */
+/**
+ * Lấy bài đã publish từ DB; chỉ rơi về nội dung seed tĩnh khi DB CHƯA có bài
+ * nào được đăng.
+ *
+ * Điều kiện "chưa có bài nào" là chỗ quan trọng, và bản cũ thiếu nó. Bản cũ rơi
+ * về seed mỗi khi truy vấn không trả về dòng nào — mà "không trả về dòng nào"
+ * gồm cả trường hợp bài đó đang ở trạng thái nháp hoặc vừa bị ẩn. Hậu quả: một
+ * bài nháp trùng slug với bài seed vẫn mở ra được và hiện nội dung seed, tức là
+ * nút Ẩn không thật sự ẩn được bài. Nó cũng lệch với trang danh sách — trang đó
+ * chỉ rơi về seed khi DB rỗng — nên hai trang có thể nói hai điều khác nhau về
+ * cùng một URL.
+ *
+ * Giờ DB một khi đã có bài publish thì là nguồn sự thật duy nhất: không khớp
+ * nghĩa là 404.
+ */
 async function getPost(slug: string): Promise<Post | null> {
   const supabase = await createClient();
   if (supabase) {
@@ -66,6 +79,16 @@ async function getPost(slug: string): Promise<Post | null> {
         publishedAt: data.published_at,
         updatedAt: data.updated_at ?? null,
       };
+    }
+
+    // Đếm nhẹ bằng `head: true` — chỉ lấy con số, không kéo dòng nào về.
+    const { count } = await supabase
+      .from("blog_posts")
+      .select("slug", { count: "exact", head: true })
+      .eq("published", true);
+
+    if ((count ?? 0) > 0) {
+      return null;
     }
   }
   const s = getBlogPost(slug);

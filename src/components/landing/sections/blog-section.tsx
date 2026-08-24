@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { BLOG_POSTS } from "@/data/blog-posts";
+import { sortedStaticPosts } from "@/lib/blog-query";
 
 const HOME_POST_LIMIT = 3;
 
@@ -48,20 +48,17 @@ async function getRecentPosts(limit = HOME_POST_LIMIT): Promise<SectionPost[]> {
 
   // Cùng cách rơi về dữ liệu tĩnh như `/blog`, để trang chủ và trang danh sách
   // không bao giờ nói hai điều khác nhau về việc blog có bài hay không.
-  return [...BLOG_POSTS]
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-    .slice(0, limit)
-    .map((post) => ({
-      slug: post.slug,
-      title: post.title,
-      excerpt: post.excerpt,
-      category: post.category,
-      emoji: post.emoji,
-      coverColor: post.coverColor,
-      coverImageUrl: null,
-      readTime: post.readTime,
-      publishedAt: post.publishedAt,
-    }));
+  return sortedStaticPosts(limit).map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    category: post.category,
+    emoji: post.emoji,
+    coverColor: post.coverColor,
+    coverImageUrl: null,
+    readTime: post.readTime,
+    publishedAt: post.publishedAt,
+  }));
 }
 
 export async function BlogSection() {
