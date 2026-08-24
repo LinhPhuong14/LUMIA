@@ -10,7 +10,7 @@ export type SiteNavLink = {
 export const marketingNavLinks: SiteNavLink[] = [
   { id: "about", label: "Về chúng tôi", href: "/about" },
   { id: "store", label: "Cửa hàng", href: "/store" },
-  // { id: "blog", label: "Blog", href: "/blog" },
+  { id: "blog", label: "Blog", href: "/blog" },
   { id: "quiz", label: "Tìm gói phù hợp", href: "/quiz" },
 ];
 
@@ -20,6 +20,22 @@ export const landingAnchorLinks: SiteNavLink[] = [
   { id: "listen", label: "Lắng nghe", href: "#lang-nghe" },
   { id: "app", label: "Web app", href: "#web-app" },
   { id: "stories", label: "Câu chuyện", href: "#cau-chuyen" },
+];
+
+/**
+ * Thanh điều hướng nổi của landing page: các anchor trong trang, cộng một link
+ * thật tới `/blog`.
+ *
+ * Blog là loại trang duy nhất của site hứng được truy vấn thông tin ("cách ngủ
+ * ngon", "mẹo thư giãn trước khi ngủ") — những trang bán hàng không xếp hạng
+ * cho các truy vấn đó. Muốn Google chấm blog là nội dung chính chứ không phải
+ * phần phụ, nó cần một link từ trang chủ, tức trang nhận nhiều liên kết ngoài
+ * nhất và truyền lại nhiều thẩm quyền nhất. Footer cũng có link, nhưng link
+ * nằm trong điều hướng đầu trang được đánh trọng số cao hơn hẳn link footer.
+ */
+export const landingNavLinks: SiteNavLink[] = [
+  ...landingAnchorLinks,
+  { id: "blog", label: "Blog", href: "/blog" },
 ];
 
 export type FooterLink =
@@ -39,7 +55,7 @@ export const footerColumns: FooterColumn[] = [
       { label: "Về chúng tôi", href: "/about" as Route },
       { label: "Tính năng", href: "/#web-app" as Route },
       { label: "Cửa hàng", href: "/store" as Route },
-      // { label: "Blog", href: "/blog" as Route },
+      { label: "Blog", href: "/blog" as Route },
     ],
   },
   {

@@ -32,12 +32,35 @@ export async function POST(req: Request) {
     category,
     emoji,
     cover_color,
+    cover_image_url,
     read_time,
     published,
   } = body;
 
   if (!slug || !title || !excerpt) {
     return NextResponse.json({ error: "slug, title, excerpt required" }, { status: 400 });
+  }
+
+  const isPublished = published ?? false;
+
+  // Ngày đăng chỉ được đặt MỘT LẦN, ở lần publish đầu tiên.
+  //
+  // Bản cũ gán `published_at: new Date()` ở mọi lần lưu, nên chỉ sửa một lỗi
+  // chính tả là bài viết nhảy ngày đăng thành hôm nay. Google đọc `datePublished`
+  // từ đúng trường này (qua JSON-LD) và tính "độ tươi" của nội dung theo nó —
+  // một bài được sửa vặt vài lần sẽ liên tục tự nhận là bài mới, và khi Google
+  // đối chiếu với bản đã crawl trước đó thì đây là tín hiệu ngày tháng không
+  // đáng tin. Ngày sửa là việc của `updated_at`.
+  let publishedAt: string | null = isPublished ? new Date().toISOString() : null;
+  if (id) {
+    const { data: existing } = await admin
+      .from("blog_posts")
+      .select("published_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (isPublished && existing?.published_at) {
+      publishedAt = existing.published_at;
+    }
   }
 
   const payload = {
@@ -48,9 +71,10 @@ export async function POST(req: Request) {
     category: category ?? "Wellbeing",
     emoji: emoji ?? "📝",
     cover_color: cover_color ?? "linear-gradient(135deg,#e0f2e9,#b8dfc8)",
+    cover_image_url: cover_image_url || null,
     read_time: read_time ?? 3,
-    published: published ?? false,
-    published_at: published ? new Date().toISOString() : null,
+    published: isPublished,
+    published_at: publishedAt,
     author_id: user.id,
     updated_at: new Date().toISOString(),
   };

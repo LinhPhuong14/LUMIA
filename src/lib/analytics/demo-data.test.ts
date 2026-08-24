@@ -102,7 +102,7 @@ describe("buildDemoGaReport", () => {
     expect(paths).toContain("/journal");
   });
 
-  it("không bịa lưu lượng cho blog vì blog đang bị ẩn khỏi điều hướng", () => {
+  it("không bịa lưu lượng cho blog — quãng lịch sử này blog chưa có đường dẫn nào", () => {
     for (const page of report.topPages) {
       expect(page.path.startsWith("/blog")).toBe(false);
     }
@@ -238,7 +238,7 @@ describe("buildDemoGscReport", () => {
     }
   });
 
-  it("không có trang blog nào trong kết quả tìm kiếm", () => {
+  it("không có trang blog nào trong kết quả tìm kiếm của quãng lịch sử", () => {
     for (const row of report.topPages) {
       expect(row.label).not.toContain("/blog");
     }

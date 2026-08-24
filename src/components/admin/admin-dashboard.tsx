@@ -65,7 +65,8 @@ type Product = {
 
 type BlogPost = {
   id: string; slug: string; title: string; excerpt: string;
-  category: string; emoji: string; cover_color: string;
+  content: string | null; category: string; emoji: string;
+  cover_color: string; cover_image_url: string | null;
   read_time: number; published: boolean; published_at: string | null; created_at: string;
 };
 
@@ -1772,12 +1773,15 @@ function BlogTab() {
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
   function openNew() { setForm({ ...EMPTY_BLOG }); }
+  // Nạp đủ `content` và `cover_image_url` từ bản ghi. Bản cũ để rỗng hai trường
+  // này, mà `savePost` gửi nguyên form lên — nên chỉ cần mở một bài đã đăng ra
+  // sửa tiêu đề rồi bấm Lưu là toàn bộ thân bài bị ghi đè thành chuỗi rỗng.
   function openEdit(p: BlogPost) {
     setForm({
       id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt,
-      content: "", category: p.category, emoji: p.emoji,
+      content: p.content ?? "", category: p.category, emoji: p.emoji,
       cover_color: p.cover_color, read_time: p.read_time, published: p.published,
-      cover_image_url: "",
+      cover_image_url: p.cover_image_url ?? "",
     });
   }
 
@@ -1826,11 +1830,19 @@ function BlogTab() {
     setDeleting(null);
   }
 
+  // Gửi kèm `content` và `cover_image_url`: endpoint nhận cả bản ghi rồi ghi đè,
+  // nên bỏ trường nào là trường đó bị xoá. Trước đây chỉ bấm "Ẩn" rồi "Xuất bản"
+  // lại là bài viết mất trắng thân bài.
   async function togglePublish(p: BlogPost) {
     const newPub = !p.published;
     const res = await fetch("/api/blog/admin", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category, emoji: p.emoji, cover_color: p.cover_color, read_time: p.read_time, published: newPub }),
+      body: JSON.stringify({
+        id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt,
+        content: p.content ?? "", category: p.category, emoji: p.emoji,
+        cover_color: p.cover_color, cover_image_url: p.cover_image_url ?? "",
+        read_time: p.read_time, published: newPub,
+      }),
     });
     if (res.ok) { showToast(newPub ? "Đã xuất bản" : "Đã ẩn bài viết"); loadPosts(); }
   }
@@ -3006,7 +3018,7 @@ const TABS = [
   { id: "users", label: "Người dùng", icon: Users },
   { id: "orders", label: "Đơn hàng", icon: ShoppingBag },
   { id: "products", label: "Sản phẩm", icon: Package },
-  // { id: "blog", label: "Blog", icon: BookOpen }, // disabled temporarily
+  { id: "blog", label: "Blog", icon: BookOpen },
   { id: "media", label: "Media", icon: Film },
   { id: "plans", label: "Gói dịch vụ", icon: Box },
   { id: "feedback", label: "Góp ý", icon: MessageSquare },
@@ -3045,7 +3057,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         {tab === "users" && <UsersTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "products" && <ProductsTab />}
-        {/* {tab === "blog" && <BlogTab />} */}
+        {tab === "blog" && <BlogTab />}
         {tab === "media" && <MediaTab />}
         {tab === "plans" && <PlansTab />}
         {tab === "feedback" && <FeedbackTable />}

@@ -272,9 +272,14 @@ const PAGE_SHARES: [string, number, number][] = [
 ];
 
 /**
- * Blog đang bị ẩn khỏi điều hướng (xem `marketingNavLinks`, `footerColumns` và
- * tab Blog trong admin), nên không có đường nào dẫn tới `/blog` — dữ liệu mẫu
- * không được bịa lưu lượng cho nó. Bỏ chặn này khi bật blog trở lại.
+ * Dữ liệu mẫu không bịa lưu lượng cho `/blog`.
+ *
+ * Blog đã được bật lại trong điều hướng, nhưng bảng này chỉ lấp phần lịch sử
+ * TRƯỚC mốc cutover GA (xem `auto-backfill.ts`) — từ cutover trở đi báo cáo
+ * dùng số thật. Suốt quãng lịch sử đó blog bị gỡ khỏi menu, footer và trang
+ * chủ, nên không một đường dẫn nào tới `/blog` tồn tại: gán lượt xem cho nó
+ * lúc này là dựng ra lưu lượng chưa từng xảy ra. Lưu lượng blog thật sẽ chảy
+ * vào qua GA kể từ ngày bật, không phải qua bảng này.
  */
 const HIDDEN_PATH_PREFIXES = ["/blog"];
 
