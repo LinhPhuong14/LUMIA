@@ -12,10 +12,11 @@ import type {
 } from "@/lib/analytics/types";
 
 /**
- * Bộ SỐ LIỆU MẪU cho tab Báo cáo/Vận hành theo kịch bản chiến dịch trong tài
- * liệu vận hành (10/8 → 23/8): mốc ~1.400 users, mỗi ngày dao động để tạo sóng
- * tự nhiên, kèm các chỉ số phụ trợ (phiên, tương tác, thời lượng, nguồn/thiết
- * bị, và Search Console) cho khớp nhau.
+ * Bộ SỐ LIỆU MẪU cho tab Báo cáo/Vận hành theo KỊCH BẢN 3 THÁNG HOẠT ĐỘNG của
+ * website: 28/5 → 5/9. Câu chuyện: site mở cửa cuối tháng 5, lưu lượng bò lên
+ * đều trong 3 tháng, tới 5/9 đạt ~1.900 NGƯỜI DÙNG DUY NHẤT. Kèm các chỉ số phụ
+ * trợ (phiên, tương tác, thời lượng, nguồn/thiết bị, và Search Console với CTR
+ * ~5%) cho khớp nhau.
  *
  * ⚠️ ĐÂY LÀ SỐ MẪU, KHÔNG PHẢI SỐ ĐO ĐƯỢC. Chỉ dùng để xem trước/demo giao
  * diện. KHÔNG được trình bày như số thật với người ngoài (nhà đầu tư, đối tác…).
@@ -24,14 +25,14 @@ import type {
  *
  * Nguyên tắc: TẤT ĐỊNH theo ngày (cùng ngày luôn ra cùng số, không nhảy sau mỗi
  * lần làm mới) và tính theo ngày tuyệt đối, nên một ngày cụ thể trùng khớp dù
- * xem ở kỳ 7 hay 28 ngày.
+ * xem ở kỳ 7, 28 hay 90 ngày.
  */
 
-// Ngày bắt đầu chiến dịch — "Ngày 1" trong tài liệu.
-const CAMPAIGN_START = "2026-08-10";
-// Ngày cuối của sample chiến dịch. Từ NGÀY SAU đó (24/8) trở đi, dashboard nối
-// số GA THẬT (xem buildSampleGaReport splice).
-export const SAMPLE_END = "2026-08-23";
+// Ngày site bắt đầu hoạt động — "Ngày 1" của kịch bản 3 tháng.
+const CAMPAIGN_START = "2026-05-28";
+// Ngày cuối của kịch bản mẫu (mốc ~1.900 users). Từ NGÀY SAU đó trở đi, dashboard
+// nối số GA THẬT (xem buildSampleGaReport splice).
+export const SAMPLE_END = "2026-09-05";
 const DAY_MS = 86_400_000;
 
 // ─── PRNG tất định (cùng idiom với demo-data) ───────────────────────────────
@@ -78,39 +79,38 @@ function daysBetween(fromIso: string, toIsoStr: string): number {
 // ─── Mô hình lưu lượng theo ngày ────────────────────────────────────────────
 
 /**
- * Người dùng/ngày theo số ngày kể từ Ngày 1 của chiến dịch.
+ * Người dùng HOẠT ĐỘNG/ngày theo số ngày kể từ Ngày 1 (28/5).
  *
- * - Trước chiến dịch (dayIndex < 0): TĂNG DẦN đều tiến tới mức đầu chiến dịch
- *   (~50 ở ngày 10/8), để biểu đồ có đoạn "khởi động" mượt liền mạch với phần
- *   sau chứ không phẳng rồi nhảy vọt. Ngày càng xa 10/8 càng thấp, sàn ~12.
- * - Trong và sau chiến dịch: bò lên từ ~50 tới trần ~125 theo đường bão hoà,
- *   rồi giữ nhịp (khớp roadmap: tăng nhanh tuần đầu, sau đó tăng nhẹ đều).
+ * - Trước khi mở (dayIndex < 0): gần như không có lưu lượng — chỉ để range lỡ
+ *   chờm sang trước 28/5 không bị vỡ. Rơi nhanh về sàn ~4.
+ * - Trong 3 tháng chạy: bò lên từ ~8 (ngày mở) tới ~44/ngày (đầu tháng 9) theo
+ *   đường bão hoà — tăng nhanh giai đoạn đầu rồi đều dần (site trưởng thành).
  *
- * Hằng số được canh để TỔNG 14 ngày (10→23/8) xấp xỉ 1.400 users — đúng mốc
- * mục tiêu — trong khi mỗi ngày vẫn dao động nhờ jitter để tạo sóng.
+ * Hằng số được canh để daily active cộng dồn cả kỳ ~2.900 người-ngày, tương ứng
+ * ~1.900 NGƯỜI DÙNG DUY NHẤT (mỗi người ghé ~1,5 ngày) — đúng mốc mục tiêu 5/9.
  */
-const CAMPAIGN_FLOOR = 50;
+const OPENING_USERS = 8;
 
 function baseDailyUsers(dayIndex: number): number {
   if (dayIndex < 0) {
-    // Đường tăng dần theo hàm mũ tiến tới mốc đầu chiến dịch (~50 ở 10/8): xa
-    // 10/8 thì rất thấp, càng gần càng cao — trải mượt cho cả kỳ 90 ngày (không
-    // phẳng-rồi-nhảy). Sàn 6 để không tụt về 0 ở những ngày xa nhất.
-    return Math.max(6, CAMPAIGN_FLOOR * Math.exp(dayIndex / 40));
+    // Trước ngày mở: tụt nhanh về gần 0, sàn 4 để không âm/không vỡ range.
+    return Math.max(4, OPENING_USERS * Math.exp(dayIndex / 25));
   }
-  const plateau = 125;
-  return CAMPAIGN_FLOOR + (plateau - CAMPAIGN_FLOOR) * (1 - Math.exp(-dayIndex / 4.5));
+  // Đường bão hoà: ~8 ngày đầu → ~44 đầu tháng 9. Tăng nhanh rồi đều.
+  const gain = 36;
+  return OPENING_USERS + gain * (1 - Math.exp(-dayIndex / 45));
 }
 
-// Mốc NGƯỜI DÙNG DUY NHẤT của cả chiến dịch (~1.400-1.500). KPI Users của một kỳ
-// trong GA4 là số DUY NHẤT đã loại trùng — KHÔNG phải tổng người hoạt động theo
-// ngày cộng lại (một người quay lại nhiều ngày chỉ tính 1). Neo tổng quan vào mốc
-// này để KPI không phình to khi kéo 28/90 ngày, đồng thời các chỉ số còn lại suy
-// ra từ chính số này nên mọi ô luôn "khớp".
-const SAMPLE_TOTAL_USERS = 1450;
+// Mốc NGƯỜI DÙNG DUY NHẤT của cả kỳ 3 tháng (~1.900 tới 5/9). KPI Users của một
+// kỳ trong GA4 là số DUY NHẤT đã loại trùng — KHÔNG phải tổng người hoạt động
+// theo ngày cộng lại (một người quay lại nhiều ngày chỉ tính 1). Neo tổng quan
+// vào mốc này để KPI không phình to khi kéo 28/90 ngày, đồng thời các chỉ số còn
+// lại suy ra từ chính số này nên mọi ô luôn "khớp".
+const SAMPLE_TOTAL_USERS = 1900;
 
-// Tổng base users của riêng kỳ chiến dịch (10→23/8), làm mẫu số quy đổi "độ phủ"
-// của range hiện tại. Range phủ trọn chiến dịch → độ phủ 1 → đúng mốc 1.450.
+// Tổng base users của trọn kỳ (28/5→5/9), làm mẫu số quy đổi "độ phủ" của range
+// hiện tại. Range phủ trọn kỳ → độ phủ 1 → đúng mốc 1.900. Range ngắn/tính tới
+// hôm nay (trước 5/9) → độ phủ < 1 → số duy nhất "tới thời điểm này".
 const CAMPAIGN_BASE_SUM = (() => {
   let sum = 0;
   const lastIndex = daysBetween(CAMPAIGN_START, SAMPLE_END);
@@ -181,11 +181,11 @@ function summarize(points: GaDailyPoint[]): GaSummary {
 }
 
 /**
- * Tổng quan cho PHẦN MẪU, neo theo NGƯỜI DÙNG DUY NHẤT (~1.450) thay vì cộng dồn
- * người hoạt động theo ngày — đúng bản chất GA4 (Users của một kỳ đã loại trùng).
- * Nhờ vậy KPI ổn định ~1.400-1.500 dù xem 7/28/90 ngày. Các chỉ số còn lại
- * (người mới, phiên, lượt xem, sự kiện) suy ra từ chính số users theo đúng tỉ lệ
- * chiến dịch (phiên ~1,35×; lượt xem ~3,6×phiên) nên mọi ô luôn khớp với nhau.
+ * Tổng quan cho PHẦN MẪU, neo theo NGƯỜI DÙNG DUY NHẤT (~1.900 trọn kỳ) thay vì
+ * cộng dồn người hoạt động theo ngày — đúng bản chất GA4 (Users của một kỳ đã
+ * loại trùng). Nhờ vậy KPI ổn định, không phình khi kéo 28/90 ngày. Các chỉ số
+ * còn lại (người mới, phiên, lượt xem, sự kiện) suy ra từ chính số users theo tỉ
+ * lệ 3 tháng (phiên ~1,6×/người; lượt xem ~3,4×phiên) nên mọi ô luôn khớp nhau.
  * Engagement & thời lượng lấy trung bình có trọng số theo phiên của các ngày mẫu.
  */
 function anchoredSampleSummary(sampleDays: GaDailyPoint[]): GaSummary {
@@ -193,13 +193,13 @@ function anchoredSampleSummary(sampleDays: GaDailyPoint[]): GaSummary {
     (s, p) => s + baseDailyUsers(daysBetween(CAMPAIGN_START, p.date)),
     0,
   );
-  // Độ phủ so với kỳ chiến dịch; chặn trần 1,03 để range rộng (kèm đoạn khởi động
-  // trước 10/8) chỉ nhỉnh nhẹ chứ không vọt lên quá 1.500.
-  const coverage = CAMPAIGN_BASE_SUM > 0 ? Math.min(1.03, baseSum / CAMPAIGN_BASE_SUM) : 0;
+  // Độ phủ so với trọn kỳ 3 tháng; chặn trần 1,02 để range không bao giờ vọt quá
+  // mốc mục tiêu.
+  const coverage = CAMPAIGN_BASE_SUM > 0 ? Math.min(1.02, baseSum / CAMPAIGN_BASE_SUM) : 0;
   const users = Math.round(SAMPLE_TOTAL_USERS * coverage);
-  const newUsers = Math.round(users * 0.62);
-  const sessions = Math.round(users * 1.35);
-  const pageViews = Math.round(sessions * 3.6);
+  const newUsers = Math.round(users * 0.6);
+  const sessions = Math.round(users * 1.6);
+  const pageViews = Math.round(sessions * 3.4);
   const eventCount = Math.round(pageViews + sessions * 2.4);
   const w = sampleDays.reduce(
     (acc, p) => ({
@@ -310,12 +310,12 @@ function toTopPages(summary: GaSummary, seed: string): GaPageRow[] {
 }
 
 /**
- * Báo cáo GA mẫu cho kịch bản chiến dịch.
+ * Báo cáo GA mẫu cho kịch bản 3 tháng.
  *
- * `realDaily` (số GA THẬT theo ngày, nếu có): mọi ngày SAU 23/8 sẽ lấy số thật
- * thay cho sample — tức sample chỉ đóng vai "lịch sử chiến dịch" tới 23/8, còn
- * từ 24/8 dashboard nối GA bình thường. Truyền null/undefined để dùng sample
- * cho toàn kỳ (khi GA thật chưa sẵn).
+ * `realDaily` (số GA THẬT theo ngày, nếu có): mọi ngày SAU 5/9 sẽ lấy số thật
+ * thay cho sample — tức sample chỉ đóng vai "lịch sử 3 tháng" tới 5/9, còn từ
+ * 6/9 dashboard nối GA bình thường. Truyền null/undefined để dùng sample cho
+ * toàn kỳ (khi GA thật chưa sẵn).
  */
 export function buildSampleGaReport(
   range: DateRange,
@@ -364,15 +364,16 @@ export function buildSampleGaReport(
 // ─── Search Console mẫu ─────────────────────────────────────────────────────
 
 /**
- * Chỉ tiêu Search Console theo tài liệu (tính cho toàn kỳ chiến dịch 14 ngày):
- * ~185 click, ~2.850 hiển thị, vị trí trung bình ~9,8. CTR suy từ click/hiển
- * thị cho nhất quán (tài liệu ghi 5% nhưng 185/2.850 ≈ 6,5%; ưu tiên hai con số
- * tuyệt đối và để CTR = click/hiển thị).
+ * Chỉ tiêu Search Console cho trọn kỳ 3 tháng (28/5→5/9): ~420 click, ~8.400
+ * hiển thị → CTR đúng 5% (420/8.400 = 0,05), vị trí trung bình ~9,5. 420 click
+ * organic khớp với ~15% "Organic Search" của tổng phiên (~3.040) nên nhất quán
+ * với phần GA. CTR luôn suy từ click/hiển thị để hai chỉ số không lệch nhau.
  */
-const GSC_TARGET_CLICKS = 185;
-const GSC_TARGET_IMPRESSIONS = 2850;
-const GSC_TARGET_POSITION = 9.8;
-const GSC_CAMPAIGN_DAYS = 14;
+const GSC_TARGET_CLICKS = 420;
+const GSC_TARGET_IMPRESSIONS = 8400;
+const GSC_TARGET_POSITION = 9.5;
+// Số ngày trọn kỳ (28/5→5/9) — dùng chuẩn hoá mục tiêu theo độ dài range đang xem.
+const GSC_CAMPAIGN_DAYS = 101;
 
 const GSC_QUERY_SHARES: [string, number, { position: number }][] = [
   ["lumia", 0.2, { position: 2.1 }],
@@ -394,7 +395,7 @@ function gscRow(label: string, clicks: number, impressions: number, position: nu
 export function buildSampleGscReport(range: DateRange, siteUrl: string): GscReport {
   const daily = eachDay(range.startDate, range.endDate);
   const totalSessions = daily.reduce((s, p) => s + p.sessions, 0) || 1;
-  // Chuẩn hoá mục tiêu theo độ dài kỳ đang xem so với chiến dịch 14 ngày.
+  // Chuẩn hoá mục tiêu theo độ dài kỳ đang xem so với trọn kỳ 3 tháng.
   const scale = daily.length / GSC_CAMPAIGN_DAYS;
   const clicks = Math.round(GSC_TARGET_CLICKS * scale);
   const impressions = Math.round(GSC_TARGET_IMPRESSIONS * scale);

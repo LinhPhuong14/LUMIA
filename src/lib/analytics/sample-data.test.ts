@@ -3,53 +3,67 @@ import { describe, expect, it } from "vitest";
 import type { DateRange } from "@/lib/analytics/date-range";
 import { buildSampleGaReport, buildSampleGscReport } from "@/lib/analytics/sample-data";
 
-// Kỳ chiến dịch 10/8 → 23/8 (14 ngày), kỳ trước liền kề 14 ngày.
-const CAMPAIGN: DateRange = {
-  key: "28d",
-  days: 14,
-  startDate: "2026-08-10",
-  endDate: "2026-08-23",
-  previousStartDate: "2026-07-27",
-  previousEndDate: "2026-08-09",
+// Trọn kỳ kịch bản 3 tháng: 28/5 → 5/9 (mốc ~1.900 users), kỳ trước liền kề.
+const FULL: DateRange = {
+  key: "90d",
+  days: 100,
+  startDate: "2026-05-28",
+  endDate: "2026-09-05",
+  previousStartDate: "2026-02-17",
+  previousEndDate: "2026-05-27",
+};
+
+// Kỳ 90 ngày tính TỚI HÔM NAY (25/8) — cái người dùng thực sự thấy trên dashboard.
+const TO_TODAY: DateRange = {
+  key: "90d",
+  days: 90,
+  startDate: "2026-05-27",
+  endDate: "2026-08-25",
+  previousStartDate: "2026-02-26",
+  previousEndDate: "2026-05-26",
 };
 
 describe("buildSampleGaReport", () => {
-  const report = buildSampleGaReport(CAMPAIGN);
+  const report = buildSampleGaReport(FULL);
 
   it("tất định — gọi lại ra kết quả y hệt", () => {
-    expect(buildSampleGaReport(CAMPAIGN)).toEqual(report);
+    expect(buildSampleGaReport(FULL)).toEqual(report);
   });
 
-  it("chạm mốc ~1.400-1.500 users cho kỳ chiến dịch", () => {
-    expect(report.summary.users).toBeGreaterThanOrEqual(1400);
-    expect(report.summary.users).toBeLessThanOrEqual(1500);
+  it("trọn kỳ 3 tháng chạm mốc ~1.900 users", () => {
+    expect(report.summary.users).toBeGreaterThanOrEqual(1850);
+    expect(report.summary.users).toBeLessThanOrEqual(1950);
   });
 
-  it("KPI users vẫn ~1.400-1.500 khi kéo 90 ngày (không phình theo range)", () => {
+  it("KPI users KHÔNG phình khi range rộng bất thường (neo theo số duy nhất)", () => {
     // Users của một kỳ là số DUY NHẤT (loại trùng) nên không cộng dồn theo ngày:
-    // kéo 90 ngày vẫn xấp xỉ mốc chiến dịch, chỉ nhỉnh nhẹ.
-    const wide = buildSampleGaReport({
+    // kéo rộng ra trước ngày mở vẫn quanh mốc, chỉ nhỉnh nhẹ nhờ chặn trần.
+    const superWide = buildSampleGaReport({
       key: "90d",
-      days: 90,
-      startDate: "2026-05-26",
-      endDate: "2026-08-23",
-      previousStartDate: "2026-02-25",
-      previousEndDate: "2026-05-25",
+      days: 180,
+      startDate: "2026-03-09",
+      endDate: "2026-09-05",
+      previousStartDate: "2025-09-10",
+      previousEndDate: "2026-03-08",
     });
-    expect(wide.summary.users).toBeGreaterThanOrEqual(1400);
-    expect(wide.summary.users).toBeLessThanOrEqual(1500);
-    // Và các chỉ số khác khớp theo số users này (phiên ~1,35×, xem ~3,6×phiên).
-    expect(wide.summary.sessions / wide.summary.users).toBeGreaterThan(1.2);
-    expect(wide.summary.sessions / wide.summary.users).toBeLessThan(1.5);
-    expect(wide.summary.pageViews / wide.summary.sessions).toBeGreaterThan(3.2);
-    expect(wide.summary.pageViews / wide.summary.sessions).toBeLessThan(4.0);
+    expect(superWide.summary.users).toBeLessThanOrEqual(1960);
+    expect(superWide.summary.users).toBeGreaterThanOrEqual(1850);
   });
 
-  it("tổng phiên ~1.800-2.000, lượt xem ~6.840", () => {
-    expect(report.summary.sessions).toBeGreaterThanOrEqual(1750);
-    expect(report.summary.sessions).toBeLessThanOrEqual(2100);
-    expect(report.summary.pageViews).toBeGreaterThanOrEqual(6300);
-    expect(report.summary.pageViews).toBeLessThanOrEqual(7400);
+  it("tính tới hôm nay (25/8) là số 'đang chạy' — thấp hơn mốc 5/9 nhưng đã lớn", () => {
+    const now = buildSampleGaReport(TO_TODAY).summary;
+    expect(now.users).toBeGreaterThan(1400);
+    expect(now.users).toBeLessThan(report.summary.users); // chưa tới 5/9 nên < 1.900
+  });
+
+  it("các chỉ số phụ khớp theo users (phiên ~1,6×; lượt xem ~3,4×phiên)", () => {
+    const s = report.summary;
+    expect(s.sessions / s.users).toBeGreaterThan(1.45);
+    expect(s.sessions / s.users).toBeLessThan(1.75);
+    expect(s.pageViews / s.sessions).toBeGreaterThan(3.1);
+    expect(s.pageViews / s.sessions).toBeLessThan(3.7);
+    expect(s.newUsers).toBeLessThanOrEqual(s.users);
+    expect(s.eventCount).toBeGreaterThan(s.pageViews);
   });
 
   it("engagement 58-63%, thời lượng 135-165s", () => {
@@ -59,41 +73,17 @@ describe("buildSampleGaReport", () => {
     expect(report.summary.avgSessionSeconds).toBeLessThanOrEqual(165);
   });
 
-  it("trend đủ 14 ngày, tăng dần (sóng); KPI ~ tổng active theo ngày cho kỳ chiến dịch", () => {
-    expect(report.trend).toHaveLength(14);
-    expect(report.daily).toHaveLength(14);
-    // KPI là số DUY NHẤT nên không bắt buộc bằng tổng active theo ngày, nhưng cho
-    // riêng kỳ chiến dịch (độ phủ = 1) hai giá trị phải xấp xỉ nhau (±10%).
+  it("trend phủ đủ ngày và ĐI LÊN suốt 3 tháng (ngày cuối > ngày đầu)", () => {
+    expect(report.trend.length).toBe(report.daily.length);
+    expect(report.trend.length).toBeGreaterThan(95); // ~101 ngày
+    expect(report.trend[report.trend.length - 1].users).toBeGreaterThan(report.trend[0].users);
+    // Active theo ngày cộng dồn > số DUY NHẤT (người quay lại) — đúng GA4.
     const trendUsers = report.trend.reduce((s, p) => s + p.users, 0);
-    expect(Math.abs(report.summary.users - trendUsers) / trendUsers).toBeLessThan(0.1);
-    // Ngày cuối phải cao hơn ngày đầu (đường đi lên).
-    expect(report.trend[13].users).toBeGreaterThan(report.trend[0].users);
+    expect(trendUsers).toBeGreaterThan(report.summary.users);
   });
 
-  it("kỳ này cao hơn kỳ trước (tăng trưởng)", () => {
+  it("kỳ này cao hơn kỳ trước (site mới mở → tăng trưởng mạnh)", () => {
     expect(report.summary.users).toBeGreaterThan(report.previousSummary.users);
-  });
-
-  it("ngày trước 10/8 khởi động tăng dần, thấp hơn giai đoạn chiến dịch", () => {
-    // Kỳ 28 ngày phủ cả trước 10/8 (27/7 → 23/8).
-    const wide = buildSampleGaReport({
-      key: "28d",
-      days: 28,
-      startDate: "2026-07-27",
-      endDate: "2026-08-23",
-      previousStartDate: "2026-06-29",
-      previousEndDate: "2026-07-26",
-    });
-    const pre = wide.daily.filter((p) => p.date < "2026-08-10");
-    const campaign = wide.daily.filter((p) => p.date >= "2026-08-10");
-    const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
-    // Trung bình trước chiến dịch thấp hơn trong chiến dịch (đường đi lên).
-    expect(avg(pre.map((p) => p.users))).toBeLessThan(avg(campaign.map((p) => p.users)));
-    // Nửa sau của đoạn pre cao hơn nửa đầu (khởi động tăng dần, không phẳng).
-    const half = Math.floor(pre.length / 2);
-    expect(avg(pre.slice(half).map((p) => p.users))).toBeGreaterThan(
-      avg(pre.slice(0, half).map((p) => p.users)),
-    );
   });
 
   it("nguồn 50/35/15, không có Unassigned", () => {
@@ -122,52 +112,53 @@ describe("buildSampleGaReport", () => {
     expect(vietnam / report.summary.users).toBeGreaterThan(0.95);
   });
 
-  it("từ 24/8 nối GA thật khi truyền realDaily; tới 23/8 vẫn là sample", () => {
+  it("từ 6/9 nối GA thật khi truyền realDaily; tới 5/9 vẫn là sample", () => {
     const range: DateRange = {
       key: "28d",
       days: 14,
-      startDate: "2026-08-17",
-      endDate: "2026-08-30",
-      previousStartDate: "2026-08-03",
-      previousEndDate: "2026-08-16",
+      startDate: "2026-08-30",
+      endDate: "2026-09-12",
+      previousStartDate: "2026-08-16",
+      previousEndDate: "2026-08-29",
     };
     const realDaily = [
-      { date: "2026-08-24", users: 7, newUsers: 5, sessions: 9, pageViews: 20, eventCount: 40, engagementRate: 0.6, avgSessionSeconds: 120 },
-      { date: "2026-08-25", users: 9, newUsers: 6, sessions: 12, pageViews: 26, eventCount: 50, engagementRate: 0.61, avgSessionSeconds: 130 },
+      { date: "2026-09-06", users: 30, newUsers: 12, sessions: 48, pageViews: 150, eventCount: 320, engagementRate: 0.6, avgSessionSeconds: 150 },
+      { date: "2026-09-07", users: 33, newUsers: 13, sessions: 52, pageViews: 165, eventCount: 350, engagementRate: 0.61, avgSessionSeconds: 152 },
     ];
     const out = buildSampleGaReport(range, realDaily);
     const at = (d: string) => out.daily.find((p) => p.date === d)!;
-    expect(at("2026-08-23").users).toBeGreaterThan(100); // sample chiến dịch
-    expect(at("2026-08-24").users).toBe(7); // GA thật
-    expect(at("2026-08-25").users).toBe(9); // GA thật
-    expect(at("2026-08-26").users).toBe(0); // thật thiếu ngày = 0 (chưa có traffic)
-  });
-
-  it("quan hệ chỉ số hợp lý: phiên ≥ người, lượt xem ≥ phiên, sự kiện ≥ lượt xem", () => {
-    expect(report.summary.sessions).toBeGreaterThan(report.summary.users);
-    expect(report.summary.pageViews).toBeGreaterThan(report.summary.sessions);
-    expect(report.summary.eventCount).toBeGreaterThan(report.summary.pageViews);
-    expect(report.summary.newUsers).toBeLessThanOrEqual(report.summary.users);
+    expect(at("2026-09-05").users).toBeGreaterThan(30); // sample kỳ 3 tháng
+    expect(at("2026-09-06").users).toBe(30); // GA thật
+    expect(at("2026-09-07").users).toBe(33); // GA thật
+    expect(at("2026-09-08").users).toBe(0); // thật thiếu ngày = 0 (chưa có traffic)
   });
 });
 
 describe("buildSampleGscReport", () => {
-  const report = buildSampleGscReport(CAMPAIGN, "sc-domain:lumia.com.vn");
+  const report = buildSampleGscReport(FULL, "sc-domain:lumia.com.vn");
 
-  it("chạm mốc ~185 click, ~2.850 hiển thị, vị trí ~9,8", () => {
-    expect(report.summary.clicks).toBeGreaterThanOrEqual(175);
-    expect(report.summary.clicks).toBeLessThanOrEqual(195);
-    expect(report.summary.impressions).toBeGreaterThanOrEqual(2750);
-    expect(report.summary.impressions).toBeLessThanOrEqual(2950);
-    expect(report.summary.position).toBeCloseTo(9.8, 1);
+  it("trọn kỳ ~420 click, ~8.400 hiển thị, vị trí ~9,5", () => {
+    expect(report.summary.clicks).toBeGreaterThanOrEqual(400);
+    expect(report.summary.clicks).toBeLessThanOrEqual(440);
+    expect(report.summary.impressions).toBeGreaterThanOrEqual(8000);
+    expect(report.summary.impressions).toBeLessThanOrEqual(8800);
+    expect(report.summary.position).toBeCloseTo(9.5, 1);
   });
 
-  it("CTR = click / hiển thị (nhất quán)", () => {
+  it("CTR = click / hiển thị và đúng ~5%", () => {
     expect(report.summary.ctr).toBeCloseTo(report.summary.clicks / report.summary.impressions, 5);
+    expect(report.summary.ctr).toBeGreaterThan(0.048);
+    expect(report.summary.ctr).toBeLessThan(0.052);
+  });
+
+  it("CTR giữ ~5% ở mọi độ dài kỳ (không lệch khi đổi range)", () => {
+    const now = buildSampleGscReport(TO_TODAY, "sc-domain:lumia.com.vn").summary;
+    expect(now.ctr).toBeGreaterThan(0.048);
+    expect(now.ctr).toBeLessThan(0.052);
   });
 
   it("trend đủ ngày; top query xếp giảm dần theo click, click ≤ hiển thị", () => {
-    expect(report.trend).toHaveLength(14);
+    expect(report.trend.length).toBeGreaterThan(95);
     const clicks = report.topQueries.map((r) => r.clicks);
     expect([...clicks].sort((a, b) => b - a)).toEqual(clicks);
     expect(report.topQueries.every((r) => r.clicks <= r.impressions)).toBe(true);

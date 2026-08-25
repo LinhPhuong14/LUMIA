@@ -135,7 +135,7 @@ export async function GET(request: Request) {
 
   if (sections.traffic && sampleMode) {
     const siteUrl = resolveSiteUrl();
-    // Nối GA THẬT cho ngày sau 23/8: truyền daily thật nếu GA đọc được.
+    // Nối GA THẬT cho ngày sau 5/9: truyền daily thật nếu GA đọc được.
     const realDaily =
       google?.status === "ok" && google.data && !google.demo ? google.data.daily : null;
     report.google = { status: "ok", demo: true, data: buildSampleGaReport(range, realDaily) };
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
         : {
             status: "ok",
             demo: true,
-            data: buildDemoGaRealtime({ launchDate: new Date(range.startDate), peakDailyUsers: 125 }),
+            data: buildDemoGaRealtime({ launchDate: new Date(range.startDate), peakDailyUsers: 44 }),
           };
     report.vercel = {
       onVercel: Boolean(process.env.VERCEL),
