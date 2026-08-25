@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -14,6 +15,7 @@ import { RitualAccordionSection } from "@/components/landing/sections/ritual-acc
 import { TestimonialsSection } from "@/components/landing/sections/testimonials-section";
 import { WebappDemoSection } from "@/components/landing/sections/webapp-demo-section";
 import { FloatingNavbar } from "@/components/landing/shared/floating-navbar";
+import { SectionSkeleton } from "@/components/landing/shared/section-skeleton";
 import { SiteFooter } from "@/components/marketing/site-footer";
 
 export default async function HomePage({
@@ -46,13 +48,30 @@ export default async function HomePage({
     <>
       <FloatingNavbar isAuthed={isAuthed} />
       <HeroSection />
-      <PromoSection hasSessionCookie={isAuthed} />
+      {/*
+        HomePage đọc `cookies()` phía trên nên cả route đã là dynamic — không
+        cách nào tránh render lại mỗi request. Nhưng PromoSection, Boxes,
+        Products, Blog đều phải chờ Supabase, và không có Suspense thì React
+        chặn TOÀN BỘ phần HTML còn lại (kể cả những gì tĩnh phía dưới) tới khi
+        section chậm nhất xong — biến vài trăm ms mỗi query cộng dồn thành một
+        màn hình trắng nhiều giây. Suspense ở đây cho từng section stream
+        xuống ngay khi nó xong, độc lập với các section khác.
+      */}
+      <Suspense fallback={<SectionSkeleton variant="banner" />}>
+        <PromoSection hasSessionCookie={isAuthed} />
+      </Suspense>
       {/* <CategoriesSection /> */}
       <RitualAccordionSection />
-      <BoxesShowcaseSection />
-      <ProductsCarouselSection />
+      <Suspense fallback={<SectionSkeleton cards={3} />}>
+        <BoxesShowcaseSection />
+      </Suspense>
+      <Suspense fallback={<SectionSkeleton cards={4} />}>
+        <ProductsCarouselSection />
+      </Suspense>
       <AiListeningSection />
-      <BlogSection />
+      <Suspense fallback={<SectionSkeleton cards={3} />}>
+        <BlogSection />
+      </Suspense>
       <WebappDemoSection />
       <TestimonialsSection />
       <QuizSection />

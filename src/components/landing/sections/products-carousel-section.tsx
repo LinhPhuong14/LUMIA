@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowRight, ShoppingBag } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 
 type CarouselProduct = {
   id: string;
@@ -12,17 +13,24 @@ type CarouselProduct = {
   category: string;
 };
 
-async function getCarouselProducts(): Promise<CarouselProduct[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("store_products")
-    .select("id,slug,name,subtitle,price_vnd,image_url,category")
-    .eq("is_active", true)
-    .order("sort_order")
-    .limit(8);
-  return data ?? [];
-}
+// Sản phẩm active hiển thị y hệt cho mọi khách — client anon (không cookie)
+// để bọc `unstable_cache` được: trang chủ đã là dynamic vì `cookies()` ở
+// HomePage, nên đây là cách duy nhất để không truy vấn lại DB mỗi lượt tải.
+const getCarouselProducts = unstable_cache(
+  async (): Promise<CarouselProduct[]> => {
+    const supabase = createPublicClient();
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from("store_products")
+      .select("id,slug,name,subtitle,price_vnd,image_url,category")
+      .eq("is_active", true)
+      .order("sort_order")
+      .limit(8);
+    return data ?? [];
+  },
+  ["landing-carousel-products"],
+  { revalidate: 60, tags: ["store-products"] },
+);
 
 function formatVnd(n: number) {
   return n.toLocaleString("vi-VN") + " ₫";

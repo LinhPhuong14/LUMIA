@@ -1754,6 +1754,26 @@
   .auth-page-main {
     flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * Trên màn hình lớn, khối login/register (.shell) thường thấp hơn nhiều so
+   * với chiều cao viewport. Không có gì căn giữa thì nó dính cứng lên đầu
+   * flex container, để trống cả mảng lớn phía dưới — đúng kiểu "không tự
+   * responsive theo screen" mà user report.
+   *
+   * Dùng margin auto để căn giữa dọc thay vì `justify-content: center` trên
+   * .auth-page-main: margin auto tự co về 0 khi nội dung cao hơn viewport
+   * (form dài, hoặc bàn phím mobile che bớt chỗ), nên phần đầu form không
+   * bao giờ bị cắt mất phía trên khi cuộn — .auth-page-main vẫn overflow-y:
+   * auto bình thường. `justify-content: center` thì không có đặc tính đó,
+   * nội dung tràn sẽ bị đẩy lên khuất phía trên khi scroll tới đầu.
+   */
+  .auth-page-main > .shell {
+    margin-top: auto;
+    margin-bottom: auto;
   }
 
   .auth-form {

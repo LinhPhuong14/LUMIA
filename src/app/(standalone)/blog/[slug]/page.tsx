@@ -5,7 +5,7 @@ import { ArrowRight, ChevronRight, Clock, Tag } from "lucide-react";
 
 import { JsonLd } from "@/components/seo/json-ld";
 import { SiteFooter } from "@/components/marketing/site-footer";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { BLOG_POSTS, getBlogPost } from "@/data/blog-posts";
 import {
   BLOG_BASE_PATH,
@@ -56,7 +56,10 @@ type RelatedPost = {
  * nghĩa là 404.
  */
 async function getPost(slug: string): Promise<Post | null> {
-  const supabase = await createClient();
+  // Client anon (không cookie): nội dung bài publish giống hệt cho mọi khách,
+  // và trang này có `revalidate = 60` — client gắn cookie sẽ ép cả route
+  // thành dynamic, vô hiệu hoá ISR đã khai báo.
+  const supabase = createPublicClient();
   if (supabase) {
     const { data } = await supabase
       .from("blog_posts")
@@ -117,7 +120,10 @@ async function getPost(slug: string): Promise<Post | null> {
  * rời rạc.
  */
 async function getRelatedPosts(slug: string, category: string): Promise<RelatedPost[]> {
-  const supabase = await createClient();
+  // Client anon (không cookie): nội dung bài publish giống hệt cho mọi khách,
+  // và trang này có `revalidate = 60` — client gắn cookie sẽ ép cả route
+  // thành dynamic, vô hiệu hoá ISR đã khai báo.
+  const supabase = createPublicClient();
 
   if (supabase) {
     const columns =

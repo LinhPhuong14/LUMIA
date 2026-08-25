@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowRight, Gift, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { getSession } from "@/lib/supabase/auth";
 
 type PromoPlan = {
@@ -13,48 +15,64 @@ type PromoPlan = {
   box_image_url: string | null;
 };
 
-async function getFirstTimePlan(): Promise<PromoPlan | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase
-    .from("subscription_plans")
-    .select("id,name,description,price_vnd,duration_months,features,box_image_url")
-    .eq("is_active", true)
-    .in("group_name", ["promo"])
-    .order("price_vnd", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!data) {
-    // fallback: fetch any plan with id containing 'first'
-    const { data: fallback } = await supabase
+/**
+ * Gói khuyến mãi hiển thị y hệt cho mọi khách chưa đăng nhập, nên không cần
+ * client gắn cookie — dùng `createPublicClient()` (anon, không đụng
+ * `cookies()`) để có thể bọc `unstable_cache`. `HomePage` gọi `cookies()` để
+ * biết trạng thái đăng nhập nên cả route đã là dynamic; bọc cache ở đây là
+ * cách duy nhất để truy vấn này không chạy lại với DB trên mỗi lượt tải
+ * trang — revalidate 60s, khớp nhịp với `/blog`.
+ */
+const getFirstTimePlan = unstable_cache(
+  async (): Promise<PromoPlan | null> => {
+    const supabase = createPublicClient();
+    if (!supabase) return null;
+    const { data } = await supabase
       .from("subscription_plans")
       .select("id,name,description,price_vnd,duration_months,features,box_image_url")
       .eq("is_active", true)
-      .ilike("id", "%first%")
+      .in("group_name", ["promo"])
+      .order("price_vnd", { ascending: true })
       .limit(1)
       .maybeSingle();
-    return fallback ?? null;
-  }
-  return data;
-}
+    if (!data) {
+      // fallback: fetch any plan with id containing 'first'
+      const { data: fallback } = await supabase
+        .from("subscription_plans")
+        .select("id,name,description,price_vnd,duration_months,features,box_image_url")
+        .eq("is_active", true)
+        .ilike("id", "%first%")
+        .limit(1)
+        .maybeSingle();
+      return fallback ?? null;
+    }
+    return data;
+  },
+  ["landing-first-time-plan"],
+  { revalidate: 60, tags: ["subscription-plans"] },
+);
 
+// Phụ thuộc trực tiếp vào user đang đăng nhập — không cache được, phải dùng
+// client gắn cookie thật để RLS lọc đúng theo `user_id`.
 async function isFirstTimeBuyer(userId: string): Promise<boolean> {
   const supabase = await createClient();
   if (!supabase) return true;
-  // Check for any paid box orders
-  const { count: orderCount } = await supabase
-    .from("orders")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("has_physical_box", true)
-    .in("status", ["paid", "shipped", "delivered"]);
+  // Hai lượt đếm độc lập, không con nào phụ thuộc con nào — chạy song song
+  // thay vì đợi lần lượt để đỡ một vòng round-trip tới DB.
+  const [{ count: orderCount }, { count: subCount }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("has_physical_box", true)
+      .in("status", ["paid", "shipped", "delivered"]),
+    supabase
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .in("status", ["active", "expired", "cancelled"]),
+  ]);
   if ((orderCount ?? 0) > 0) return false;
-  // Check for any past or active non-free subscriptions
-  const { count: subCount } = await supabase
-    .from("subscriptions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .in("status", ["active", "expired", "cancelled"]);
   return (subCount ?? 0) === 0;
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 
+import { NavLink } from "@/components/landing/shared/nav-link";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { MobileNavSheet } from "@/components/ui/mobile-nav-sheet";
 import { landingAnchorLinks, marketingNavLinks } from "@/lib/site-nav";
@@ -39,14 +40,12 @@ export function LandingMobileDrawer() {
       >
         <nav className="space-y-1 pb-2">
           {links.map((link) => (
-            <a
+            <NavLink
               key={link.id}
-              href={link.href}
+              link={link}
               onClick={() => setOpen(false)}
               className="mobile-more-link"
-            >
-              {link.label}
-            </a>
+            />
           ))}
           <Link href="/login" onClick={() => setOpen(false)} className="mobile-more-link">
             Đăng nhập

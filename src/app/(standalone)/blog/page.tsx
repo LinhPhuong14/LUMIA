@@ -4,7 +4,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { JsonLd } from "@/components/seo/json-ld";
 import { SiteFooter } from "@/components/marketing/site-footer";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { sortedStaticPosts } from "@/lib/blog-query";
 import {
   BLOG_BASE_PATH,
@@ -52,7 +52,10 @@ type BlogPost = {
 };
 
 async function getPosts(): Promise<BlogPost[]> {
-  const supabase = await createClient();
+  // Client anon (không cookie): danh sách bài publish giống hệt cho mọi
+  // khách, và trang này có `revalidate = 60` ở trên — dùng client gắn cookie
+  // ở đây sẽ ép Next coi cả route là dynamic, vô hiệu hoá ISR đã khai báo.
+  const supabase = createPublicClient();
   if (supabase) {
     const { data } = await supabase
       .from("blog_posts")

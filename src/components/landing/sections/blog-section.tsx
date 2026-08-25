@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowRight } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { sortedStaticPosts } from "@/lib/blog-query";
 
 const HOME_POST_LIMIT = 3;
@@ -18,48 +19,55 @@ type SectionPost = {
   publishedAt: string | null;
 };
 
-async function getRecentPosts(limit = HOME_POST_LIMIT): Promise<SectionPost[]> {
-  const supabase = await createClient();
+// Bài đã publish hiển thị y hệt cho mọi khách — client anon (không cookie) để
+// bọc `unstable_cache` được. Trang chủ đã là dynamic vì `cookies()` ở
+// HomePage nên đây là cách duy nhất để không truy vấn lại DB mỗi lượt tải.
+const getRecentPosts = unstable_cache(
+  async (limit = HOME_POST_LIMIT): Promise<SectionPost[]> => {
+    const supabase = createPublicClient();
 
-  if (supabase) {
-    const { data } = await supabase
-      .from("blog_posts")
-      .select(
-        "slug,title,excerpt,category,emoji,cover_color,cover_image_url,read_time,published_at",
-      )
-      .eq("published", true)
-      .order("published_at", { ascending: false })
-      .limit(limit);
+    if (supabase) {
+      const { data } = await supabase
+        .from("blog_posts")
+        .select(
+          "slug,title,excerpt,category,emoji,cover_color,cover_image_url,read_time,published_at",
+        )
+        .eq("published", true)
+        .order("published_at", { ascending: false })
+        .limit(limit);
 
-    if (data && data.length > 0) {
-      return data.map((post) => ({
-        slug: post.slug,
-        title: post.title,
-        excerpt: post.excerpt,
-        category: post.category,
-        emoji: post.emoji,
-        coverColor: post.cover_color,
-        coverImageUrl: post.cover_image_url ?? null,
-        readTime: post.read_time,
-        publishedAt: post.published_at,
-      }));
+      if (data && data.length > 0) {
+        return data.map((post) => ({
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          category: post.category,
+          emoji: post.emoji,
+          coverColor: post.cover_color,
+          coverImageUrl: post.cover_image_url ?? null,
+          readTime: post.read_time,
+          publishedAt: post.published_at,
+        }));
+      }
     }
-  }
 
-  // Cùng cách rơi về dữ liệu tĩnh như `/blog`, để trang chủ và trang danh sách
-  // không bao giờ nói hai điều khác nhau về việc blog có bài hay không.
-  return sortedStaticPosts(limit).map((post) => ({
-    slug: post.slug,
-    title: post.title,
-    excerpt: post.excerpt,
-    category: post.category,
-    emoji: post.emoji,
-    coverColor: post.coverColor,
-    coverImageUrl: null,
-    readTime: post.readTime,
-    publishedAt: post.publishedAt,
-  }));
-}
+    // Cùng cách rơi về dữ liệu tĩnh như `/blog`, để trang chủ và trang danh sách
+    // không bao giờ nói hai điều khác nhau về việc blog có bài hay không.
+    return sortedStaticPosts(limit).map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      category: post.category,
+      emoji: post.emoji,
+      coverColor: post.coverColor,
+      coverImageUrl: null,
+      readTime: post.readTime,
+      publishedAt: post.publishedAt,
+    }));
+  },
+  ["landing-recent-posts"],
+  { revalidate: 60, tags: ["blog-posts"] },
+);
 
 export async function BlogSection() {
   const posts = await getRecentPosts();

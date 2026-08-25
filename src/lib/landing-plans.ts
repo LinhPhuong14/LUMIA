@@ -1,9 +1,11 @@
+import { unstable_cache } from "next/cache";
+
 import {
   boxCardBySlug,
   landingBoxCards,
   type LandingBoxCard,
 } from "@/components/landing/data/landing-content";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 
 /** LandingBoxCard without the (non-serializable) Lucide icon component, so it can
  *  be passed from a server component to a client component. The client re-attaches
@@ -24,46 +26,54 @@ function formatVnd(n: number): string {
  * `subscription_plans` table and merged with each tier's static visual identity
  * (icon, gradient, tagline…). Falls back to the hardcoded tiers when the table is
  * empty or Supabase is unavailable — matching the pattern PromoSection already uses.
+ *
+ * Same tier grid for every visitor, so an anon client (no cookies) + `unstable_cache`
+ * — the landing page is already dynamic (HomePage reads `cookies()`), and this is
+ * the only way to keep this query from hitting the DB on every single page load.
  */
-export async function getLandingBoxCards(): Promise<LandingBoxCardData[]> {
-  const supabase = await createClient();
-  if (!supabase) return landingBoxCards.map(stripIcon);
+export const getLandingBoxCards = unstable_cache(
+  async (): Promise<LandingBoxCardData[]> => {
+    const supabase = createPublicClient();
+    if (!supabase) return landingBoxCards.map(stripIcon);
 
-  const { data, error } = await supabase
-    .from("subscription_plans")
-    .select(
-      "id,name,price_vnd,duration_months,features,is_featured,is_active,is_first_time_only,sort_order",
-    )
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+    const { data, error } = await supabase
+      .from("subscription_plans")
+      .select(
+        "id,name,price_vnd,duration_months,features,is_featured,is_active,is_first_time_only,sort_order",
+      )
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
 
-  if (error || !data || data.length === 0) {
-    return landingBoxCards.map(stripIcon);
-  }
+    if (error || !data || data.length === 0) {
+      return landingBoxCards.map(stripIcon);
+    }
 
-  const cards = data
-    // first-time / promo plans are surfaced by PromoSection, not the tier grid
-    .filter((plan) => !plan.is_first_time_only)
-    .map((plan) => {
-      const base = boxCardBySlug[plan.id];
-      const dbFeatures = (plan.features as string[] | null) ?? [];
-      return {
-        slug: plan.id,
-        name: plan.name ?? base?.name ?? plan.id,
-        price: formatVnd(plan.price_vnd),
-        per: `${plan.duration_months ?? 1} tháng`,
-        // DB features are authoritative when present; otherwise keep the rich static copy
-        features: dbFeatures.length > 0 ? dbFeatures : base?.features ?? [],
-        featured: plan.is_featured ?? base?.featured ?? false,
-        // presentation-only fields live in the static tier map
-        blurb: base?.blurb ?? "",
-        tagline: base?.tagline ?? "",
-        idealFor: base?.idealFor ?? "",
-        gradient: base?.gradient ?? "var(--gradient-lime)",
-        badge: base?.badge,
-        photoTier: base?.photoTier ?? "standard",
-      } satisfies LandingBoxCardData;
-    });
+    const cards = data
+      // first-time / promo plans are surfaced by PromoSection, not the tier grid
+      .filter((plan) => !plan.is_first_time_only)
+      .map((plan) => {
+        const base = boxCardBySlug[plan.id];
+        const dbFeatures = (plan.features as string[] | null) ?? [];
+        return {
+          slug: plan.id,
+          name: plan.name ?? base?.name ?? plan.id,
+          price: formatVnd(plan.price_vnd),
+          per: `${plan.duration_months ?? 1} tháng`,
+          // DB features are authoritative when present; otherwise keep the rich static copy
+          features: dbFeatures.length > 0 ? dbFeatures : base?.features ?? [],
+          featured: plan.is_featured ?? base?.featured ?? false,
+          // presentation-only fields live in the static tier map
+          blurb: base?.blurb ?? "",
+          tagline: base?.tagline ?? "",
+          idealFor: base?.idealFor ?? "",
+          gradient: base?.gradient ?? "var(--gradient-lime)",
+          badge: base?.badge,
+          photoTier: base?.photoTier ?? "standard",
+        } satisfies LandingBoxCardData;
+      });
 
-  return cards.length > 0 ? cards : landingBoxCards.map(stripIcon);
-}
+    return cards.length > 0 ? cards : landingBoxCards.map(stripIcon);
+  },
+  ["landing-box-cards"],
+  { revalidate: 60, tags: ["subscription-plans"] },
+);

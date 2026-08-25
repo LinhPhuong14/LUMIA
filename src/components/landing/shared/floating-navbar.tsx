@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { LandingMobileDrawer } from "@/components/landing/shared/landing-mobile-drawer";
+import { NavLink } from "@/components/landing/shared/nav-link";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ThemeAwareLogo } from "@/components/ui/theme-aware-logo";
 import { landingNavLinks } from "@/lib/site-nav";
@@ -62,13 +63,11 @@ export function FloatingNavbar({ isAuthed = false }: { isAuthed?: boolean }) {
         <ThemeAwareLogo compact className="shrink-0" />
         <nav className="hidden flex-1 items-center gap-6 lg:flex">
           {landingNavLinks.map((link) => (
-            <a
+            <NavLink
               key={link.id}
-              href={link.href}
+              link={link}
               className="lumia-nav-link whitespace-nowrap text-sm font-medium transition hover:opacity-90"
-            >
-              {link.label}
-            </a>
+            />
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2 md:gap-3">
