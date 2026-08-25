@@ -8,6 +8,7 @@ import { MoodCheckInPanel } from "@/components/dashboard/mood-check-in-panel";
 import { MoodTrendChartLazy } from "@/components/dashboard/mood-trend-chart-lazy";
 import { HubInsightsStatRow } from "@/components/dashboard/hub/hub-insights";
 import { MistyScene } from "@/components/dashboard/shell/misty-scene";
+import { BlogWidget } from "@/components/dashboard/blog-widget";
 import { StoreWidget } from "@/components/dashboard/store-widget";
 import type {
   ChartPoint,
@@ -221,6 +222,7 @@ export function HubMobile({
       )}
 
       <StoreWidget />
+      <BlogWidget />
     </div>
   );
 }

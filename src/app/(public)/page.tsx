@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AiListeningSection } from "@/components/landing/sections/ai-listening-section";
-// import { BlogSection } from "@/components/landing/sections/blog-section";
+import { BlogSection } from "@/components/landing/sections/blog-section";
 import { BoxesShowcaseSection } from "@/components/landing/sections/boxes-showcase-section";
 // import { CategoriesSection } from "@/components/landing/sections/categories-section";
 import { HeroSection } from "@/components/landing/sections/hero-section";
@@ -52,9 +52,9 @@ export default async function HomePage({
       <BoxesShowcaseSection />
       <ProductsCarouselSection />
       <AiListeningSection />
+      <BlogSection />
       <WebappDemoSection />
       <TestimonialsSection />
-      {/* <BlogSection /> */}
       <QuizSection />
       <JoinSection />
       {/* <FaqSection /> */}

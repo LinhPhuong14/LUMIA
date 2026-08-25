@@ -23,9 +23,12 @@ export async function GET() {
 
   if (profile?.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
+  // `content` và `cover_image_url` phải nằm trong danh sách: form sửa bài nạp
+  // thẳng từ đây, thiếu trường nào là form mở ra rỗng trường đó rồi ghi đè rỗng
+  // xuống DB khi bấm Lưu.
   const { data, error } = await admin
     .from("blog_posts")
-    .select("id,slug,title,excerpt,category,emoji,cover_color,read_time,published,published_at,created_at")
+    .select("id,slug,title,excerpt,content,category,emoji,cover_color,cover_image_url,read_time,published,published_at,created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

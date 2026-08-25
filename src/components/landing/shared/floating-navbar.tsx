@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { LandingMobileDrawer } from "@/components/landing/shared/landing-mobile-drawer";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ThemeAwareLogo } from "@/components/ui/theme-aware-logo";
-import { landingAnchorLinks } from "@/lib/site-nav";
+import { landingNavLinks } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD = 12;
@@ -61,7 +61,7 @@ export function FloatingNavbar({ isAuthed = false }: { isAuthed?: boolean }) {
       >
         <ThemeAwareLogo compact className="shrink-0" />
         <nav className="hidden flex-1 items-center gap-6 lg:flex">
-          {landingAnchorLinks.map((link) => (
+          {landingNavLinks.map((link) => (
             <a
               key={link.id}
               href={link.href}
