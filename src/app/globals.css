@@ -2003,3 +2003,166 @@
     }
   }
 }
+
+/* ─── Tài liệu blog: dùng chung cho editor admin và trang bài viết ────────────
+ *
+ * Một bộ style cho cả hai chỗ, để cái admin nhìn thấy lúc soạn đúng bằng cái
+ * độc giả thấy lúc đọc. Trước đây editor gắn class `prose prose-sm` của
+ * @tailwindcss/typography, nhưng plugin đó chưa từng được cài — nên Preflight
+ * của Tailwind reset h1..h6 về cỡ chữ thường và bỏ dấu đầu dòng của ul/ol, còn
+ * class `prose` thì không tồn tại để dựng lại. Kết quả: trong editor, tiêu đề
+ * trông y hệt đoạn văn và danh sách mất chấm, tức là không nhìn ra bố cục mình
+ * đang dựng. Đây là phần chữa việc đó, bằng CSS thật thay vì thêm plugin.
+ */
+
+.lumia-doc :where(h1, h2, h3) {
+  font-family: var(--font-serif, ui-serif, Georgia, serif);
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.3;
+}
+.lumia-doc h1 { font-size: 1.75rem; margin-top: 2rem; }
+.lumia-doc h2 { font-size: 1.35rem; margin-top: 2rem; }
+.lumia-doc h3 { font-size: 1.1rem;  margin-top: 1.5rem; }
+.lumia-doc p  { margin-top: 1rem; }
+.lumia-doc :where(h1, h2, h3):first-child,
+.lumia-doc p:first-child { margin-top: 0; }
+
+.lumia-doc ul,
+.lumia-doc ol { margin-top: 1rem; padding-left: 1.5rem; }
+.lumia-doc ul { list-style: disc; }
+.lumia-doc ol { list-style: decimal; }
+.lumia-doc li { margin-top: 0.25rem; }
+.lumia-doc li > p { margin-top: 0; }
+.lumia-doc li::marker { color: var(--muted); }
+
+.lumia-doc a {
+  color: var(--green-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lumia-doc strong { color: var(--foreground); font-weight: 600; }
+
+.lumia-doc blockquote {
+  margin-top: 1.25rem;
+  border-left: 3px solid var(--green);
+  padding: 0.25rem 0 0.25rem 1rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.lumia-doc code {
+  border-radius: 5px;
+  background: var(--surface-warm);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.lumia-doc pre {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  border-radius: 12px;
+  background: var(--surface-warm);
+  padding: 0.9rem 1rem;
+  font-size: 0.85rem;
+}
+.lumia-doc pre code { background: none; padding: 0; }
+
+.lumia-doc hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Ảnh kèm chú thích — khối hay dùng nhất ở giữa bài. */
+.lumia-doc figure { margin: 1.75rem 0; }
+.lumia-doc :where(figure img, p > img) {
+  width: 100%;
+  border-radius: 16px;
+}
+.lumia-doc figcaption {
+  margin-top: 0.6rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+/* Chú thích rỗng vẫn phải bấm vào được, nếu không thì ảnh vừa chèn xong không
+   có chỗ nào để gõ chú thích. */
+.lumia-doc figcaption:empty::before {
+  content: "";
+  display: inline-block;
+  min-height: 1.2em;
+}
+
+.lumia-doc table {
+  margin-top: 1.5rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: fixed;
+}
+.lumia-doc :where(th, td) {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.lumia-doc th {
+  background: var(--surface-warm);
+  font-weight: 600;
+  color: var(--foreground);
+}
+.lumia-doc :where(th, td) > p { margin-top: 0; }
+
+.lumia-doc ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.lumia-doc ul[data-type="taskList"] li { display: flex; gap: 0.5rem; align-items: flex-start; }
+.lumia-doc ul[data-type="taskList"] li > label { margin-top: 0.3rem; }
+
+/* ─── Chỉ dành cho editor ────────────────────────────────────────────────── */
+
+.lumia-doc .ProseMirror { outline: none; min-height: 1.5em; }
+
+/* Gợi ý của extension Placeholder. `float:left; height:0` giữ cho dòng gợi ý
+   không đẩy con trỏ xuống dòng dưới. */
+.lumia-doc .ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+/* Khối đang được kéo hoặc chọn cả node. */
+.lumia-doc .ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--green) 55%, transparent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.lumia-doc .tableWrapper { overflow-x: auto; }
+.lumia-doc .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--green);
+  pointer-events: none;
+}
+.lumia-doc .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  pointer-events: none;
+}
+
+/* Tay cầm kéo thả do @tiptap/extension-drag-handle-react định vị tuyệt đối.
+   Ẩn hẳn khi không trỏ vào khối nào để nó không lơ lửng giữa trang. */
+.lumia-drag-handle {
+  transition: opacity 120ms ease;
+}
+.lumia-drag-handle[data-state="hidden"] {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -223,8 +223,33 @@ function isHtml(s: string) {
   return /<(p|h[1-6]|div|br|ul|ol|li|strong|em|img|blockquote|a)\b/i.test(s);
 }
 
+/**
+ * Ảnh giữa bài cho các bài viết ở dạng markdown seed: `![chú thích](url)`.
+ *
+ * Bài do admin soạn đi đường HTML nên chèn ảnh thoải mái, còn bài nạp từ seed
+ * thì trước đây không có cú pháp nào để đặt ảnh vào giữa nội dung — chỉ có mỗi
+ * ảnh bìa. Chú thích là tuỳ chọn: `![](url)` ra ảnh trần, không đẻ figcaption
+ * rỗng.
+ */
+const IMAGE_BLOCK = /^!\[([^\]]*)\]\(([^)\s]+)\)$/;
+
 function renderMarkdown(content: string) {
   return content.split("\n\n").map((block, i) => {
+    const image = block.trim().match(IMAGE_BLOCK);
+    if (image) {
+      const [, caption, src] = image;
+      return (
+        <figure key={i} className="my-7">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={caption} className="w-full rounded-2xl" />
+          {caption ? (
+            <figcaption className="mt-2.5 text-center text-[13px] leading-relaxed text-[var(--muted)]">
+              {caption}
+            </figcaption>
+          ) : null}
+        </figure>
+      );
+    }
     if (block.startsWith("**") && block.endsWith("**")) {
       // Tiêu đề phụ trong thân bài là h2, không phải h3: h1 là tên bài, nên nhảy
       // thẳng xuống h3 để hổng một bậc khiến Google đọc sai cấu trúc bài viết.
@@ -353,7 +378,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <div className="mt-8 border-t border-[var(--border)] pt-8">
                 {isHtml(content) ? (
                   <div
-                    className="text-[15px] leading-[1.85] text-[var(--muted)] [&_a]:text-[var(--green-deep)] [&_a]:underline [&_h1]:mt-8 [&_h1]:font-serif [&_h1]:text-2xl [&_h1]:text-[var(--foreground)] [&_h2]:mt-8 [&_h2]:font-serif [&_h2]:text-xl [&_h2]:text-[var(--foreground)] [&_h3]:mt-6 [&_h3]:font-serif [&_h3]:text-lg [&_h3]:text-[var(--foreground)] [&_img]:my-6 [&_img]:rounded-2xl [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_strong]:text-[var(--foreground)] [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6"
+                    // `lumia-doc` là bộ style dùng chung với editor admin, nên
+                    // trang đọc hiện đúng bằng cái người soạn nhìn thấy. Chuỗi
+                    // `[&_...]` trước đây chỉ phủ được p/h/ul/ol/img — bảng,
+                    // figcaption và checklist do editor sinh ra đều rơi về mặc
+                    // định của Preflight, tức là mất viền và mất dấu đầu dòng.
+                    className="lumia-doc text-[15px] leading-[1.85] text-[var(--muted)]"
                     dangerouslySetInnerHTML={{ __html: content }}
                   />
                 ) : (
