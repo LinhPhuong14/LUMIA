@@ -46,10 +46,10 @@ const sql = `-- Seed: nạp ${BLOG_POSTS.length} bài blog khởi điểm vào b
 -- nguồn rồi chạy lại script sinh.
 --
 -- Vì sao cần nạp: cho tới khi bảng có bài publish, mọi chỗ đọc blog (trang
--- danh sách, khối trang chủ, widget dashboard, sitemap) đều rơi về 6 bài tĩnh
--- trong code. Sitemap vì thế công bố 6 URL đó cho Google. Đến lúc admin đăng
--- bài thật đầu tiên, DB thành nguồn sự thật duy nhất và 6 URL kia lập tức 404
--- — tức là Google đang giữ 6 đường dẫn hỏng. Nạp chúng vào DB ngay từ đầu thì
+-- danh sách, khối trang chủ, widget dashboard, sitemap) đều rơi về ${BLOG_POSTS.length} bài tĩnh
+-- trong code. Sitemap vì thế công bố ${BLOG_POSTS.length} URL đó cho Google. Đến lúc admin đăng
+-- bài thật đầu tiên, DB thành nguồn sự thật duy nhất và ${BLOG_POSTS.length} URL kia lập tức 404
+-- — tức là Google đang giữ ${BLOG_POSTS.length} đường dẫn hỏng. Nạp chúng vào DB ngay từ đầu thì
 -- không bao giờ có bước hẫng đó, và admin sửa hay xoá được chúng như bài thường.
 --
 -- Chạy trong Supabase SQL Editor, SAU migration 033_blog_schema.sql.
