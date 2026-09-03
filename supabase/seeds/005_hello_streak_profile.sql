@@ -1,6 +1,6 @@
--- Seed: hồ sơ streak 13 ngày cho hello@lumia.com
+-- Seed: hồ sơ streak 14 ngày cho hello@lumia.com
 --
--- Cửa sổ dữ liệu: 2026-08-22 → 2026-09-03 (13 ngày liên tiếp, tính từ 3/9 đổ lại).
+-- Cửa sổ dữ liệu: 2026-08-21 → 2026-09-03 (14 ngày liên tiếp, tính từ 3/9 đổ lại).
 -- Đổi mốc kết thúc ở biến v_end_date bên dưới thì cả cửa sổ trượt theo.
 --
 -- Chạy trong Supabase SQL Editor (cần đọc schema `auth` để tra user id).
@@ -8,21 +8,21 @@
 -- active cho hello@lumia.com, mà tab Hành trình chỉ mở khi subscription active.
 --
 -- Nạp gì:
---   streaks         current_streak = 13, last_active_date = ngày cuối cửa sổ
+--   streaks         current_streak = 14, last_active_date = ngày cuối cửa sổ
 --   mood_checkins   1 lượt check-in / ngày, điểm 2→5 theo nhịp tăng dần
 --   activity_logs   2-4 hoạt động / ngày (mood, journal, audio, chat, breathing, timer)
---   journal_entries 5 bài nhật ký rải trong cửa sổ
+--   journal_entries 6 bài nhật ký rải trong cửa sổ
 --
 -- An toàn khi chạy lại: xoá sạch dữ liệu cũ trong đúng cửa sổ rồi chèn lại, nên
 -- activity_logs (bảng không có unique key) cũng không bị nhân đôi.
 --
 -- LƯU Ý 1 — v_trim_before: mặc định TRUE, xoá dữ liệu của đúng MỘT ngày liền
--- trước cửa sổ (2026-08-21). Không có bước này, nếu tài khoản đã có check-in
--- ngày 21/8 thì heatmap sẽ vẽ một mạch dài hơn 13 ngày, trái với con số streak.
+-- trước cửa sổ (2026-08-20). Không có bước này, nếu tài khoản đã có check-in
+-- ngày 20/8 thì heatmap sẽ vẽ một mạch dài hơn 14 ngày, trái với con số streak.
 -- Đặt FALSE nếu muốn giữ nguyên mọi dữ liệu cũ.
 --
--- LƯU Ý 2 — longest_streak lấy GREATEST(kỷ lục cũ, 13) để không xoá mất kỷ lục
--- thật. Muốn ép đúng 13 thì đổi GREATEST(...) thành v_days ở cuối file.
+-- LƯU Ý 2 — longest_streak lấy GREATEST(kỷ lục cũ, 14) để không xoá mất kỷ lục
+-- thật. Muốn ép đúng 14 thì đổi GREATEST(...) thành v_days ở cuối file.
 
 DO $seed$
 DECLARE
@@ -56,7 +56,7 @@ BEGIN
   ON CONFLICT (user_id) DO NOTHING;
 
   -- ── Kịch bản từng ngày ──────────────────────────────────────────────────────
-  -- day_offset: 0 = v_end_date, 12 = ngày đầu cửa sổ.
+  -- day_offset: 0 = v_end_date, 13 = ngày đầu cửa sổ.
   DROP TABLE IF EXISTS _lumia_streak_days;
   CREATE TEMP TABLE _lumia_streak_days (
     day_offset int PRIMARY KEY,
@@ -67,7 +67,10 @@ BEGIN
   ) ON COMMIT DROP;
 
   INSERT INTO _lumia_streak_days (day_offset, mood_score, mood_note, activities, journal) VALUES
-    (12, 3, 'Cuối tuần đầu tiên thử mở LUMIA. Nghe mưa 10 phút rồi ngủ.',
+    (13, 2, 'Đêm qua trằn trọc tới gần 2h. Cài LUMIA, nghe thử soundscape trước khi ngủ.',
+        ARRAY['mood','audio','journal']::public.activity_type[],
+        $j$Tuần thứ ba liên tiếp mình ngủ chập chờn. Không hẳn vì lo chuyện gì cụ thể, chỉ là nằm xuống rồi đầu vẫn chạy. Thử app này xem sao, đặt mục tiêu nhỏ thôi: mỗi tối ghi lại một dòng.$j$),
+    (12, 3, 'Ngủ được hơn đêm qua một chút. Nghe mưa 10 phút rồi ngủ.',
         ARRAY['mood','audio']::public.activity_type[], NULL),
     (11, 4, 'Ngủ dậy nhẹ người hơn hôm qua. Tập thở trước khi đi bộ buổi sáng.',
         ARRAY['mood','breathing','audio']::public.activity_type[], NULL),
@@ -95,9 +98,9 @@ BEGIN
         $j$Ba điều của hôm nay: cà phê pha vừa tay, họp xong sớm 20 phút, và mẹ gọi điện chỉ để hỏi thăm chứ không có việc gì.$j$),
     (1,  4, 'Đều đặn. Thiền 10 phút rồi đi ngủ đúng giờ.',
         ARRAY['mood','timer','audio']::public.activity_type[], NULL),
-    (0,  5, 'Tròn 13 ngày liên tục. Nhịp sinh hoạt đã thành thói quen.',
+    (0,  5, 'Tròn 14 ngày liên tục. Nhịp sinh hoạt đã thành thói quen.',
         ARRAY['mood','journal','breathing','audio']::public.activity_type[],
-        $j$Mười ba ngày liền không bỏ buổi nào. Ban đầu mình mở app vì thấy phải mở, giờ thì tối đến tự động với tay lấy điện thoại bật soundscape. Mục tiêu tiếp theo: 21 ngày.$j$);
+        $j$Mười bốn ngày liền không bỏ buổi nào. Ban đầu mình mở app vì thấy phải mở, giờ thì tối đến tự động với tay lấy điện thoại bật soundscape. Mục tiêu tiếp theo: 21 ngày.$j$);
 
   SELECT count(*), max(day_offset) - min(day_offset) + 1
     INTO v_days, v_span
@@ -187,7 +190,7 @@ END $seed$;
 --   SELECT date, count(*) AS activities
 --   FROM public.activity_logs
 --   WHERE user_id = (SELECT id FROM public.profiles WHERE email = 'hello@lumia.com')
---   GROUP BY date ORDER BY date;   -- phải ra đúng 13 ngày liên tiếp
+--   GROUP BY date ORDER BY date;   -- phải ra đúng 14 ngày liên tiếp
 --
 -- ── Rollback ──────────────────────────────────────────────────────────────────
 --
@@ -195,8 +198,8 @@ END $seed$;
 --   DECLARE v_id uuid;
 --   BEGIN
 --     SELECT id INTO v_id FROM auth.users WHERE email = 'hello@lumia.com';
---     DELETE FROM public.activity_logs   WHERE user_id = v_id AND date BETWEEN '2026-08-22' AND '2026-09-03';
---     DELETE FROM public.mood_checkins   WHERE user_id = v_id AND date BETWEEN '2026-08-22' AND '2026-09-03';
---     DELETE FROM public.journal_entries WHERE user_id = v_id AND date BETWEEN '2026-08-22' AND '2026-09-03';
+--     DELETE FROM public.activity_logs   WHERE user_id = v_id AND date BETWEEN '2026-08-21' AND '2026-09-03';
+--     DELETE FROM public.mood_checkins   WHERE user_id = v_id AND date BETWEEN '2026-08-21' AND '2026-09-03';
+--     DELETE FROM public.journal_entries WHERE user_id = v_id AND date BETWEEN '2026-08-21' AND '2026-09-03';
 --     UPDATE public.streaks SET current_streak = 0, last_active_date = NULL WHERE user_id = v_id;
 --   END $rb$;
