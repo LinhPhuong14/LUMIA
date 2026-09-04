@@ -20,6 +20,24 @@ const assessmentSchema = z.object({
 });
 
 /**
+ * `weekly_assessments` là bảng snake_case (`mood_score`, `sleep_score`...), còn
+ * phía client (`WeeklyResult` trong mood-test-quiz.tsx) đọc camelCase. Trả
+ * thẳng row thô ra sẽ khiến mọi field phía client đọc thành `undefined` — map
+ * qua đây để hai bên khớp nhau.
+ */
+function mapWeeklyAssessmentRow(row: Record<string, unknown> | null) {
+  if (!row) return null;
+  return {
+    weekStart: row.week_start as string,
+    moodScore: row.mood_score as number,
+    sleepScore: row.sleep_score as number,
+    stressScore: row.stress_score as number,
+    dominantEmotion: (row.dominant_emotion as string | null) ?? null,
+    improveGoals: Array.isArray(row.improve_goals) ? (row.improve_goals as string[]) : [],
+  };
+}
+
+/**
  * Returns the most recent Monday (inclusive of today if today is Monday)
  * as an ISO date string "YYYY-MM-DD" in local time.
  */
@@ -137,7 +155,7 @@ export async function GET() {
   const hasCurrentWeek = latest?.week_start === weekStart;
 
   return NextResponse.json({
-    latest: latest ?? null,
+    latest: mapWeeklyAssessmentRow(latest),
     weekStart,
     hasCurrentWeek,
   });

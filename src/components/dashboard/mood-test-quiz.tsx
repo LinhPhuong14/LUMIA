@@ -300,14 +300,29 @@ export function MoodTestQuiz() {
   }
 
   // Report screen
+  //
+  // Hai đường vào đây: (1) vừa làm xong 10 câu hỏi rồi `submit()` nhảy thẳng
+  // tới đây, (2) bấm "Xem báo cáo tuần này" ở màn hình intro mà KHÔNG làm lại
+  // — lúc đó `answers` vẫn là default rỗng. Ưu tiên `answers` khi nó đã được
+  // điền (moodScore khác null) — đường (1) — vì đó luôn là dữ liệu mới nhất;
+  // `latestResult` (từ GET lúc mount, đã cũ nếu vừa nộp bài) chỉ dùng cho
+  // đường (2).
   if (step === 11) {
-    const result = latestResult ?? {
-      moodScore: answers.moodScore ?? 3,
-      sleepScore: answers.sleepScore ?? 3,
-      stressScore: answers.stressScore ?? 3,
-      dominantEmotion: answers.dominantEmotion,
-      improveGoals: answers.improveGoals,
-    };
+    const result = answers.moodScore != null
+      ? {
+          moodScore: answers.moodScore,
+          sleepScore: answers.sleepScore ?? 3,
+          stressScore: answers.stressScore ?? 3,
+          dominantEmotion: answers.dominantEmotion,
+          improveGoals: answers.improveGoals,
+        }
+      : latestResult ?? {
+          moodScore: 3,
+          sleepScore: 3,
+          stressScore: 3,
+          dominantEmotion: null,
+          improveGoals: [],
+        };
     const message = buildPersonalizedMessage(answers.tonightChoice ? answers : {
       ...defaultAnswers,
       moodScore: result.moodScore,
