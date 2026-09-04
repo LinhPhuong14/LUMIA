@@ -29,6 +29,7 @@ import type { Route } from "next";
 import { getAllPurchasableProducts, type BoxProduct } from "@/data/catalog";
 import { useCart } from "@/lib/cart-context";
 import { CartSheet } from "@/components/store/cart-sheet";
+import type { StoreOrderEntry } from "@/lib/store-orders";
 
 type StoreVariant = { name: string; image_url?: string | null; stock_quantity?: number | null };
 
@@ -486,7 +487,7 @@ function TrustStrip() {
 export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)", hideRegisterCta = false, productBasePath = "/store", isLoggedIn = true }: { stickyTop?: string; hideRegisterCta?: boolean; productBasePath?: string; isLoggedIn?: boolean } = {}) {
   const { count } = useCart();
   const [showCart, setShowCart] = useState(false);
-  const [orders, setOrders] = useState<Array<{id: string; status: string; items: unknown[]; total_vnd: number; created_at: string}>>([]);
+  const [orders, setOrders] = useState<StoreOrderEntry[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   const [planTab, setPlanTab] = useState<PlanTab>("digital");
@@ -666,12 +667,12 @@ export function UnifiedStore({ stickyTop = "var(--marketing-header-height, 64px)
                       Đơn #{order.id.slice(0, 8).toUpperCase()}
                     </p>
                     <p className="mt-0.5 text-[11px] text-[var(--muted)]">
-                      {new Date(order.created_at).toLocaleDateString("vi-VN")}
+                      {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[13px] font-semibold text-[var(--foreground)]">
-                      {order.total_vnd.toLocaleString("vi-VN")} ₫
+                      {order.totalVnd.toLocaleString("vi-VN")} ₫
                     </p>
                     <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                       order.status === "delivered" ? "bg-[var(--green-wash)] text-[var(--green-deep)]" :
